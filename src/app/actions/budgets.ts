@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-interface BudgetCategory {
+export interface BudgetCategory {
   id: string;
   name: string;
   icon: string;
@@ -19,6 +19,45 @@ export interface BudgetQueryResult {
   year?: number | null;
   category: BudgetCategory | null;
   spent: number;
+}
+
+export interface BudgetChartDataPoint {
+  date: string;
+  rawDate: string;
+  recommended: number;
+  actual: number | null;
+  projected: number | null;
+}
+
+export interface BudgetTransactionItem {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  note: string | null;
+  transaction_date: string;
+  categoryName: string;
+  categoryIcon: string;
+  categoryColor: string;
+  accountName?: string;
+}
+
+export interface BudgetDetailResult {
+  id: string;
+  amount: number;
+  startDate: string;
+  endDate: string;
+  month?: number | null;
+  year?: number | null;
+  category: BudgetCategory | null;
+  spent: number;
+  remaining: number;
+  percentage: number;
+  totalDays: number;
+  daysElapsed: number;
+  daysRemaining: number;
+  dailySafeSpend: number;
+  chartData: BudgetChartDataPoint[];
+  transactions: BudgetTransactionItem[];
 }
 
 export async function getBudgets(month?: number, year?: number): Promise<BudgetQueryResult[]> {
@@ -87,6 +126,170 @@ export async function getBudgets(month?: number, year?: number): Promise<BudgetQ
   });
 }
 
+export async function getBudgetDetail(id: string): Promise<BudgetDetailResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  // Fetch budget with category
+  const { data: budget, error: budgetError } = await supabase
+    .from('budgets')
+    .select(`
+      id, amount, start_date, end_date, month, year,
+      categories ( id, name, icon, color )
+    `)
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single();
+
+  if (budgetError || !budget) {
+    throw new Error('Budget not found');
+  }
+
+  const category = (Array.isArray(budget.categories) ? budget.categories[0] : budget.categories) as BudgetCategory | null;
+  const catId = category?.id ?? '';
+
+  // Fetch transactions for this category within the budget date range
+  const { data: rawTxns, error: txError } = await supabase
+    .from('transactions')
+    .select(`
+      id, type, amount, note, transaction_date,
+      accounts ( name )
+    `)
+    .eq('user_id', user.id)
+    .eq('category_id', catId)
+    .eq('type', 'expense')
+    .gte('transaction_date', budget.start_date)
+    .lte('transaction_date', budget.end_date)
+    .order('transaction_date', { ascending: false });
+
+  if (txError) throw txError;
+
+  const transactions: BudgetTransactionItem[] = (rawTxns ?? []).map((t) => {
+    const acc = Array.isArray(t.accounts) ? t.accounts[0] : t.accounts;
+    return {
+      id: t.id,
+      type: t.type as 'income' | 'expense',
+      amount: Number(t.amount),
+      note: t.note,
+      transaction_date: t.transaction_date,
+      categoryName: category?.name ?? 'Category',
+      categoryIcon: category?.icon ?? 'Package',
+      categoryColor: category?.color ?? '#6B7280',
+      accountName: acc?.name,
+    };
+  });
+
+  const totalSpent = transactions.reduce((sum, t) => sum + t.amount, 0);
+  const budgetAmount = Number(budget.amount);
+  const remaining = budgetAmount - totalSpent;
+  const percentage = budgetAmount > 0 ? (totalSpent / budgetAmount) * 100 : 100;
+
+  // Build daily timeline from start_date to end_date
+  const startDate = new Date(budget.start_date);
+  const endDate = new Date(budget.end_date);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const dateList: string[] = [];
+  const curr = new Date(startDate);
+  while (curr <= endDate) {
+    dateList.push(curr.toISOString().split('T')[0]);
+    curr.setDate(curr.getDate() + 1);
+  }
+
+  const totalDays = Math.max(1, dateList.length);
+
+  // Group transactions by date
+  const spentByDate: Record<string, number> = {};
+  for (const t of transactions) {
+    spentByDate[t.transaction_date] = (spentByDate[t.transaction_date] || 0) + t.amount;
+  }
+
+  // Find index of today in dateList
+  let todayIndex = dateList.indexOf(todayStr);
+  if (todayIndex === -1) {
+    if (todayStr < dateList[0]) todayIndex = -1; // Before start
+    else todayIndex = dateList.length - 1; // After end
+  }
+
+  const daysElapsed = Math.min(totalDays, Math.max(1, todayIndex + 1));
+  const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  const dailySafeSpend = daysRemaining > 0 ? Math.max(0, Math.round(remaining / daysRemaining)) : 0;
+
+  // Compute 3-line chart series
+  let runningActual = 0;
+  const chartData: BudgetChartDataPoint[] = [];
+
+  // Calculate actual total up to today
+  let spentUpToToday = 0;
+  for (let i = 0; i <= Math.min(todayIndex, dateList.length - 1); i++) {
+    if (i >= 0) {
+      spentUpToToday += spentByDate[dateList[i]] || 0;
+    }
+  }
+
+  const currentDailyRate = daysElapsed > 0 ? spentUpToToday / daysElapsed : 0;
+
+  for (let i = 0; i < dateList.length; i++) {
+    const dStr = dateList[i];
+    const dayNum = i + 1;
+    const dObj = new Date(dStr);
+    const label = dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    // 1. Recommended linear budget pace
+    const recommended = Math.round((budgetAmount / totalDays) * dayNum);
+
+    // 2. Actual cumulative spending
+    let actual: number | null = null;
+    if (i <= todayIndex) {
+      runningActual += spentByDate[dStr] || 0;
+      actual = runningActual;
+    }
+
+    // 3. Projected spending line
+    let projected: number | null = null;
+    if (todayIndex === -1) {
+      // Future budget not started yet
+      projected = Math.round((budgetAmount / totalDays) * dayNum);
+    } else if (i === todayIndex) {
+      // Connects with actual at today
+      projected = actual;
+    } else if (i > todayIndex) {
+      const daysAhead = i - todayIndex;
+      projected = Math.round(spentUpToToday + currentDailyRate * daysAhead);
+    }
+
+    chartData.push({
+      date: label,
+      rawDate: dStr,
+      recommended,
+      actual,
+      projected,
+    });
+  }
+
+  return {
+    id: budget.id,
+    amount: budgetAmount,
+    startDate: budget.start_date,
+    endDate: budget.end_date,
+    month: budget.month,
+    year: budget.year,
+    category,
+    spent: totalSpent,
+    remaining,
+    percentage,
+    totalDays,
+    daysElapsed,
+    daysRemaining,
+    dailySafeSpend,
+    chartData,
+    transactions,
+  };
+}
+
 export async function createBudget(formData: {
   category_id: string;
   amount: number;
@@ -153,6 +356,7 @@ export async function updateBudget(id: string, formData: {
 
   if (error) throw error;
   revalidatePath('/budgets');
+  revalidatePath(`/budgets/${id}`);
   revalidatePath('/');
 }
 

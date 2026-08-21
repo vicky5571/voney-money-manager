@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Plus, X, Calendar, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { BudgetProgress } from '@/components/budget-progress';
@@ -186,17 +187,22 @@ export function BudgetsClient({
         ) : (
           <div className="space-y-4">
             {initialBudgets.map((budget) => (
-              <BudgetProgress
+              <Link
                 key={budget.id}
-                categoryName={budget.category?.name ?? 'Unknown'}
-                categoryIcon={budget.category?.icon ?? 'Package'}
-                categoryColor={budget.category?.color ?? '#6B7280'}
-                spent={budget.spent}
-                limit={budget.amount}
-                startDate={budget.startDate}
-                endDate={budget.endDate}
-                onDelete={() => setDeleteTargetId(budget.id)}
-              />
+                href={`/budgets/${budget.id}`}
+                className="block transition-transform active:scale-[0.99]"
+              >
+                <BudgetProgress
+                  categoryName={budget.category?.name ?? 'Unknown'}
+                  categoryIcon={budget.category?.icon ?? 'Package'}
+                  categoryColor={budget.category?.color ?? '#6B7280'}
+                  spent={budget.spent}
+                  limit={budget.amount}
+                  startDate={budget.startDate}
+                  endDate={budget.endDate}
+                  onDelete={() => setDeleteTargetId(budget.id)}
+                />
+              </Link>
             ))}
           </div>
         )}

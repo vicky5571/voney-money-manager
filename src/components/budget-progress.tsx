@@ -15,8 +15,8 @@ interface BudgetProgressProps {
 
 function formatDateRange(startDate?: string, endDate?: string) {
   if (!startDate || !endDate) return null;
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  const start = new Date(startDate + 'T00:00:00');
+  const end = new Date(endDate + 'T00:00:00');
   const startFormatted = start.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
   const endFormatted = end.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   return `${startFormatted} – ${endFormatted}`;
@@ -26,8 +26,7 @@ function getDaysRemaining(endDate?: string) {
   if (!endDate) return null;
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  const end = new Date(endDate);
-  end.setHours(0, 0, 0, 0);
+  const end = new Date(endDate + 'T00:00:00');
   const diffTime = end.getTime() - now.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return 'Ended';
@@ -38,20 +37,18 @@ function getDaysRemaining(endDate?: string) {
 
 function getTodayProgress(startDate?: string, endDate?: string): number | null {
   if (!startDate || !endDate) return null;
-  const start = new Date(startDate);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(endDate);
-  end.setHours(23, 59, 59, 999);
+  const start = new Date(startDate + 'T00:00:00');
+  const end = new Date(endDate + 'T00:00:00');
   const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
-  const totalTime = end.getTime() - start.getTime();
-  if (totalTime <= 0) return null;
+  const totalDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  if (totalDays <= 0) return null;
 
-  const elapsedTime = now.getTime() - start.getTime();
-  const percentage = (elapsedTime / totalTime) * 100;
+  const elapsedDays = Math.round((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  if (elapsedDays < 0 || elapsedDays > totalDays) return null;
 
-  // Only display if today falls within the budget period
-  if (percentage < 0 || percentage > 100) return null;
+  const percentage = Number(((elapsedDays / totalDays) * 100).toFixed(2));
   return Math.min(Math.max(percentage, 0), 100);
 }
 
@@ -112,7 +109,11 @@ export function BudgetProgress({
           </div>
           {onDelete && (
             <button
-              onClick={onDelete}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete();
+              }}
               className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
               title="Delete budget"
               aria-label="Delete budget"
