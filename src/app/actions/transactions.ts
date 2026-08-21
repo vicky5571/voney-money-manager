@@ -39,6 +39,30 @@ export async function getTransactions({
   return { transactions: data ?? [], total: count ?? 0, hasMore: (count ?? 0) > page * limit };
 }
 
+export async function getMonthSummary(month: number, year: number) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('type, amount')
+    .eq('user_id', user.id)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate);
+
+  if (error) throw error;
+
+  const income = (data ?? []).filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+  const expense = (data ?? []).filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+
+  return { income, expense, net: income - expense };
+}
+
 export async function createTransaction(formData: {
   type: 'income' | 'expense';
   amount: number;

@@ -55,7 +55,7 @@ export function TransactionDetailSheet({
       />
 
       {/* Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl px-6 pt-6 pb-8 safe-bottom max-w-[430px] mx-auto animate-slide-up">
+      <div className="fixed bottom-16 left-0 right-0 z-50 bg-white rounded-3xl mx-3 px-6 pt-6 pb-8 max-w-[430px] sm:mx-auto animate-slide-up shadow-2xl">
         {/* Handle bar */}
         <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-6" />
 
