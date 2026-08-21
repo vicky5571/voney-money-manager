@@ -81,8 +81,10 @@ export const budgets = pgTable('budgets', {
     .notNull()
     .references(() => categories.id, { onDelete: 'cascade' }),
   amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
-  month: integer('month').notNull(),
-  year: integer('year').notNull(),
+  startDate: date('start_date').notNull(),
+  endDate: date('end_date').notNull(),
+  month: integer('month'),
+  year: integer('year'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

@@ -295,14 +295,18 @@ async function seed() {
       }
       console.log(`  ✅ Inserted ${transactionsToSeed.length} sample transactions.`);
 
-      // 6. Seed Monthly Budgets
+      // 6. Seed Date-Range Budgets
+      const firstOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+      const lastDayOfMonth = new Date(currentYear, currentMonth, 0).getDate();
+      const lastOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
+
       const budgetsToSeed = [
-        { category: 'Food', amount: 2500000 },
-        { category: 'Shopping', amount: 1500000 },
-        { category: 'Transport', amount: 800000 },
-        { category: 'Bills', amount: 1200000 },
-        { category: 'Entertainment', amount: 600000 },
-        { category: 'Health', amount: 500000 },
+        { category: 'Food', amount: 2500000, startDate: firstOfMonth, endDate: lastOfMonth },
+        { category: 'Shopping', amount: 1500000, startDate: firstOfMonth, endDate: lastOfMonth },
+        { category: 'Transport', amount: 800000, startDate: firstOfMonth, endDate: lastOfMonth },
+        { category: 'Bills', amount: 1200000, startDate: firstOfMonth, endDate: lastOfMonth },
+        { category: 'Entertainment', amount: 600000, startDate: firstOfMonth, endDate: lastOfMonth },
+        { category: 'Health', amount: 500000, startDate: firstOfMonth, endDate: lastOfMonth },
       ];
 
       for (const b of budgetsToSeed) {
@@ -311,6 +315,8 @@ async function seed() {
             user_id,
             category_id,
             amount,
+            start_date,
+            end_date,
             month,
             year
           )
@@ -318,12 +324,14 @@ async function seed() {
             ${user.id},
             ${getCatId(b.category)},
             ${b.amount},
+            ${b.startDate},
+            ${b.endDate},
             ${currentMonth},
             ${currentYear}
           );
         `;
       }
-      console.log(`  ✅ Inserted ${budgetsToSeed.length} monthly budgets for ${currentMonth}/${currentYear}.`);
+      console.log(`  ✅ Inserted ${budgetsToSeed.length} date-range budgets for ${currentMonth}/${currentYear}.`);
 
       // 7. Update Account Balances based on transactions
       for (const acc of userAccounts) {

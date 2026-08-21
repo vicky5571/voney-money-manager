@@ -10,50 +10,79 @@ interface BudgetCategory {
   color: string;
 }
 
-export async function getBudgets(month: number, year: number) {
+export interface BudgetQueryResult {
+  id: string;
+  amount: number;
+  startDate: string;
+  endDate: string;
+  month?: number | null;
+  year?: number | null;
+  category: BudgetCategory | null;
+  spent: number;
+}
+
+export async function getBudgets(month?: number, year?: number): Promise<BudgetQueryResult[]> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  // Get budgets for the month
-  const { data: budgets } = await supabase
+  const now = new Date();
+  const targetMonth = month ?? now.getMonth() + 1;
+  const targetYear = year ?? now.getFullYear();
+
+  const firstOfMonth = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+  const lastOfMonth = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${new Date(targetYear, targetMonth, 0).getDate()}`;
+
+  // Fetch budgets that overlap with the selected month or range
+  const { data: budgets, error: budgetsError } = await supabase
     .from('budgets')
     .select(`
-      id, amount, month, year,
+      id, amount, start_date, end_date, month, year,
       categories ( id, name, icon, color )
     `)
     .eq('user_id', user.id)
-    .eq('month', month)
-    .eq('year', year);
+    .lte('start_date', lastOfMonth)
+    .gte('end_date', firstOfMonth)
+    .order('start_date', { ascending: true });
 
-  // Get spent amounts for each budget category
-  const firstOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
-  const lastOfMonth = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+  if (budgetsError) throw budgetsError;
+  if (!budgets || budgets.length === 0) return [];
 
-  const { data: transactions } = await supabase
+  // Find the earliest start_date and latest end_date among these budgets
+  const minStartDate = budgets.reduce((min, b) => (b.start_date < min ? b.start_date : min), budgets[0].start_date);
+  const maxEndDate = budgets.reduce((max, b) => (b.end_date > max ? b.end_date : max), budgets[0].end_date);
+
+  // Fetch all expense transactions in the bounding date range
+  const { data: transactions, error: txError } = await supabase
     .from('transactions')
-    .select('category_id, amount')
+    .select('category_id, amount, transaction_date')
     .eq('user_id', user.id)
     .eq('type', 'expense')
-    .gte('transaction_date', firstOfMonth)
-    .lte('transaction_date', lastOfMonth);
+    .gte('transaction_date', minStartDate)
+    .lte('transaction_date', maxEndDate);
 
-  // Calculate spent per category
-  const spentByCategory: Record<string, number> = {};
-  transactions?.forEach(t => {
-    spentByCategory[t.category_id] = (spentByCategory[t.category_id] || 0) + Number(t.amount);
-  });
+  if (txError) throw txError;
 
-  return (budgets ?? []).map((b) => {
+  const txList = transactions ?? [];
+
+  return budgets.map((b) => {
     const category = (Array.isArray(b.categories) ? b.categories[0] : b.categories) as BudgetCategory | null;
     const catId = category?.id ?? '';
+
+    // Sum transactions matching this budget's category and date interval
+    const spent = txList
+      .filter((t) => t.category_id === catId && t.transaction_date >= b.start_date && t.transaction_date <= b.end_date)
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
     return {
       id: b.id,
       amount: Number(b.amount),
+      startDate: b.start_date,
+      endDate: b.end_date,
       month: b.month,
       year: b.year,
       category,
-      spent: catId ? (spentByCategory[catId] || 0) : 0,
+      spent,
     };
   });
 }
@@ -61,36 +90,70 @@ export async function getBudgets(month: number, year: number) {
 export async function createBudget(formData: {
   category_id: string;
   amount: number;
-  month: number;
-  year: number;
+  startDate: string;
+  endDate: string;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  // Check for duplicate
-  const { data: existing } = await supabase
-    .from('budgets')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('category_id', formData.category_id)
-    .eq('month', formData.month)
-    .eq('year', formData.year);
-
-  if (existing && existing.length > 0) {
-    throw new Error('Budget already exists for this category this month');
+  if (new Date(formData.endDate) < new Date(formData.startDate)) {
+    throw new Error('End date must be on or after start date');
   }
+
+  const startD = new Date(formData.startDate);
+  const month = startD.getMonth() + 1;
+  const year = startD.getFullYear();
 
   const { error } = await supabase.from('budgets').insert({
     user_id: user.id,
     category_id: formData.category_id,
     amount: formData.amount,
-    month: formData.month,
-    year: formData.year,
+    start_date: formData.startDate,
+    end_date: formData.endDate,
+    month,
+    year,
   });
 
   if (error) throw error;
   revalidatePath('/budgets');
+  revalidatePath('/');
+}
+
+export async function updateBudget(id: string, formData: {
+  category_id: string;
+  amount: number;
+  startDate: string;
+  endDate: string;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  if (new Date(formData.endDate) < new Date(formData.startDate)) {
+    throw new Error('End date must be on or after start date');
+  }
+
+  const startD = new Date(formData.startDate);
+  const month = startD.getMonth() + 1;
+  const year = startD.getFullYear();
+
+  const { error } = await supabase
+    .from('budgets')
+    .update({
+      category_id: formData.category_id,
+      amount: formData.amount,
+      start_date: formData.startDate,
+      end_date: formData.endDate,
+      month,
+      year,
+    })
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) throw error;
+  revalidatePath('/budgets');
+  revalidatePath('/');
 }
 
 export async function deleteBudget(id: string) {
@@ -106,4 +169,5 @@ export async function deleteBudget(id: string) {
 
   if (error) throw error;
   revalidatePath('/budgets');
+  revalidatePath('/');
 }
