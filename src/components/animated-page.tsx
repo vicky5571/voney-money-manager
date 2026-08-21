@@ -12,6 +12,7 @@ export function AnimatedPage({ children, className }: { children: React.ReactNod
   useGSAP(() => {
     if (!container.current) return;
     const elements = container.current.querySelectorAll('[data-animate]');
+    if (elements.length === 0) return;
     gsap.fromTo(
       elements,
       { opacity: 0, y: 20 },
