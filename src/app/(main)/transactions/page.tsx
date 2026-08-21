@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getTransactions } from '@/app/actions/transactions';
 import { TransactionItem } from '@/components/transaction-item';
-import { AnimatedPage } from '@/components/animated-page';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
@@ -171,14 +170,12 @@ export default function TransactionsPage() {
     { label: 'Expense', value: 'expense' },
   ];
 
-  let totalItemCount = 0;
-
   return (
     <div className="px-4 pt-6">
-      {/* Top Header — rendered instantly */}
+      {/* Top Header */}
       <h1 className="text-2xl font-bold mb-4">Transactions</h1>
 
-      {/* Search bar — instantly interactive */}
+      {/* Search bar */}
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
         <input
@@ -231,30 +228,26 @@ export default function TransactionsPage() {
           </p>
         </div>
       ) : (
-        <AnimatedPage>
+        <div>
           {Object.entries(groupedTransactions).map(([dateLabel, items]) => (
-            <div key={dateLabel} className="mb-6" data-animate>
+            <div key={dateLabel} className="mb-6">
               <h3 className="text-sm font-semibold text-gray-500 mb-2 px-1">
                 {dateLabel}
               </h3>
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50 shadow-sm">
-                {items.map((t) => {
-                  totalItemCount++;
-                  return (
-                    <TransactionItem
-                      key={t.id}
-                      id={t.id}
-                      categoryName={t.categories?.name ?? 'Unknown'}
-                      categoryIcon={t.categories?.icon ?? 'Package'}
-                      categoryColor={t.categories?.color ?? '#6B7280'}
-                      note={t.note}
-                      amount={Number(t.amount)}
-                      type={t.type}
-                      date={t.transaction_date}
-                      defer={totalItemCount > 6}
-                    />
-                  );
-                })}
+                {items.map((t) => (
+                  <TransactionItem
+                    key={t.id}
+                    id={t.id}
+                    categoryName={t.categories?.name ?? 'Unknown'}
+                    categoryIcon={t.categories?.icon ?? 'Package'}
+                    categoryColor={t.categories?.color ?? '#6B7280'}
+                    note={t.note}
+                    amount={Number(t.amount)}
+                    type={t.type}
+                    date={t.transaction_date}
+                  />
+                ))}
               </div>
             </div>
           ))}
@@ -267,7 +260,7 @@ export default function TransactionsPage() {
               )}
             </div>
           )}
-        </AnimatedPage>
+        </div>
       )}
     </div>
   );

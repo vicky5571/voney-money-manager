@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import { getDashboardData } from '@/app/actions/dashboard';
 import { getGreeting } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/server';
@@ -6,7 +5,6 @@ import { Bell } from 'lucide-react';
 import { BalanceCard } from '@/components/balance-card';
 import { TransactionItem } from '@/components/transaction-item';
 import Link from 'next/link';
-import { AnimatedPage } from '@/components/animated-page';
 
 interface RecentTxItem {
   id: string;
@@ -18,10 +16,14 @@ interface RecentTxItem {
   accounts: { name: string } | null;
 }
 
-async function DashboardData() {
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  const displayName = user?.user_metadata?.display_name || 'User';
+  const greeting = getGreeting();
   const data = await getDashboardData();
   
-  // Format recent transactions safely
   const recentTransactions = (data.recentTransactions as unknown as RecentTxItem[]).map((tx) => ({
     ...tx,
     categories: Array.isArray(tx.categories) ? tx.categories[0] ?? null : tx.categories,
@@ -29,9 +31,19 @@ async function DashboardData() {
   }));
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 px-4 pt-6 pb-24 max-w-md mx-auto">
+      {/* Top greeting row */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">{greeting}, {displayName}</h1>
+        </div>
+        <button className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center shrink-0" aria-label="Notifications">
+          <Bell size={20} className="text-gray-600" />
+        </button>
+      </div>
+
       {/* Balance Card */}
-      <div data-animate>
+      <div>
         <BalanceCard 
           totalBalance={data.totalBalance} 
           income={data.income} 
@@ -41,16 +53,16 @@ async function DashboardData() {
 
       {/* Recent Transactions */}
       <div className="flex flex-col gap-3">
-        <div data-animate className="flex items-center justify-between mt-2">
+        <div className="flex items-center justify-between mt-2">
           <h2 className="text-lg font-bold text-gray-900">Recent transactions</h2>
           <Link href="/transactions" className="text-sm font-medium text-indigo-600">
             See all
           </Link>
         </div>
 
-        <div data-animate className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           {recentTransactions.length > 0 ? (
-            recentTransactions.map((tx, idx) => (
+            recentTransactions.map((tx) => (
               <TransactionItem
                 key={tx.id}
                 id={tx.id}
@@ -61,7 +73,6 @@ async function DashboardData() {
                 amount={Number(tx.amount)}
                 type={tx.type}
                 date={tx.transaction_date}
-                defer={idx > 3}
               />
             ))
           ) : (
@@ -75,57 +86,5 @@ async function DashboardData() {
         </div>
       </div>
     </div>
-  );
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="flex flex-col gap-6 animate-pulse">
-      {/* Balance card skeleton */}
-      <div className="h-44 bg-gradient-to-r from-indigo-500/80 to-purple-500/80 rounded-2xl" />
-      
-      {/* Transactions list skeleton */}
-      <div className="flex flex-col gap-3">
-        <div className="flex justify-between items-center mt-2">
-          <div className="h-5 bg-gray-200 rounded w-36" />
-          <div className="h-4 bg-gray-200 rounded w-16" />
-        </div>
-        <div className="flex flex-col gap-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-14 bg-gray-50 rounded-xl" />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  // Use display_name from metadata, fallback to 'User'
-  const displayName = user?.user_metadata?.display_name || 'User';
-  const greeting = getGreeting();
-
-  return (
-    <AnimatedPage>
-      <div className="flex flex-col gap-6 px-4 pt-6 pb-24 max-w-md mx-auto">
-        {/* Top greeting row — rendered instantly without waiting for database calculations */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">{greeting}, {displayName}</h1>
-          </div>
-          <button className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
-            <Bell size={20} className="text-gray-600" />
-          </button>
-        </div>
-
-        {/* Dynamic content streamed via Suspense */}
-        <Suspense fallback={<DashboardSkeleton />}>
-          <DashboardData />
-        </Suspense>
-      </div>
-    </AnimatedPage>
   );
 }

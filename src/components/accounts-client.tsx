@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Plus, X, Trash2, Loader2 } from 'lucide-react';
 import { createAccount, updateAccount, deleteAccount } from '@/app/actions/accounts';
 import { AccountCard } from '@/components/account-card';
-import { AnimatedPage } from '@/components/animated-page';
 import { formatCurrency, cn } from '@/lib/utils';
 
 export interface AccountData {
@@ -107,13 +106,13 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
 
   return (
     <div className="p-4 space-y-6 pb-24">
-      {/* Top Header Card — instantly visible */}
+      {/* Top Header Card */}
       <div className="bg-indigo-600 text-white rounded-2xl p-6 shadow-sm">
         <h2 className="text-sm font-medium opacity-80">Total Balance</h2>
         <p className="text-3xl font-bold mt-1">{formatCurrency(totalBalance)}</p>
       </div>
 
-      <AnimatedPage className="space-y-4">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-gray-900">Your Wallets</h3>
         </div>
@@ -124,33 +123,32 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
           </div>
         ) : (
           <div className="grid gap-4">
-            {accounts.map((account, idx) => (
-              <div key={account.id} data-animate>
-                <AccountCard
-                  id={account.id}
-                  name={account.name}
-                  type={account.type}
-                  balance={account.balance}
-                  defer={idx > 3}
-                  onClick={() => openEdit(account)}
-                />
-              </div>
+            {accounts.map((account) => (
+              <AccountCard
+                key={account.id}
+                id={account.id}
+                name={account.name}
+                type={account.type}
+                balance={account.balance}
+                onClick={() => openEdit(account)}
+              />
             ))}
           </div>
         )}
-      </AnimatedPage>
+      </div>
 
       <button
         onClick={openAdd}
         className="fixed bottom-24 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all z-40"
+        aria-label="Add Wallet"
       >
         <Plus size={24} />
       </button>
 
       {mode && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="absolute inset-0" onClick={closeSheet} />
-          <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 pb-safe animate-in slide-in-from-bottom duration-300">
+          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 {mode === 'add' ? 'Add Wallet' : 'Edit Wallet'}

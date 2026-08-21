@@ -12,7 +12,6 @@ interface TransactionItemProps {
   amount: number;
   type: 'income' | 'expense';
   date: string;
-  defer?: boolean;
   onClick?: () => void;
 }
 
@@ -23,7 +22,6 @@ export function TransactionItem({
   note,
   amount,
   type,
-  defer = false,
   onClick
 }: TransactionItemProps) {
   const isIncome = type === 'income';
@@ -33,7 +31,6 @@ export function TransactionItem({
       onClick={onClick}
       className={cn(
         "flex flex-row items-center justify-between p-3 rounded-xl transition-colors",
-        defer && "content-visibility-auto",
         onClick ? "cursor-pointer hover:bg-gray-50" : ""
       )}
     >

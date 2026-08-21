@@ -6,11 +6,10 @@ interface AccountCardProps {
   name: string;
   type: 'cash' | 'bank' | 'e-wallet';
   balance: number;
-  defer?: boolean;
   onClick?: () => void;
 }
 
-export function AccountCard({ name, type, balance, defer = false, onClick }: AccountCardProps) {
+export function AccountCard({ name, type, balance, onClick }: AccountCardProps) {
   const getIconInfo = () => {
     switch (type) {
       case 'cash': 
@@ -36,8 +35,7 @@ export function AccountCard({ name, type, balance, defer = false, onClick }: Acc
     <div 
       onClick={onClick}
       className={cn(
-        "bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center justify-between transition-all cursor-pointer hover:shadow-md active:scale-[0.98]",
-        defer && "content-visibility-auto"
+        "bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center justify-between transition-all cursor-pointer hover:shadow-md active:scale-[0.98]"
       )}
     >
       <div className="flex items-center gap-4">

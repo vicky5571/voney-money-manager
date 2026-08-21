@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { AnimatedPage } from '@/components/animated-page';
 import { BudgetProgress } from '@/components/budget-progress';
 import { createBudget } from '@/app/actions/budgets';
 
@@ -85,7 +84,7 @@ export function BudgetsClient({
 
   return (
     <div className="min-h-screen pb-24 relative p-4 space-y-6">
-      {/* Month Navigation — instantly interactive */}
+      {/* Month Navigation */}
       <div className="flex items-center justify-between bg-white rounded-2xl p-4 shadow-sm">
         <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full" aria-label="Previous month">
           <ChevronLeft size={20} />
@@ -96,27 +95,26 @@ export function BudgetsClient({
         </button>
       </div>
 
-      <AnimatedPage className="space-y-4">
+      <div className="space-y-4">
         {initialBudgets.length === 0 ? (
           <div className="text-center py-10 bg-gray-50 rounded-2xl border border-gray-100">
             <p className="text-gray-500 text-sm">No budgets set for this month. Create one to start tracking.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {initialBudgets.map((budget, idx) => (
-              <div key={budget.id} data-animate className={idx > 4 ? "content-visibility-auto" : ""}>
-                <BudgetProgress
-                  categoryName={budget.category?.name ?? 'Unknown'}
-                  categoryIcon={budget.category?.icon ?? 'Package'}
-                  categoryColor={budget.category?.color ?? '#6B7280'}
-                  spent={budget.spent}
-                  limit={budget.amount}
-                />
-              </div>
+            {initialBudgets.map((budget) => (
+              <BudgetProgress
+                key={budget.id}
+                categoryName={budget.category?.name ?? 'Unknown'}
+                categoryIcon={budget.category?.icon ?? 'Package'}
+                categoryColor={budget.category?.color ?? '#6B7280'}
+                spent={budget.spent}
+                limit={budget.amount}
+              />
             ))}
           </div>
         )}
-      </AnimatedPage>
+      </div>
 
       {/* Add Button */}
       <button
@@ -127,19 +125,19 @@ export function BudgetsClient({
         <Plus size={24} />
       </button>
 
-      {/* Bottom Sheet Modal */}
+      {/* Add Budget Modal — centered on screen */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm">
-          <div 
-            className="w-full max-w-md bg-white rounded-t-3xl p-6 pb-safe animate-in slide-in-from-bottom duration-300"
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="absolute inset-0" onClick={() => setIsOpen(false)} />
+          <div className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">Add Budget</h3>
+              <h3 className="text-xl font-bold text-gray-900">Add Budget</h3>
               <button 
                 onClick={() => setIsOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                aria-label="Close"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
@@ -150,7 +148,7 @@ export function BudgetsClient({
                   required
                   value={formData.category_id}
                   onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white text-gray-900"
                 >
                   <option value="" disabled>Select category</option>
                   {availableCategories.map((c) => (
@@ -160,7 +158,7 @@ export function BudgetsClient({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Monthly Limit</label>
                 <input
                   type="number"
                   required
@@ -169,14 +167,14 @@ export function BudgetsClient({
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   placeholder="0.00"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-600 text-gray-900"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isPending || !formData.category_id || !formData.amount}
-                className="w-full bg-indigo-600 text-white font-medium py-3.5 rounded-xl mt-4 disabled:opacity-50 active:scale-[0.98] transition-transform"
+                className="w-full bg-indigo-600 text-white font-medium py-3.5 rounded-xl mt-4 disabled:opacity-50 active:scale-[0.98] transition-transform hover:bg-indigo-700 shadow-sm"
               >
                 {isPending ? 'Saving...' : 'Save Budget'}
               </button>
