@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getTransactions, getMonthSummary } from '@/app/actions/transactions';
+import { getTransactions, getMonthSummary, getTransactionCounts, getTransactionsForExport, deleteTransaction } from '@/app/actions/transactions';
 import { TransactionItem } from '@/components/transaction-item';
 import { TransactionDetailSheet } from '@/components/transaction-detail-sheet';
-import { Search, TrendingUp, TrendingDown, Receipt } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Receipt, X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/utils';
 
 type Transaction = {
@@ -41,27 +41,38 @@ function mapRaw(t: Record<string, unknown>): Transaction {
 
 export default function TransactionsPage() {
   const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [summary, setSummary] = useState<MonthSummary | null>(null);
+  const [counts, setCounts] = useState<{ all: number; income: number; expense: number } | null>(null);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const observerRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch month summary once on mount
+  // Month summary — re-fetch when month changes
   useEffect(() => {
-    getMonthSummary(now.getMonth() + 1, now.getFullYear())
-      .then(setSummary)
-      .catch(console.error);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setSummary(null);
+    getMonthSummary(selectedMonth, selectedYear).then(setSummary).catch(console.error);
+  }, [selectedMonth, selectedYear]);
 
-  // Initial load + reset on filter / search change
+  // Counts — re-fetch when search or month changes
+  useEffect(() => {
+    getTransactionCounts(search || undefined, selectedMonth, selectedYear)
+      .then(setCounts)
+      .catch(console.error);
+  }, [search, selectedMonth, selectedYear]);
+
+  // Initial load + reset on filter / search / month change
   useEffect(() => {
     let ignore = false;
     setLoading(true);
@@ -73,6 +84,8 @@ export default function TransactionsPage() {
           limit: 20,
           type: filter === 'all' ? undefined : filter,
           search: search || undefined,
+          month: selectedMonth,
+          year: selectedYear,
         });
         if (ignore) return;
         setTransactions((result.transactions as unknown as Record<string, unknown>[]).map(mapRaw));
@@ -87,7 +100,7 @@ export default function TransactionsPage() {
 
     loadInitial();
     return () => { ignore = true; };
-  }, [filter, search]);
+  }, [filter, search, selectedMonth, selectedYear]);
 
   const loadMoreTransactions = useCallback(async (pageNum: number) => {
     try {
@@ -97,6 +110,8 @@ export default function TransactionsPage() {
         limit: 20,
         type: filter === 'all' ? undefined : filter,
         search: search || undefined,
+        month: selectedMonth,
+        year: selectedYear,
       });
       setTransactions((prev) => [
         ...prev,
@@ -108,7 +123,7 @@ export default function TransactionsPage() {
     } finally {
       setLoadingMore(false);
     }
-  }, [filter, search]);
+  }, [filter, search, selectedMonth, selectedYear]);
 
   // Infinite scroll
   useEffect(() => {
@@ -127,10 +142,82 @@ export default function TransactionsPage() {
     return () => observer.disconnect();
   }, [hasMore, loadingMore, page, loadMoreTransactions]);
 
+  // Month navigation
+  const goToPrevMonth = () => {
+    if (selectedMonth === 1) { setSelectedMonth(12); setSelectedYear((y) => y - 1); }
+    else setSelectedMonth((m) => m - 1);
+  };
+  const goToNextMonth = () => {
+    if (selectedMonth === 12) { setSelectedMonth(1); setSelectedYear((y) => y + 1); }
+    else setSelectedMonth((m) => m + 1);
+  };
+
   // Debounced search
   const handleSearch = (value: string) => {
+    setSearchInput(value);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => setSearch(value), 300);
+  };
+
+  const clearSearch = () => {
+    setSearchInput('');
+    setSearch('');
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+  };
+
+  // CSV Export
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const rows = await getTransactionsForExport({
+        month: selectedMonth,
+        year: selectedYear,
+        type: filter === 'all' ? undefined : filter,
+        search: search || undefined,
+      });
+
+      const escape = (val: string) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+      const header = 'Date,Type,Category,Account,Amount,Note';
+      const lines = (rows as Record<string, unknown>[]).map((t) => {
+        const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+        const acc = Array.isArray(t.accounts) ? t.accounts[0] : t.accounts;
+        return [
+          escape(String(t.transaction_date)),
+          escape(String(t.type)),
+          escape(cat ? String((cat as Record<string, unknown>).name) : ''),
+          escape(acc ? String((acc as Record<string, unknown>).name) : ''),
+          Number(t.amount).toFixed(2),
+          escape(t.note ? String(t.note) : ''),
+        ].join(',');
+      });
+
+      const csv = [header, ...lines].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const monthLabel = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'short', year: 'numeric' });
+      a.href = url;
+      a.download = `transactions-${monthLabel.replace(' ', '-')}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      console.error('Export failed');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Swipe delete — optimistic removal then server delete
+  const handleSwipeDelete = async (id: string) => {
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
+    try {
+      await deleteTransaction(id);
+      // Refresh aggregates
+      getMonthSummary(selectedMonth, selectedYear).then(setSummary).catch(console.error);
+      getTransactionCounts(search || undefined, selectedMonth, selectedYear).then(setCounts).catch(console.error);
+    } catch {
+      console.error('Failed to delete transaction');
+    }
   };
 
   // Group by date
@@ -141,19 +228,36 @@ export default function TransactionsPage() {
     return acc;
   }, {});
 
-  const filters: { label: string; value: FilterType }[] = [
-    { label: 'All', value: 'all' },
-    { label: 'Income', value: 'income' },
-    { label: 'Expense', value: 'expense' },
-  ];
-
-  const monthName = now.toLocaleString('default', { month: 'long' });
+  const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' });
 
   return (
     <div className="px-4 pt-6 pb-28">
-      <h1 className="text-2xl font-bold mb-4">Transactions</h1>
 
-      {/* ── Improvement #3: Month summary bar ── */}
+      {/* Header: title + month nav + export */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold">Transactions</h1>
+        <button
+          onClick={handleExport}
+          disabled={isExporting}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50"
+        >
+          <Download size={13} />
+          {isExporting ? 'Exporting…' : 'Export CSV'}
+        </button>
+      </div>
+
+      {/* Month navigation */}
+      <div className="flex items-center justify-between bg-white rounded-2xl p-3 shadow-sm border border-gray-100 mb-4">
+        <button onClick={goToPrevMonth} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors" aria-label="Previous month">
+          <ChevronLeft size={20} className="text-gray-500" />
+        </button>
+        <span className="text-sm font-semibold text-gray-900">{monthName} {selectedYear}</span>
+        <button onClick={goToNextMonth} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors" aria-label="Next month">
+          <ChevronRight size={20} className="text-gray-500" />
+        </button>
+      </div>
+
+      {/* Month summary bar */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
           {monthName} Overview
@@ -194,24 +298,51 @@ export default function TransactionsPage() {
         <input
           type="text"
           placeholder="Search transactions..."
+          value={searchInput}
           onChange={(e) => handleSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          className="w-full pl-10 pr-10 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
         />
+        {searchInput && (
+          <button
+            onClick={clearSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-gray-300 text-white hover:bg-gray-400 transition-colors"
+            aria-label="Clear search"
+          >
+            <X size={11} strokeWidth={3} />
+          </button>
+        )}
       </div>
 
-      {/* Filter chips */}
+      {/* Filter chips with count badges */}
       <div className="flex gap-2 mb-5">
-        {filters.map((f) => (
+        {(
+          [
+            { label: 'All', value: 'all' as FilterType, count: counts?.all },
+            { label: 'Income', value: 'income' as FilterType, count: counts?.income },
+            { label: 'Expense', value: 'expense' as FilterType, count: counts?.expense },
+          ] as const
+        ).map((f) => (
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               filter === f.value
                 ? 'bg-indigo-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             {f.label}
+            {f.count !== undefined && (
+              <span
+                className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center leading-none ${
+                  filter === f.value
+                    ? 'bg-white/25 text-white'
+                    : 'bg-gray-200 text-gray-500'
+                }`}
+              >
+                {f.count}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -260,7 +391,7 @@ export default function TransactionsPage() {
 
                 <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50 shadow-sm">
                   {items.map((t) => (
-                    // ── Improvement #2: Tappable → detail sheet ──
+                    // ── Improvement #2: Tappable → detail sheet, #8: Swipe-to-delete ──
                     <TransactionItem
                       key={t.id}
                       id={t.id}
@@ -272,6 +403,7 @@ export default function TransactionsPage() {
                       type={t.type}
                       date={t.transaction_date}
                       onClick={() => setSelectedTx(t)}
+                      onSwipeDelete={() => handleSwipeDelete(t.id)}
                     />
                   ))}
                 </div>

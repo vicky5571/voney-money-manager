@@ -8,11 +8,15 @@ export async function getTransactions({
   limit = 20,
   type,
   search,
+  month,
+  year,
 }: {
   page?: number;
   limit?: number;
   type?: 'income' | 'expense';
   search?: string;
+  month?: number;
+  year?: number;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -32,6 +36,12 @@ export async function getTransactions({
 
   if (type) query = query.eq('type', type);
   if (search) query = query.ilike('note', `%${search}%`);
+  if (month && year) {
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    query = query.gte('transaction_date', startDate).lte('transaction_date', endDate);
+  }
 
   const { data, count, error } = await query;
   if (error) throw error;
@@ -61,6 +71,79 @@ export async function getMonthSummary(month: number, year: number) {
   const expense = (data ?? []).filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
 
   return { income, expense, net: income - expense };
+}
+
+export async function getTransactionCounts(search?: string, month?: number, year?: number) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const buildQuery = (type: 'income' | 'expense') => {
+    let q = supabase
+      .from('transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('type', type);
+    if (search) q = q.ilike('note', `%${search}%`);
+    if (month && year) {
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      q = q.gte('transaction_date', startDate).lte('transaction_date', endDate);
+    }
+    return q;
+  };
+
+  const [{ count: incomeCount }, { count: expenseCount }] = await Promise.all([
+    buildQuery('income'),
+    buildQuery('expense'),
+  ]);
+
+  return {
+    all: (incomeCount ?? 0) + (expenseCount ?? 0),
+    income: incomeCount ?? 0,
+    expense: expenseCount ?? 0,
+  };
+}
+
+export async function getTransactionsForExport({
+  month,
+  year,
+  type,
+  search,
+}: {
+  month?: number;
+  year?: number;
+  type?: 'income' | 'expense';
+  search?: string;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  let query = supabase
+    .from('transactions')
+    .select(`
+      id, type, amount, note, transaction_date,
+      categories ( name ),
+      accounts ( name )
+    `)
+    .eq('user_id', user.id)
+    .order('transaction_date', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (type) query = query.eq('type', type);
+  if (search) query = query.ilike('note', `%${search}%`);
+  if (month && year) {
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    query = query.gte('transaction_date', startDate).lte('transaction_date', endDate);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function createTransaction(formData: {
