@@ -1,5 +1,6 @@
 -- Voney Initial Schema Migration
--- Creates tables, sets up Row Level Security (RLS), and seeds default categories.
+-- Creates tables, sets up Row Level Security (RLS), seeds default categories,
+-- and configures auto-provisioning triggers for new users.
 
 -- Enable pgcrypto extension for UUID generation if needed
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -171,22 +172,66 @@ CREATE POLICY "Users can delete their own budgets"
 
 -- ============================================================================
 -- 4. Seed Default Categories
+--    Icon names match Lucide React component names used in the frontend.
 -- ============================================================================
 
 INSERT INTO categories (name, icon, color, type, is_default, sort_order, user_id)
 VALUES
   -- Default Expense Categories
-  ('Food', '🍔', '#EF4444', 'expense', true, 1, NULL),
-  ('Transport', '🚗', '#3B82F6', 'expense', true, 2, NULL),
-  ('Shopping', '🛍️', '#EC4899', 'expense', true, 3, NULL),
-  ('Bills', '📄', '#F59E0B', 'expense', true, 4, NULL),
-  ('Entertainment', '🎮', '#8B5CF6', 'expense', true, 5, NULL),
-  ('Health', '💊', '#10B981', 'expense', true, 6, NULL),
-  ('Education', '📚', '#6366F1', 'expense', true, 7, NULL),
-  ('Other', '📦', '#6B7280', 'expense', true, 8, NULL),
-  
+  ('Food', 'UtensilsCrossed', '#EF4444', 'expense', true, 1, NULL),
+  ('Transport', 'Car', '#3B82F6', 'expense', true, 2, NULL),
+  ('Shopping', 'ShoppingBag', '#EC4899', 'expense', true, 3, NULL),
+  ('Bills', 'FileText', '#F59E0B', 'expense', true, 4, NULL),
+  ('Entertainment', 'Gamepad2', '#8B5CF6', 'expense', true, 5, NULL),
+  ('Health', 'Heart', '#10B981', 'expense', true, 6, NULL),
+  ('Education', 'BookOpen', '#6366F1', 'expense', true, 7, NULL),
+  ('Other', 'Package', '#6B7280', 'expense', true, 8, NULL),
+
   -- Default Income Categories
-  ('Salary', '💰', '#22C55E', 'income', true, 1, NULL),
-  ('Freelance', '💻', '#3B82F6', 'income', true, 2, NULL),
-  ('Gift', '🎁', '#EC4899', 'income', true, 3, NULL),
-  ('Other Income', '💵', '#10B981', 'income', true, 4, NULL);
+  ('Salary', 'Banknote', '#22C55E', 'income', true, 1, NULL),
+  ('Freelance', 'Laptop', '#3B82F6', 'income', true, 2, NULL),
+  ('Gift', 'Gift', '#EC4899', 'income', true, 3, NULL),
+  ('Other Income', 'DollarSign', '#10B981', 'income', true, 4, NULL);
+
+-- ============================================================================
+-- 5. Auto-provisioning Trigger
+--    When a user signs up via Supabase Auth, automatically:
+--    - Create a row in the `users` table
+--    - Create a default "Cash" account
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  -- Insert into public.users
+  INSERT INTO public.users (id, email, display_name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data ->> 'display_name', 'User')
+  );
+
+  -- Create default Cash account
+  INSERT INTO public.accounts (user_id, name, type, icon, balance, sort_order)
+  VALUES (
+    NEW.id,
+    'Cash',
+    'cash',
+    'wallet',
+    0.00,
+    0
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+-- Trigger on auth.users insert (fires when a user signs up)
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
