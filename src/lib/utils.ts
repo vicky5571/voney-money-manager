@@ -6,12 +6,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Format a number as currency with commas. Example: formatCurrency(12450) => '$12,450.00' */
+/** Format a number as currency. Example: formatCurrency(12450) => 'Rp 12.450' */
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('id-ID', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
+    currency: 'IDR',
+    minimumFractionDigits: 0,
   }).format(amount);
 }
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { House, ArrowLeftRight, Plus, PieChart, User, type LucideIcon } from 'lucide-react';
+import { House, ArrowLeftRight, Plus, PieChart, Wallet, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function BottomNav() {
@@ -26,7 +26,7 @@ export function BottomNav() {
         </div>
 
         <NavItem name="Budgets" href="/budgets" icon={PieChart} isActive={pathname === '/budgets'} />
-        <NavItem name="Account" href="/accounts" icon={User} isActive={pathname === '/accounts' || pathname === '/account'} />
+        <NavItem name="Wallets" href="/accounts" icon={Wallet} isActive={pathname === '/accounts' || pathname === '/account'} />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Wallet, Building2, Smartphone } from 'lucide-react';
+import { Wallet, Building2, Smartphone, ChevronRight } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 
 interface AccountCardProps {
@@ -34,10 +34,7 @@ export function AccountCard({ id, name, type, balance, onClick }: AccountCardPro
   return (
     <div 
       onClick={onClick}
-      className={cn(
-        "bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center justify-between transition-shadow",
-        onClick ? "cursor-pointer hover:shadow-md" : ""
-      )}
+      className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center justify-between transition-all cursor-pointer hover:shadow-md active:scale-[0.98]"
     >
       <div className="flex items-center gap-4">
         <div className={cn("w-12 h-12 rounded-full flex items-center justify-center shrink-0", bg)}>
@@ -50,8 +47,11 @@ export function AccountCard({ id, name, type, balance, onClick }: AccountCardPro
           </span>
         </div>
       </div>
-      <div className="font-bold text-gray-900">
-        {formatCurrency(balance)}
+      <div className="flex items-center gap-2">
+        <div className="font-bold text-gray-900">
+          {formatCurrency(balance)}
+        </div>
+        <ChevronRight size={20} className="text-gray-400" />
       </div>
     </div>
   );
