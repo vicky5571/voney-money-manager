@@ -36,6 +36,25 @@ function getDaysRemaining(endDate?: string) {
   return `${diffDays} days left`;
 }
 
+function getTodayProgress(startDate?: string, endDate?: string): number | null {
+  if (!startDate || !endDate) return null;
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
+  const now = new Date();
+
+  const totalTime = end.getTime() - start.getTime();
+  if (totalTime <= 0) return null;
+
+  const elapsedTime = now.getTime() - start.getTime();
+  const percentage = (elapsedTime / totalTime) * 100;
+
+  // Only display if today falls within or at the boundaries of the budget period
+  if (percentage < 0 || percentage > 100) return null;
+  return Math.min(Math.max(percentage, 0), 100);
+}
+
 export function BudgetProgress({
   categoryName,
   categoryIcon,
@@ -50,6 +69,7 @@ export function BudgetProgress({
   const displayPercentage = Math.min(percentage, 100);
   const dateRangeStr = formatDateRange(startDate, endDate);
   const daysLeftStr = getDaysRemaining(endDate);
+  const todayPercentage = getTodayProgress(startDate, endDate);
   
   let progressColor = '#22C55E'; // green
   if (percentage >= 100) {
@@ -58,8 +78,16 @@ export function BudgetProgress({
     progressColor = '#F59E0B'; // orange
   }
 
+  // Label horizontal shift alignment when near edges
+  const getLabelTransform = (pct: number) => {
+    if (pct < 12) return 'translateX(0%)';
+    if (pct > 88) return 'translateX(-100%)';
+    return 'translateX(-50%)';
+  };
+
   return (
     <div className="flex flex-col gap-2.5 w-full p-4 bg-white rounded-2xl shadow-sm border border-gray-100 transition-all hover:shadow-md">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div 
@@ -102,16 +130,37 @@ export function BudgetProgress({
         </div>
       </div>
       
-      <div className="w-full h-2.5 rounded-full bg-gray-100 overflow-hidden mt-0.5">
-        <div 
-          className="h-full rounded-full transition-all duration-500"
-          style={{ 
-            width: `${displayPercentage}%`,
-            backgroundColor: progressColor 
-          }}
-        />
+      {/* Progress Bar Container with Today Indicator */}
+      <div className="relative pt-4 pb-0.5">
+        {/* "Today" line indicator and tag */}
+        {todayPercentage !== null && (
+          <div 
+            className="absolute top-0 z-20 pointer-events-none flex flex-col items-center"
+            style={{ left: `${todayPercentage}%` }}
+          >
+            <div 
+              className="px-1.5 py-0.5 bg-gray-900 text-white rounded text-[9px] font-bold tracking-wider leading-none shadow-sm flex items-center justify-center"
+              style={{ transform: getLabelTransform(todayPercentage) }}
+            >
+              Today
+            </div>
+            <div className="w-[1.5px] h-4 bg-gray-900/80 -mt-0.5" />
+          </div>
+        )}
+
+        {/* Progress Track */}
+        <div className="relative w-full h-2.5 rounded-full bg-gray-100 overflow-hidden">
+          <div 
+            className="h-full rounded-full transition-all duration-500"
+            style={{ 
+              width: `${displayPercentage}%`,
+              backgroundColor: progressColor 
+            }}
+          />
+        </div>
       </div>
       
+      {/* Footer spent vs limit */}
       <div className="flex justify-between items-center text-xs text-gray-500 font-medium">
         <span>{formatCurrency(spent)} spent</span>
         <span>{formatCurrency(limit)} limit</span>
