@@ -115,6 +115,13 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-gray-900">Your Wallets</h3>
+          <button
+            onClick={openAdd}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 active:scale-95 transition-all"
+          >
+            <Plus size={14} />
+            Add Wallet
+          </button>
         </div>
         
         {accounts.length === 0 ? (
@@ -137,13 +144,6 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
         )}
       </div>
 
-      <button
-        onClick={openAdd}
-        className="fixed bottom-24 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 active:scale-95 transition-all z-40"
-        aria-label="Add Wallet"
-      >
-        <Plus size={24} />
-      </button>
 
       {mode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">

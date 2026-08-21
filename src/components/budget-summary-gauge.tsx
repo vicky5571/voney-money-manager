@@ -1,16 +1,18 @@
 import { formatCurrency } from '@/lib/utils';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Plus } from 'lucide-react';
 
 interface BudgetSummaryGaugeProps {
   totalBudget: number;
   totalSpent: number;
   daysLeft: number;
+  onAddBudget: () => void;
 }
 
 export function BudgetSummaryGauge({
   totalBudget,
   totalSpent,
   daysLeft,
+  onAddBudget,
 }: BudgetSummaryGaugeProps) {
   const remaining = totalBudget - totalSpent;
   const amountYouCanSpend = Math.max(0, remaining);
@@ -111,6 +113,15 @@ export function BudgetSummaryGauge({
           <p className="text-xs font-bold text-gray-900 mt-0.5">{daysLeft} days</p>
         </div>
       </div>
+
+      {/* Create Budget Button */}
+      <button
+        onClick={onAddBudget}
+        className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-semibold hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-sm"
+      >
+        <Plus size={16} />
+        Create Budget
+      </button>
     </div>
   );
 }

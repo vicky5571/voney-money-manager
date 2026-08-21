@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Plus, X, Calendar, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Calendar, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { BudgetProgress } from '@/components/budget-progress';
 import { BudgetSummaryGauge } from '@/components/budget-summary-gauge';
@@ -198,6 +198,7 @@ export function BudgetsClient({
         totalBudget={totalBudget}
         totalSpent={totalSpent}
         daysLeft={daysLeft}
+        onAddBudget={openModal}
       />
 
       <div className="space-y-4">
@@ -262,15 +263,6 @@ export function BudgetsClient({
           </div>
         </div>
       )}
-
-      {/* Add Button */}
-      <button
-        onClick={openModal}
-        className="fixed bottom-24 right-4 w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-colors z-40"
-        aria-label="Add budget"
-      >
-        <Plus size={24} />
-      </button>
 
       {/* Add Budget Modal */}
       {isOpen && (
