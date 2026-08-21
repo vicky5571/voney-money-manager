@@ -1,33 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AnimatedPage } from '@/components/animated-page';
 import { BudgetProgress } from '@/components/budget-progress';
 import { createBudget } from '@/app/actions/budgets';
-import { useTransition } from 'react';
 
-type Budget = {
+export interface BudgetCategory {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
+export interface BudgetData {
   id: string;
   amount: number;
   month: number;
   year: number;
-  category: any;
+  category: BudgetCategory | null;
   spent: number;
-};
+}
+
+interface BudgetsClientProps {
+  initialBudgets: BudgetData[];
+  categories: BudgetCategory[];
+  initialMonth: number;
+  initialYear: number;
+}
 
 export function BudgetsClient({ 
   initialBudgets, 
   categories,
   initialMonth,
   initialYear
-}: { 
-  initialBudgets: Budget[];
-  categories: any[];
-  initialMonth: number;
-  initialYear: number;
-}) {
+}: BudgetsClientProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -77,13 +85,13 @@ export function BudgetsClient({
 
   return (
     <div className="min-h-screen pb-24 relative p-4 space-y-6">
-      {/* Month Navigation */}
+      {/* Month Navigation — instantly interactive */}
       <div className="flex items-center justify-between bg-white rounded-2xl p-4 shadow-sm">
-        <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full">
+        <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full" aria-label="Previous month">
           <ChevronLeft size={20} />
         </button>
         <h2 className="font-semibold text-gray-900">{monthName} {initialYear}</h2>
-        <button onClick={handleNextMonth} className="p-2 hover:bg-gray-100 rounded-full">
+        <button onClick={handleNextMonth} className="p-2 hover:bg-gray-100 rounded-full" aria-label="Next month">
           <ChevronRight size={20} />
         </button>
       </div>
@@ -95,8 +103,8 @@ export function BudgetsClient({
           </div>
         ) : (
           <div className="space-y-4">
-            {initialBudgets.map((budget) => (
-              <div key={budget.id} data-animate className="opacity-0 translate-y-4">
+            {initialBudgets.map((budget, idx) => (
+              <div key={budget.id} data-animate className={idx > 4 ? "content-visibility-auto" : ""}>
                 <BudgetProgress
                   categoryName={budget.category?.name ?? 'Unknown'}
                   categoryIcon={budget.category?.icon ?? 'Package'}
@@ -114,6 +122,7 @@ export function BudgetsClient({
       <button
         onClick={() => setIsOpen(true)}
         className="fixed bottom-24 right-4 w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-colors z-40"
+        aria-label="Add budget"
       >
         <Plus size={24} />
       </button>

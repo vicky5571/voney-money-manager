@@ -29,13 +29,11 @@ export default function TransactionsPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const observerRef = useRef<HTMLDivElement>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchTransactions = useCallback(async (pageNum: number, reset: boolean = false) => {
+  const loadMoreTransactions = useCallback(async (pageNum: number) => {
     try {
-      if (reset) setLoading(true);
-      else setLoadingMore(true);
-
+      setLoadingMore(true);
       const result = await getTransactions({
         page: pageNum,
         limit: 20,
@@ -43,30 +41,94 @@ export default function TransactionsPage() {
         search: search || undefined,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const txns = (result.transactions as any[]).map((t) => ({
-        ...t,
-        categories: Array.isArray(t.categories) ? t.categories[0] ?? null : t.categories ?? null,
-        accounts: Array.isArray(t.accounts) ? t.accounts[0] ?? null : t.accounts ?? null,
-      })) as Transaction[];
+      const rawList = (result.transactions ?? []) as unknown as Record<string, unknown>[];
+      const txns: Transaction[] = rawList.map((t) => {
+        const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+        const acc = Array.isArray(t.accounts) ? t.accounts[0] : t.accounts;
+        return {
+          id: String(t.id),
+          type: t.type as 'income' | 'expense',
+          amount: Number(t.amount),
+          note: t.note ? String(t.note) : null,
+          transaction_date: String(t.transaction_date),
+          created_at: String(t.created_at),
+          categories: cat ? {
+            id: String(cat.id),
+            name: String(cat.name),
+            icon: String(cat.icon),
+            color: String(cat.color),
+          } : null,
+          accounts: acc ? {
+            id: String(acc.id),
+            name: String(acc.name),
+          } : null,
+        };
+      });
 
-      setTransactions(prev =>
-        reset ? txns : [...prev, ...txns]
-      );
+      setTransactions((prev) => [...prev, ...txns]);
       setHasMore(result.hasMore);
     } catch {
-      console.error('Failed to fetch transactions');
+      console.error('Failed to load more transactions');
     } finally {
-      setLoading(false);
       setLoadingMore(false);
     }
   }, [filter, search]);
 
   // Initial load and filter/search changes
   useEffect(() => {
-    setPage(1);
-    fetchTransactions(1, true);
-  }, [fetchTransactions]);
+    let ignore = false;
+    async function loadInitial() {
+      try {
+        const result = await getTransactions({
+          page: 1,
+          limit: 20,
+          type: filter === 'all' ? undefined : filter,
+          search: search || undefined,
+        });
+
+        if (ignore) return;
+
+        const rawList = (result.transactions ?? []) as unknown as Record<string, unknown>[];
+        const txns: Transaction[] = rawList.map((t) => {
+          const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+          const acc = Array.isArray(t.accounts) ? t.accounts[0] : t.accounts;
+          return {
+            id: String(t.id),
+            type: t.type as 'income' | 'expense',
+            amount: Number(t.amount),
+            note: t.note ? String(t.note) : null,
+            transaction_date: String(t.transaction_date),
+            created_at: String(t.created_at),
+            categories: cat ? {
+              id: String(cat.id),
+              name: String(cat.name),
+              icon: String(cat.icon),
+              color: String(cat.color),
+            } : null,
+            accounts: acc ? {
+              id: String(acc.id),
+              name: String(acc.name),
+            } : null,
+          };
+        });
+
+        setTransactions(txns);
+        setHasMore(result.hasMore);
+        setPage(1);
+      } catch {
+        console.error('Failed to fetch transactions');
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadInitial();
+    return () => {
+      ignore = true;
+    };
+  }, [filter, search]);
 
   // Infinite scroll
   useEffect(() => {
@@ -77,7 +139,7 @@ export default function TransactionsPage() {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
           const nextPage = page + 1;
           setPage(nextPage);
-          fetchTransactions(nextPage);
+          loadMoreTransactions(nextPage);
         }
       },
       { threshold: 0.1 }
@@ -85,7 +147,7 @@ export default function TransactionsPage() {
 
     observer.observe(observerRef.current);
     return () => observer.disconnect();
-  }, [hasMore, loadingMore, page, fetchTransactions]);
+  }, [hasMore, loadingMore, page, loadMoreTransactions]);
 
   // Debounced search
   const handleSearch = (value: string) => {
@@ -109,12 +171,14 @@ export default function TransactionsPage() {
     { label: 'Expense', value: 'expense' },
   ];
 
+  let totalItemCount = 0;
+
   return (
     <div className="px-4 pt-6">
-      {/* Header */}
+      {/* Top Header — rendered instantly */}
       <h1 className="text-2xl font-bold mb-4">Transactions</h1>
 
-      {/* Search bar */}
+      {/* Search bar — instantly interactive */}
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
         <input
@@ -144,9 +208,9 @@ export default function TransactionsPage() {
 
       {/* Transaction list */}
       {loading ? (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-pulse">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="animate-pulse flex items-center gap-3 p-3">
+            <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
               <div className="w-10 h-10 bg-gray-200 rounded-full" />
               <div className="flex-1">
                 <div className="h-4 bg-gray-200 rounded w-24 mb-2" />
@@ -173,20 +237,24 @@ export default function TransactionsPage() {
               <h3 className="text-sm font-semibold text-gray-500 mb-2 px-1">
                 {dateLabel}
               </h3>
-              <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
-                {items.map((t) => (
-                  <TransactionItem
-                    key={t.id}
-                    id={t.id}
-                    categoryName={t.categories?.name ?? 'Unknown'}
-                    categoryIcon={t.categories?.icon ?? 'Package'}
-                    categoryColor={t.categories?.color ?? '#6B7280'}
-                    note={t.note}
-                    amount={Number(t.amount)}
-                    type={t.type}
-                    date={t.transaction_date}
-                  />
-                ))}
+              <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50 shadow-sm">
+                {items.map((t) => {
+                  totalItemCount++;
+                  return (
+                    <TransactionItem
+                      key={t.id}
+                      id={t.id}
+                      categoryName={t.categories?.name ?? 'Unknown'}
+                      categoryIcon={t.categories?.icon ?? 'Package'}
+                      categoryColor={t.categories?.color ?? '#6B7280'}
+                      note={t.note}
+                      amount={Number(t.amount)}
+                      type={t.type}
+                      date={t.transaction_date}
+                      defer={totalItemCount > 6}
+                    />
+                  );
+                })}
               </div>
             </div>
           ))}

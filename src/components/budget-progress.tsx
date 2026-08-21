@@ -1,4 +1,4 @@
-import { getCategoryIcon } from '@/constants/categories';
+import { CategoryIcon } from '@/constants/categories';
 import { formatCurrency } from '@/lib/utils';
 
 interface BudgetProgressProps {
@@ -16,7 +16,6 @@ export function BudgetProgress({
   spent,
   limit
 }: BudgetProgressProps) {
-  const Icon = getCategoryIcon(categoryIcon);
   const percentage = limit > 0 ? (spent / limit) * 100 : 100;
   const displayPercentage = Math.min(percentage, 100);
   
@@ -35,7 +34,7 @@ export function BudgetProgress({
             className="flex items-center justify-center w-9 h-9 rounded-full shrink-0"
             style={{ backgroundColor: `${categoryColor}1A` }}
           >
-            <Icon size={18} style={{ color: categoryColor }} />
+            <CategoryIcon name={categoryIcon} size={18} style={{ color: categoryColor }} />
           </div>
           <span className="font-semibold text-gray-900 text-sm">{categoryName}</span>
         </div>

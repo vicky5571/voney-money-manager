@@ -1,6 +1,6 @@
 'use client';
 
-import { getCategoryIcon } from '@/constants/categories';
+import { CategoryIcon } from '@/constants/categories';
 import { cn, formatCurrency } from '@/lib/utils';
 
 interface TransactionItemProps {
@@ -12,6 +12,7 @@ interface TransactionItemProps {
   amount: number;
   type: 'income' | 'expense';
   date: string;
+  defer?: boolean;
   onClick?: () => void;
 }
 
@@ -22,9 +23,9 @@ export function TransactionItem({
   note,
   amount,
   type,
+  defer = false,
   onClick
 }: TransactionItemProps) {
-  const Icon = getCategoryIcon(categoryIcon);
   const isIncome = type === 'income';
 
   return (
@@ -32,6 +33,7 @@ export function TransactionItem({
       onClick={onClick}
       className={cn(
         "flex flex-row items-center justify-between p-3 rounded-xl transition-colors",
+        defer && "content-visibility-auto",
         onClick ? "cursor-pointer hover:bg-gray-50" : ""
       )}
     >
@@ -40,7 +42,7 @@ export function TransactionItem({
           className="flex items-center justify-center w-10 h-10 rounded-full shrink-0"
           style={{ backgroundColor: `${categoryColor}1A` }}
         >
-          <Icon size={20} style={{ color: categoryColor }} />
+          <CategoryIcon name={categoryIcon} size={20} style={{ color: categoryColor }} />
         </div>
         <div className="flex flex-col">
           <span className="font-semibold text-gray-900 text-sm">{categoryName}</span>

@@ -79,3 +79,10 @@ input[type="number"] {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
+
+/* Off-screen deferred rendering optimization */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 72px;
+}
+

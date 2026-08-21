@@ -13,10 +13,12 @@ export function AnimatedPage({ children, className }: { children: React.ReactNod
     if (!container.current) return;
     const elements = container.current.querySelectorAll('[data-animate]');
     if (elements.length === 0) return;
+
+    // Fast, smooth, non-blocking entrance without long blank delay
     gsap.fromTo(
       elements,
-      { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, ease: 'power2.out' }
+      { opacity: 0.7, y: 8 },
+      { opacity: 1, y: 0, duration: 0.25, stagger: 0.04, ease: 'power2.out', clearProps: 'all' }
     );
   }, { scope: container });
 

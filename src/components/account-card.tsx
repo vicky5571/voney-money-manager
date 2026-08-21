@@ -2,14 +2,15 @@ import { Wallet, Building2, Smartphone, ChevronRight } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 
 interface AccountCardProps {
-  id: string;
+  id?: string;
   name: string;
   type: 'cash' | 'bank' | 'e-wallet';
   balance: number;
+  defer?: boolean;
   onClick?: () => void;
 }
 
-export function AccountCard({ id, name, type, balance, onClick }: AccountCardProps) {
+export function AccountCard({ name, type, balance, defer = false, onClick }: AccountCardProps) {
   const getIconInfo = () => {
     switch (type) {
       case 'cash': 
@@ -34,7 +35,10 @@ export function AccountCard({ id, name, type, balance, onClick }: AccountCardPro
   return (
     <div 
       onClick={onClick}
-      className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center justify-between transition-all cursor-pointer hover:shadow-md active:scale-[0.98]"
+      className={cn(
+        "bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center justify-between transition-all cursor-pointer hover:shadow-md active:scale-[0.98]",
+        defer && "content-visibility-auto"
+      )}
     >
       <div className="flex items-center gap-4">
         <div className={cn("w-12 h-12 rounded-full flex items-center justify-center shrink-0", bg)}>

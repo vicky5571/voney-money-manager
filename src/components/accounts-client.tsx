@@ -8,10 +8,10 @@ import { AccountCard } from '@/components/account-card';
 import { AnimatedPage } from '@/components/animated-page';
 import { formatCurrency, cn } from '@/lib/utils';
 
-interface AccountData {
+export interface AccountData {
   id: string;
   name: string;
-  type: string;
+  type: 'cash' | 'bank' | 'e-wallet';
   icon: string;
   balance: number;
 }
@@ -28,9 +28,13 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    type: 'cash' | 'bank' | 'e-wallet';
+    balance: string;
+  }>({
     name: '',
-    type: 'cash' as 'cash' | 'bank' | 'e-wallet',
+    type: 'cash',
     balance: ''
   });
 
@@ -45,7 +49,7 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
 
   const openEdit = (account: AccountData) => {
     setSelectedAccount(account);
-    setFormData({ name: account.name, type: account.type as any, balance: '' });
+    setFormData({ name: account.name, type: account.type, balance: '' });
     setError('');
     setShowDeleteConfirm(false);
     setMode('edit');
@@ -80,8 +84,8 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
         }
         closeSheet();
         router.refresh();
-      } catch (err: any) {
-        setError(err.message || 'Failed to save account');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to save account');
       }
     });
   };
@@ -94,8 +98,8 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
         await deleteAccount(selectedAccount.id);
         closeSheet();
         router.refresh();
-      } catch (err: any) {
-        setError(err.message || 'Failed to delete account');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to delete account');
         setShowDeleteConfirm(false);
       }
     });
@@ -103,6 +107,7 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
 
   return (
     <div className="p-4 space-y-6 pb-24">
+      {/* Top Header Card — instantly visible */}
       <div className="bg-indigo-600 text-white rounded-2xl p-6 shadow-sm">
         <h2 className="text-sm font-medium opacity-80">Total Balance</h2>
         <p className="text-3xl font-bold mt-1">{formatCurrency(totalBalance)}</p>
@@ -119,13 +124,14 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
           </div>
         ) : (
           <div className="grid gap-4">
-            {accounts.map((account) => (
-              <div key={account.id} data-animate className="opacity-0 translate-y-4">
+            {accounts.map((account, idx) => (
+              <div key={account.id} data-animate>
                 <AccountCard
                   id={account.id}
                   name={account.name}
-                  type={account.type as 'cash' | 'bank' | 'e-wallet'}
+                  type={account.type}
                   balance={account.balance}
+                  defer={idx > 3}
                   onClick={() => openEdit(account)}
                 />
               </div>

@@ -3,6 +3,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+interface BudgetCategory {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
 export async function getBudgets(month: number, year: number) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -37,14 +44,18 @@ export async function getBudgets(month: number, year: number) {
     spentByCategory[t.category_id] = (spentByCategory[t.category_id] || 0) + Number(t.amount);
   });
 
-  return (budgets ?? []).map(b => ({
-    id: b.id,
-    amount: Number(b.amount),
-    month: b.month,
-    year: b.year,
-    category: b.categories,
-    spent: spentByCategory[(b.categories as any)?.id] || 0,
-  }));
+  return (budgets ?? []).map((b) => {
+    const category = (Array.isArray(b.categories) ? b.categories[0] : b.categories) as BudgetCategory | null;
+    const catId = category?.id ?? '';
+    return {
+      id: b.id,
+      amount: Number(b.amount),
+      month: b.month,
+      year: b.year,
+      category,
+      spent: catId ? (spentByCategory[catId] || 0) : 0,
+    };
+  });
 }
 
 export async function createBudget(formData: {

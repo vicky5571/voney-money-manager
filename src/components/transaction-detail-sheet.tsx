@@ -5,7 +5,7 @@ import { Trash2, Pencil, X, Loader2 } from 'lucide-react';
 import { deleteTransaction } from '@/app/actions/transactions';
 import { useRouter } from 'next/navigation';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { getCategoryIcon } from '@/constants/categories';
+import { CategoryIcon } from '@/constants/categories';
 
 interface TransactionDetailSheetProps {
   transaction: {
@@ -31,8 +31,6 @@ export function TransactionDetailSheet({
   const [showConfirm, setShowConfirm] = useState(false);
 
   if (!isOpen) return null;
-
-  const Icon = getCategoryIcon(transaction.categories?.icon ?? 'Package');
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -68,7 +66,8 @@ export function TransactionDetailSheet({
               className="w-12 h-12 rounded-full flex items-center justify-center"
               style={{ backgroundColor: `${transaction.categories?.color ?? '#6B7280'}15` }}
             >
-              <Icon
+              <CategoryIcon
+                name={transaction.categories?.icon ?? 'Package'}
                 size={24}
                 style={{ color: transaction.categories?.color ?? '#6B7280' }}
               />

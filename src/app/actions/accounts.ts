@@ -22,6 +22,7 @@ export async function createAccount(formData: {
   name: string;
   type: 'cash' | 'bank' | 'e-wallet';
   icon?: string;
+  balance?: number;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -32,7 +33,7 @@ export async function createAccount(formData: {
     name: formData.name,
     type: formData.type,
     icon: formData.icon || 'wallet',
-    balance: 0,
+    balance: formData.balance ?? 0,
   });
 
   if (error) throw error;

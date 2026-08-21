@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   UtensilsCrossed,
   Car,
@@ -12,7 +13,7 @@ import {
   Gift,
   DollarSign,
   HelpCircle,
-  LucideIcon
+  type LucideIcon
 } from 'lucide-react';
 
 export interface CategoryDefinition {
@@ -56,4 +57,19 @@ const iconMap: Record<string, LucideIcon> = {
 
 export function getCategoryIcon(iconName: string): LucideIcon {
   return iconMap[iconName] || HelpCircle;
+}
+
+export function CategoryIcon({
+  name,
+  size = 20,
+  className,
+  style,
+}: {
+  name: string;
+  size?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const IconComponent = iconMap[name] || HelpCircle;
+  return React.createElement(IconComponent, { size, className, style });
 }
