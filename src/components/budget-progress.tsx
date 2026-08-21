@@ -50,7 +50,7 @@ function getTodayProgress(startDate?: string, endDate?: string): number | null {
   const elapsedTime = now.getTime() - start.getTime();
   const percentage = (elapsedTime / totalTime) * 100;
 
-  // Only display if today falls within or at the boundaries of the budget period
+  // Only display if today falls within the budget period
   if (percentage < 0 || percentage > 100) return null;
   return Math.min(Math.max(percentage, 0), 100);
 }
@@ -77,13 +77,6 @@ export function BudgetProgress({
   } else if (percentage >= 80) {
     progressColor = '#F59E0B'; // orange
   }
-
-  // Label horizontal shift alignment when near edges
-  const getLabelTransform = (pct: number) => {
-    if (pct < 12) return 'translateX(0%)';
-    if (pct > 88) return 'translateX(-100%)';
-    return 'translateX(-50%)';
-  };
 
   return (
     <div className="flex flex-col gap-2.5 w-full p-4 bg-white rounded-2xl shadow-sm border border-gray-100 transition-all hover:shadow-md">
@@ -135,16 +128,27 @@ export function BudgetProgress({
         {/* "Today" line indicator and tag */}
         {todayPercentage !== null && (
           <div 
-            className="absolute top-0 z-20 pointer-events-none flex flex-col items-center"
+            className="absolute top-0 bottom-0.5 z-20 pointer-events-none"
             style={{ left: `${todayPercentage}%` }}
           >
+            {/* The vertical indicator line (intersecting the progress bar) */}
+            <div className="absolute top-3.5 bottom-0 w-[1.5px] bg-gray-900 -translate-x-1/2 rounded-full" />
+
+            {/* The "Today" badge seamlessly attached to the line:
+                - Left part of bar (< 15%): anchored at x=0, expanding to the right
+                - Right part of bar (> 85%): anchored at x=0, expanding to the left
+                - Center of bar (15% - 85%): centered directly on top of the line */}
             <div 
-              className="px-1.5 py-0.5 bg-gray-900 text-white rounded text-[9px] font-bold tracking-wider leading-none shadow-sm flex items-center justify-center"
-              style={{ transform: getLabelTransform(todayPercentage) }}
+              className={`absolute top-0 text-[9px] font-bold tracking-wider leading-none shadow-sm whitespace-nowrap px-1.5 py-0.5 bg-gray-900 text-white rounded ${
+                todayPercentage < 15
+                  ? 'left-0 translate-x-0'
+                  : todayPercentage > 85
+                  ? 'left-0 -translate-x-full'
+                  : 'left-0 -translate-x-1/2'
+              }`}
             >
               Today
             </div>
-            <div className="w-[1.5px] h-4 bg-gray-900/80 -mt-0.5" />
           </div>
         )}
 
