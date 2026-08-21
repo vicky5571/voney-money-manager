@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Plus, X, Calendar, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { BudgetProgress } from '@/components/budget-progress';
+import { BudgetSummaryGauge } from '@/components/budget-summary-gauge';
 import { createBudget, deleteBudget } from '@/app/actions/budgets';
 
 export interface BudgetCategory {
@@ -156,6 +157,26 @@ export function BudgetsClient({
     });
   };
 
+  // Compute summary totals
+  const totalBudget = initialBudgets.reduce((sum, b) => sum + b.amount, 0);
+  const totalSpent = initialBudgets.reduce((sum, b) => sum + b.spent, 0);
+
+  // Compute days left in the selected month (midnight normalized)
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  const lastDayOfMonth = new Date(initialYear, initialMonth, 0).getDate();
+
+  let daysLeft = 0;
+  if (initialYear === currentYear && initialMonth === currentMonth) {
+    daysLeft = Math.max(0, lastDayOfMonth - now.getDate());
+  } else if (initialYear > currentYear || (initialYear === currentYear && initialMonth > currentMonth)) {
+    daysLeft = lastDayOfMonth;
+  } else {
+    daysLeft = 0;
+  }
+
   return (
     <div className="min-h-screen pb-24 relative p-4 space-y-6">
       {/* Month Navigation */}
@@ -171,6 +192,13 @@ export function BudgetsClient({
           <ChevronRight size={20} />
         </button>
       </div>
+
+      {/* Half Circle Gauge Summary Card */}
+      <BudgetSummaryGauge
+        totalBudget={totalBudget}
+        totalSpent={totalSpent}
+        daysLeft={daysLeft}
+      />
 
       <div className="space-y-4">
         {initialBudgets.length === 0 ? (
