@@ -10,6 +10,7 @@ import { getAccounts } from '@/app/actions/accounts';
 import { CategoryGrid } from '@/components/category-grid';
 import { SpeedKeypad } from '@/components/speed-keypad';
 import { CategoryManagerSheet } from '@/components/category-manager-sheet';
+import { saveOfflineTransaction, saveOfflineTransfer } from '@/lib/offline-sync';
 import { formatCurrency, cn } from '@/lib/utils';
 
 type Category = {
@@ -111,6 +112,36 @@ export default function AddTransactionPage() {
     setLoading(true);
     setError('');
 
+    // If device is explicitly offline, save to local queue immediately
+    if (typeof window !== 'undefined' && !navigator.onLine) {
+      try {
+        if (type === 'transfer') {
+          saveOfflineTransfer({
+            from_account_id: selectedAccount,
+            to_account_id: toAccount,
+            amount: parsedAmount,
+            transaction_date: date,
+            note: note || undefined,
+          });
+        } else {
+          saveOfflineTransaction({
+            type,
+            amount: parsedAmount,
+            category_id: selectedCategory!,
+            account_id: selectedAccount,
+            transaction_date: date,
+            note: note || undefined,
+          });
+        }
+        router.push('/');
+        return;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to save offline');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       if (type === 'transfer') {
         await createTransfer({
@@ -133,6 +164,29 @@ export default function AddTransactionPage() {
       router.push('/');
       router.refresh();
     } catch (err) {
+      // Fallback: If network drops mid-flight, store offline
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        if (type === 'transfer') {
+          saveOfflineTransfer({
+            from_account_id: selectedAccount,
+            to_account_id: toAccount,
+            amount: parsedAmount,
+            transaction_date: date,
+            note: note || undefined,
+          });
+        } else {
+          saveOfflineTransaction({
+            type,
+            amount: parsedAmount,
+            category_id: selectedCategory!,
+            account_id: selectedAccount,
+            transaction_date: date,
+            note: note || undefined,
+          });
+        }
+        router.push('/');
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Failed to save transaction');
     } finally {
       setLoading(false);

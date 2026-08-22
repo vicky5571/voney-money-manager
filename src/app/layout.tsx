@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { PWAProvider } from "@/components/pwa-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,8 +17,18 @@ export const metadata: Metadata = {
   title: "Voney — Money Manager",
   description:
     "A mobile-first personal money manager. Track income, expenses, budgets, and accounts.",
+  applicationName: "Voney",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Voney",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: "/favicon.ico",
+    apple: "/icons/icon.svg",
   },
 };
 
@@ -27,6 +38,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  themeColor: "#4F46E5",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -36,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        {children}
+        <PWAProvider>{children}</PWAProvider>
       </body>
     </html>
   );
