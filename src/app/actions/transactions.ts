@@ -2,6 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { calculateFinancialHealth, type FinancialHealthResult } from '@/lib/financial-health';
+
+export type { FinancialHealthResult };
 
 export async function getTransactions({
   page = 1,
@@ -71,6 +74,65 @@ export async function getMonthSummary(month: number, year: number) {
   const expense = (data ?? []).filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
 
   return { income, expense, net: income - expense };
+}
+
+export async function getMonthFinancialHealth(month: number, year: number) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+  // 1. Get transactions
+  const { data: txs } = await supabase
+    .from('transactions')
+    .select('type, amount')
+    .eq('user_id', user.id)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate);
+
+  const income = (txs ?? []).filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+  const expense = (txs ?? []).filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+
+  // 2. Total account balance
+  const { data: accounts } = await supabase
+    .from('accounts')
+    .select('balance')
+    .eq('user_id', user.id);
+  const totalBalance = accounts?.reduce((sum, acc) => sum + Number(acc.balance), 0) ?? 0;
+
+  // 3. Budgets for this month
+  const { data: budgets } = await supabase
+    .from('budgets')
+    .select('amount')
+    .eq('user_id', user.id)
+    .lte('start_date', endDate)
+    .gte('end_date', startDate);
+  const totalBudget = budgets?.reduce((sum, b) => sum + Number(b.amount), 0) ?? 0;
+
+  // 4. Overdue recurring bills
+  const { data: recurringBills } = await supabase
+    .from('recurring_bills')
+    .select('next_due_date')
+    .eq('user_id', user.id)
+    .eq('is_active', true);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const hasOverdueBills = (recurringBills ?? []).some((b) => new Date(b.next_due_date + 'T00:00:00') < today);
+
+  return calculateFinancialHealth({
+    income,
+    expense,
+    totalBalance,
+    totalBudget,
+    totalBudgetSpent: expense,
+    hasOverdueBills,
+    month,
+    year,
+  });
 }
 
 export async function getTransactionCounts(search?: string, month?: number, year?: number) {

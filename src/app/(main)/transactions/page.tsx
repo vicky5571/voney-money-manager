@@ -1,9 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getTransactions, getMonthSummary, getTransactionCounts, getTransactionsForExport, deleteTransaction } from '@/app/actions/transactions';
+import {
+  getTransactions,
+  getMonthSummary,
+  getTransactionCounts,
+  getTransactionsForExport,
+  deleteTransaction,
+  getMonthFinancialHealth,
+} from '@/app/actions/transactions';
 import { TransactionItem } from '@/components/transaction-item';
 import { TransactionDetailSheet } from '@/components/transaction-detail-sheet';
+import { FinancialHealthCard } from '@/components/financial-health-card';
+import type { FinancialHealthResult } from '@/lib/financial-health';
 import { Search, TrendingUp, TrendingDown, Receipt, X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/utils';
 
@@ -53,13 +62,13 @@ export default function TransactionsPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [summary, setSummary] = useState<MonthSummary | null>(null);
+  const [health, setHealth] = useState<FinancialHealthResult | null>(null);
   const [counts, setCounts] = useState<{ all: number; income: number; expense: number } | null>(null);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const observerRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch month summary once on mount
-  // Month summary — re-fetch when month changes
+  // Month summary & Financial Health — re-fetch when month changes
   useEffect(() => {
     let ignore = false;
     getMonthSummary(selectedMonth, selectedYear)
@@ -67,6 +76,13 @@ export default function TransactionsPage() {
         if (!ignore) setSummary(res);
       })
       .catch(console.error);
+
+    getMonthFinancialHealth(selectedMonth, selectedYear)
+      .then((res) => {
+        if (!ignore) setHealth(res);
+      })
+      .catch(console.error);
+
     return () => {
       ignore = true;
     };
@@ -306,6 +322,13 @@ export default function TransactionsPage() {
           </div>
         </div>
       </div>
+
+      {/* Financial Health & Savings Target Score for Selected Month */}
+      {health && (
+        <div className="mb-4">
+          <FinancialHealthCard health={health} income={summary?.income ?? 0} />
+        </div>
+      )}
 
       {/* Search bar */}
       <div className="relative mb-3">

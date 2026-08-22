@@ -8,6 +8,7 @@ export interface FinancialHealthResult {
   netSavings: number; // income - expense
   runwayDays: number; // days balance can sustain current daily spend
   dailySpendAverage: number;
+  isPastMonth?: boolean;
   factors: {
     savingsScore: number; // out of 35
     budgetScore: number; // out of 35
@@ -34,6 +35,8 @@ export function calculateFinancialHealth({
   totalBudget,
   totalBudgetSpent,
   hasOverdueBills = false,
+  month,
+  year,
 }: {
   income: number;
   expense: number;
@@ -41,13 +44,30 @@ export function calculateFinancialHealth({
   totalBudget: number;
   totalBudgetSpent: number;
   hasOverdueBills?: boolean;
+  month?: number;
+  year?: number;
 }): FinancialHealthResult {
   const now = new Date();
-  const currentDay = Math.max(1, now.getDate());
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
-  const daysRemaining = totalDaysInMonth - currentDay;
+  const currentActualYear = now.getFullYear();
+  const currentActualMonth = now.getMonth() + 1; // 1-12
+  const currentActualDay = now.getDate();
+
+  const targetYear = year ?? currentActualYear;
+  const targetMonth = month ?? currentActualMonth;
+
+  const isPastMonth =
+    targetYear < currentActualYear ||
+    (targetYear === currentActualYear && targetMonth < currentActualMonth);
+  const isCurrentMonth =
+    targetYear === currentActualYear && targetMonth === currentActualMonth;
+
+  const totalDaysInMonth = new Date(targetYear, targetMonth, 0).getDate();
+  const currentDay = isPastMonth
+    ? totalDaysInMonth
+    : isCurrentMonth
+    ? Math.max(1, currentActualDay)
+    : 1;
+  const daysRemaining = Math.max(0, totalDaysInMonth - currentDay);
 
   // 1. Savings Rate Factor (max 35 pts)
   const netSavings = income - expense;
@@ -69,7 +89,7 @@ export function calculateFinancialHealth({
     if (budgetUsedRatio <= monthProgressRatio) {
       budgetScore = 35; // under pacing
     } else if (budgetUsedRatio <= 1.0) {
-      budgetScore = 25; // within limit but spending faster than month
+      budgetScore = 25; // within limit
     } else if (budgetUsedRatio <= 1.15) {
       budgetScore = 12; // slightly over budget
     } else {
@@ -119,29 +139,29 @@ export function calculateFinancialHealth({
   const recommendations: string[] = [];
   if (savingsRate < 20 && income > 0) {
     recommendations.push(
-      `Aim to save at least 20% of income (${formatCurrency(income * 0.2)}). Current savings rate is ${savingsRate}%.`
+      `Aim to save at least 20% of income (${formatCurrency(income * 0.2)}). Achieved savings rate was ${savingsRate}%.`
     );
   } else if (income === 0 && expense > 0) {
     recommendations.push(
-      'Log your monthly income to unlock accurate savings rate insights.'
+      'Log monthly income to unlock accurate savings rate insights.'
     );
   }
 
   if (totalBudget > 0 && totalBudgetSpent > totalBudget) {
     recommendations.push(
-      `You have exceeded your total monthly budget by ${formatCurrency(
+      `Exceeded total monthly budget by ${formatCurrency(
         totalBudgetSpent - totalBudget
-      )}. Slow down discretionary spending.`
+      )}.`
     );
   } else if (totalBudget === 0) {
     recommendations.push(
-      'Set up category budgets to boost your financial discipline score.'
+      'Set category budgets to track discipline against targets.'
     );
   }
 
   if (runwayDays < 30 && totalBalance > 0) {
     recommendations.push(
-      `Current wallet balance sustains ${runwayDays} days at your average daily spend of ${formatCurrency(
+      `Wallet balance sustained ${runwayDays} days at average daily spend of ${formatCurrency(
         dailySpendAverage
       )}/day.`
     );
@@ -149,39 +169,65 @@ export function calculateFinancialHealth({
 
   if (hasOverdueBills) {
     recommendations.push(
-      'You have overdue subscription bills! Pay them to prevent late penalties.'
+      'Overdue subscription bills detected for this period.'
     );
   }
 
   if (recommendations.length === 0) {
     recommendations.push(
-      'Great financial discipline! You are on pace to hit your monthly savings target.'
+      'Solid financial discipline! Hit monthly savings targets.'
     );
   }
 
-  // 5. Spending Velocity & Month-End Forecast
-  const projectedMonthEndSpend = Math.round(dailySpendAverage * totalDaysInMonth);
+  // 5. Spending Velocity & Month-End Forecast / Final Status
+  const projectedMonthEndSpend = isPastMonth
+    ? expense
+    : Math.round(dailySpendAverage * totalDaysInMonth);
+
   let isProjectedOverBudget = false;
   let projectedDiffVsBudget: number | null = null;
-  let forecastMessage = `Pacing ~${formatCurrency(dailySpendAverage)}/day. Projected month-end spend: ${formatCurrency(
-    projectedMonthEndSpend
-  )}.`;
+  let forecastMessage = '';
 
-  if (totalBudget > 0) {
-    projectedDiffVsBudget = projectedMonthEndSpend - totalBudget;
-    isProjectedOverBudget = projectedMonthEndSpend > totalBudget;
-    if (isProjectedOverBudget) {
-      forecastMessage = `⚠️ At current velocity (${formatCurrency(
-        dailySpendAverage
-      )}/day), projected spend is ${formatCurrency(
-        projectedMonthEndSpend
-      )} — will exceed budget by ${formatCurrency(projectedDiffVsBudget)}.`;
+  if (isPastMonth) {
+    if (totalBudget > 0) {
+      projectedDiffVsBudget = expense - totalBudget;
+      isProjectedOverBudget = expense > totalBudget;
+      if (isProjectedOverBudget) {
+        forecastMessage = `⚠️ Month finished: Exceeded budget by ${formatCurrency(
+          projectedDiffVsBudget
+        )}. Total: ${formatCurrency(expense)}.`;
+      } else {
+        forecastMessage = `✅ Month finished: Safely ${formatCurrency(
+          Math.abs(projectedDiffVsBudget)
+        )} under budget. Total: ${formatCurrency(expense)}.`;
+      }
     } else {
-      forecastMessage = `✅ Projected spend is ${formatCurrency(
-        projectedMonthEndSpend
-      )} — safely ${formatCurrency(
-        Math.abs(projectedDiffVsBudget)
-      )} under your budget limit!`;
+      forecastMessage = `Month finished with total spend of ${formatCurrency(
+        expense
+      )} (~${formatCurrency(dailySpendAverage)}/day).`;
+    }
+  } else {
+    // Current / future month
+    if (totalBudget > 0) {
+      projectedDiffVsBudget = projectedMonthEndSpend - totalBudget;
+      isProjectedOverBudget = projectedMonthEndSpend > totalBudget;
+      if (isProjectedOverBudget) {
+        forecastMessage = `⚠️ At current velocity (${formatCurrency(
+          dailySpendAverage
+        )}/day), projected spend is ${formatCurrency(
+          projectedMonthEndSpend
+        )} — will exceed budget by ${formatCurrency(projectedDiffVsBudget)}.`;
+      } else {
+        forecastMessage = `✅ Projected spend is ${formatCurrency(
+          projectedMonthEndSpend
+        )} — safely ${formatCurrency(
+          Math.abs(projectedDiffVsBudget)
+        )} under your budget limit!`;
+      }
+    } else {
+      forecastMessage = `Pacing ~${formatCurrency(
+        dailySpendAverage
+      )}/day. Projected month-end spend: ${formatCurrency(projectedMonthEndSpend)}.`;
     }
   }
 
@@ -193,6 +239,7 @@ export function calculateFinancialHealth({
     netSavings,
     runwayDays,
     dailySpendAverage,
+    isPastMonth,
     factors: {
       savingsScore,
       budgetScore,
