@@ -8,11 +8,12 @@ export async function getDashboardData() {
   
   if (!user) throw new Error('Not authenticated');
 
-  // Get all accounts for total balance
+  // Get all accounts for total balance and wallet preview
   const { data: accounts } = await supabase
     .from('accounts')
-    .select('balance')
-    .eq('user_id', user.id);
+    .select('id, name, type, icon, balance')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true });
 
   const totalBalance = accounts?.reduce((sum, acc) => sum + Number(acc.balance), 0) ?? 0;
 
@@ -23,7 +24,7 @@ export async function getDashboardData() {
 
   const { data: monthlyTransactions } = await supabase
     .from('transactions')
-    .select('type, amount')
+    .select('type, amount, category_id, transaction_date')
     .eq('user_id', user.id)
     .gte('transaction_date', firstOfMonth)
     .lte('transaction_date', lastOfMonth);
@@ -36,6 +37,37 @@ export async function getDashboardData() {
     ?.filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
 
+  // Get active budgets for this month
+  const { data: budgets } = await supabase
+    .from('budgets')
+    .select('id, amount, category_id, start_date, end_date')
+    .eq('user_id', user.id)
+    .lte('start_date', lastOfMonth)
+    .gte('end_date', firstOfMonth);
+
+  let totalBudget = 0;
+  let totalBudgetSpent = 0;
+
+  if (budgets && budgets.length > 0) {
+    totalBudget = budgets.reduce((sum, b) => sum + Number(b.amount), 0);
+    
+    // Calculate spent for these budgets
+    budgets.forEach((b) => {
+      const bStart = b.start_date;
+      const bEnd = b.end_date;
+      const spentForBudget = monthlyTransactions
+        ?.filter(
+          (t) =>
+            t.type === 'expense' &&
+            t.category_id === b.category_id &&
+            t.transaction_date >= bStart &&
+            t.transaction_date <= bEnd
+        )
+        .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
+      totalBudgetSpent += spentForBudget;
+    });
+  }
+
   // Get recent 5 transactions with category info
   const { data: recentTransactions } = await supabase
     .from('transactions')
@@ -45,8 +77,8 @@ export async function getDashboardData() {
       amount,
       note,
       transaction_date,
-      categories ( name, icon, color ),
-      accounts ( name )
+      categories ( id, name, icon, color ),
+      accounts ( id, name )
     `)
     .eq('user_id', user.id)
     .order('transaction_date', { ascending: false })
@@ -57,6 +89,9 @@ export async function getDashboardData() {
     totalBalance,
     income,
     expense,
+    accounts: accounts ?? [],
+    totalBudget,
+    totalBudgetSpent,
     recentTransactions: recentTransactions ?? [],
   };
 }
