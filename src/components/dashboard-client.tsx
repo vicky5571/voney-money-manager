@@ -174,7 +174,7 @@ export function DashboardClient({
       </div>
 
       {/* Balance Card with Hide/Show Toggle & Clear "This Month" Label */}
-      <div>
+      <div className="w-full max-w-full overflow-hidden">
         <BalanceCard
           totalBalance={totalBalance}
           income={income}

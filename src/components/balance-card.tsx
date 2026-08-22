@@ -29,54 +29,68 @@ export function BalanceCard({ totalBalance, income, expense }: BalanceCardProps)
   };
 
   return (
-    <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl p-6 text-white shadow-md">
-      <div className="flex items-center justify-between text-indigo-100 text-sm font-medium mb-1">
-        <span>Total balance</span>
-        <button
-          type="button"
-          onClick={toggleBalance}
-          className="min-h-[44px] min-w-[44px] px-2.5 py-1 -mr-2 hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 text-xs text-indigo-100 font-medium"
-          aria-label={showBalance ? 'Hide balance' : 'Show balance'}
-        >
-          {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
-          <span className="text-xs">{showBalance ? 'Hide' : 'Show'}</span>
-        </button>
-      </div>
+    <div className="w-full max-w-full overflow-hidden bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-3xl p-5 sm:p-6 text-white shadow-md space-y-4">
+      {/* Top Total Balance Row */}
+      <div>
+        <div className="flex items-center justify-between text-indigo-100 text-xs sm:text-sm font-medium mb-1">
+          <span>Total Balance</span>
+          <button
+            type="button"
+            onClick={toggleBalance}
+            className="min-h-[44px] min-w-[44px] px-2 py-1 -mr-2 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-1.5 text-xs text-indigo-100 font-medium"
+            aria-label={showBalance ? 'Hide balance' : 'Show balance'}
+          >
+            {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
+            <span>{showBalance ? 'Hide' : 'Show'}</span>
+          </button>
+        </div>
 
-      <div className="text-3xl font-bold mb-5 tracking-tight">
-        {maskValue(totalBalance)}
+        <div className="text-2xl sm:text-3xl font-extrabold tracking-tight truncate">
+          {maskValue(totalBalance)}
+        </div>
       </div>
 
       {/* Monthly Summary Header with Badge */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-200">
-          Monthly Cash Flow
-        </span>
-        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-sm">
-          This Month
-        </span>
-      </div>
-      
-      <div className="flex gap-3">
-        {/* Income Pill */}
-        <div className="flex-1 bg-white/10 backdrop-blur rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-white/10">
-          <div className="w-8 h-8 rounded-full bg-emerald-400/20 flex items-center justify-center shrink-0">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-          </div>
-          <div className="overflow-hidden min-w-0">
-            <div className="text-[11px] font-medium text-indigo-100">Income</div>
-            <div className="text-sm font-bold truncate text-white">{maskValue(income)}</div>
-          </div>
+      <div className="pt-1">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-200">
+            Monthly Cash Flow
+          </span>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-sm shrink-0">
+            This Month
+          </span>
         </div>
-        
-        {/* Expense Pill */}
-        <div className="flex-1 bg-white/10 backdrop-blur rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-white/10">
-          <div className="w-8 h-8 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+
+        {/* Constrained Grid for Income & Expense Pills */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-2.5 w-full">
+          {/* Income Pill */}
+          <div className="min-w-0 bg-white/10 backdrop-blur rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 border border-white/10 overflow-hidden">
+            <div className="w-7 h-7 rounded-full bg-emerald-400/20 flex items-center justify-center shrink-0">
+              <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] font-medium text-indigo-100 block leading-tight">
+                Income
+              </span>
+              <span className="text-xs sm:text-sm font-bold truncate block text-white mt-0.5">
+                {maskValue(income)}
+              </span>
+            </div>
           </div>
-          <div className="overflow-hidden min-w-0">
-            <div className="text-[11px] font-medium text-indigo-100">Expense</div>
-            <div className="text-sm font-bold truncate text-white">{maskValue(expense)}</div>
+
+          {/* Expense Pill */}
+          <div className="min-w-0 bg-white/10 backdrop-blur rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 border border-white/10 overflow-hidden">
+            <div className="w-7 h-7 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
+              <div className="w-2 h-2 rounded-full bg-red-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] font-medium text-indigo-100 block leading-tight">
+                Expense
+              </span>
+              <span className="text-xs sm:text-sm font-bold truncate block text-white mt-0.5">
+                {maskValue(expense)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
