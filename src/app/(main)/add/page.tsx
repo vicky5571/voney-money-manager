@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Calendar } from 'lucide-react';
+import { ArrowLeft, Loader2, Calendar, ArrowRightLeft, Keyboard, Calculator } from 'lucide-react';
 import Link from 'next/link';
-import { createTransaction } from '@/app/actions/transactions';
+import { createTransaction, createTransfer } from '@/app/actions/transactions';
 import { getCategories } from '@/app/actions/categories';
 import { getAccounts } from '@/app/actions/accounts';
 import { CategoryGrid } from '@/components/category-grid';
-import { formatCurrency } from '@/lib/utils';
+import { SpeedKeypad } from '@/components/speed-keypad';
+import { CategoryManagerSheet } from '@/components/category-manager-sheet';
+import { formatCurrency, cn } from '@/lib/utils';
 
 type Category = {
   id: string;
@@ -32,10 +34,13 @@ export default function AddTransactionPage() {
   const [error, setError] = useState('');
 
   // Form state
-  const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [type, setType] = useState<'expense' | 'income' | 'transfer'>('expense');
   const [amount, setAmount] = useState('');
+  const [showKeypad, setShowKeypad] = useState(true);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
+  const [toAccount, setToAccount] = useState<string>('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [note, setNote] = useState('');
 
@@ -49,7 +54,14 @@ export default function AddTransactionPage() {
         const [cats, accs] = await Promise.all([getCategories(), getAccounts()]);
         setCategories(cats as Category[]);
         setAccounts(accs as Account[]);
-        if (accs.length > 0) setSelectedAccount(accs[0].id);
+        if (accs.length > 0) {
+          setSelectedAccount(accs[0].id);
+          if (accs.length > 1) {
+            setToAccount(accs[1].id);
+          } else {
+            setToAccount(accs[0].id);
+          }
+        }
       } catch {
         setError('Failed to load data');
       } finally {
@@ -61,8 +73,38 @@ export default function AddTransactionPage() {
 
   const filteredCategories = categories.filter((c) => c.type === type);
 
+  // Parse amount evaluating any pending simple math
+  const getNumericAmount = (val: string): number => {
+    try {
+      const cleaned = val.replace(/[+\-\.]$/, '').trim();
+      if (!cleaned) return 0;
+      const tokens = cleaned.match(/(\d+(\.\d+)?|[+\-])/g);
+      if (!tokens || tokens.length === 0) return 0;
+      let total = 0;
+      let currentOp = '+';
+      for (const token of tokens) {
+        if (token === '+' || token === '-') {
+          currentOp = token;
+        } else {
+          const num = parseFloat(token);
+          if (!isNaN(num)) {
+            if (currentOp === '+') total += num;
+            else if (currentOp === '-') total -= num;
+          }
+        }
+      }
+      return total > 0 ? total : 0;
+    } catch {
+      return parseFloat(val) || 0;
+    }
+  };
+
+  const parsedAmount = getNumericAmount(amount);
+
   const isValid =
-    Number(amount) > 0 && selectedCategory && selectedAccount && date;
+    type === 'transfer'
+      ? parsedAmount > 0 && selectedAccount && toAccount && selectedAccount !== toAccount && date
+      : parsedAmount > 0 && selectedCategory && selectedAccount && date;
 
   const handleSubmit = async () => {
     if (!isValid) return;
@@ -70,14 +112,24 @@ export default function AddTransactionPage() {
     setError('');
 
     try {
-      await createTransaction({
-        type,
-        amount: Number(amount),
-        category_id: selectedCategory!,
-        account_id: selectedAccount,
-        transaction_date: date,
-        note: note || undefined,
-      });
+      if (type === 'transfer') {
+        await createTransfer({
+          from_account_id: selectedAccount,
+          to_account_id: toAccount,
+          amount: parsedAmount,
+          transaction_date: date,
+          note: note || undefined,
+        });
+      } else {
+        await createTransaction({
+          type,
+          amount: parsedAmount,
+          category_id: selectedCategory!,
+          account_id: selectedAccount,
+          transaction_date: date,
+          note: note || undefined,
+        });
+      }
       router.push('/');
       router.refresh();
     } catch (err) {
@@ -96,136 +148,227 @@ export default function AddTransactionPage() {
   }
 
   return (
-    <div className="px-4 pt-4 pb-8">
+    <div className="px-4 pt-4 pb-28 max-w-md mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-5">
         <Link
           href="/"
-          className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+          aria-label="Back to dashboard"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={20} className="text-gray-700" />
         </Link>
-        <h1 className="text-xl font-bold">Add Transaction</h1>
+        <h1 className="text-xl font-bold text-gray-900">
+          {type === 'transfer' ? 'Transfer Money' : 'Add Transaction'}
+        </h1>
       </div>
 
-      {/* Type toggle */}
-      <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
+      {/* 3-Way Type toggle */}
+      <div className="flex bg-gray-100 rounded-2xl p-1 mb-5">
         <button
+          type="button"
           onClick={() => {
             setType('expense');
             setSelectedCategory(null);
           }}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            type === 'expense'
-              ? 'bg-white text-red-500 shadow-sm'
-              : 'text-gray-500'
-          }`}
+          className={cn(
+            'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all',
+            type === 'expense' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          )}
         >
           Expense
         </button>
         <button
+          type="button"
           onClick={() => {
             setType('income');
             setSelectedCategory(null);
           }}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            type === 'income'
-              ? 'bg-white text-emerald-600 shadow-sm'
-              : 'text-gray-500'
-          }`}
+          className={cn(
+            'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all',
+            type === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          )}
         >
           Income
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setType('transfer');
+            setSelectedCategory(null);
+          }}
+          className={cn(
+            'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1',
+            type === 'transfer' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          )}
+        >
+          <ArrowRightLeft size={13} /> Transfer
+        </button>
       </div>
 
-      {/* Amount input */}
-      <div className="mb-6">
-        <label className="text-sm font-medium text-gray-500 mb-2 block">
-          Amount
-        </label>
+      {/* Amount input & Keypad */}
+      <div className="mb-5 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">
+            Amount
+          </label>
+          <button
+            type="button"
+            onClick={() => setShowKeypad(!showKeypad)}
+            className="min-h-[44px] px-2 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+          >
+            {showKeypad ? <Keyboard size={15} /> : <Calculator size={15} />}
+            <span>{showKeypad ? 'Use Standard Input' : 'Use Speed Keypad'}</span>
+          </button>
+        </div>
+
         <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-gray-400">
-            $
-          </span>
           <input
-            type="number"
+            type={showKeypad ? 'text' : 'number'}
+            readOnly={showKeypad}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
-            className="w-full pl-10 pr-4 py-4 text-3xl font-bold bg-gray-50 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-4 py-3.5 text-3xl font-extrabold bg-gray-50 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 tracking-tight"
             inputMode="decimal"
-            min="0"
-            step="0.01"
           />
+          {parsedAmount > 0 && amount !== parsedAmount.toString() && (
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">
+              = {formatCurrency(parsedAmount)}
+            </span>
+          )}
         </div>
+
+        {/* Speed Keypad */}
+        {showKeypad && (
+          <SpeedKeypad
+            value={amount}
+            onChange={setAmount}
+            onDone={() => setShowKeypad(false)}
+          />
+        )}
       </div>
 
-      {/* Category selector */}
-      <div className="mb-6">
-        <label className="text-sm font-medium text-gray-500 mb-3 block">
-          Category
-        </label>
-        <CategoryGrid
-          categories={filteredCategories.map((c) => ({
-            id: c.id,
-            name: c.name,
-            icon: c.icon,
-            color: c.color,
-          }))}
-          selectedId={selectedCategory}
-          onSelect={setSelectedCategory}
-        />
-      </div>
+      {/* Transfer: Source & Destination Wallets */}
+      {type === 'transfer' ? (
+        <div className="mb-5 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 block">
+              From Wallet (Source)
+            </label>
+            <select
+              value={selectedAccount}
+              onChange={(e) => setSelectedAccount(e.target.value)}
+              className="w-full min-h-[48px] px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              {accounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.name} ({formatCurrency(Number(acc.balance))})
+                </option>
+              ))}
+            </select>
+          </div>
 
-      {/* Account selector */}
-      <div className="mb-6">
-        <label className="text-sm font-medium text-gray-500 mb-2 block">
-          Account
-        </label>
-        <select
-          value={selectedAccount}
-          onChange={(e) => setSelectedAccount(e.target.value)}
-          className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer"
-        >
-          {accounts.map((acc) => (
-            <option key={acc.id} value={acc.id}>
-              {acc.name} ({formatCurrency(Number(acc.balance))})
-            </option>
-          ))}
-        </select>
-      </div>
+          <div className="flex justify-center -my-1">
+            <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <ArrowRightLeft size={16} className="rotate-90" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 block">
+              To Wallet (Destination)
+            </label>
+            <select
+              value={toAccount}
+              onChange={(e) => setToAccount(e.target.value)}
+              className="w-full min-h-[48px] px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              {accounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.name} ({formatCurrency(Number(acc.balance))})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selectedAccount === toAccount && (
+            <p className="text-xs text-red-500 font-semibold">
+              Source and destination wallets must be different.
+            </p>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Category selector */}
+          <div className="mb-5 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
+              Category
+            </label>
+            <CategoryGrid
+              categories={filteredCategories.map((c) => ({
+                id: c.id,
+                name: c.name,
+                icon: c.icon,
+                color: c.color,
+              }))}
+              selectedId={selectedCategory}
+              onSelect={setSelectedCategory}
+              onManageCategories={() => setShowCategoryManager(true)}
+            />
+          </div>
+
+          {/* Account selector */}
+          <div className="mb-5 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
+              Account / Wallet
+            </label>
+            <select
+              value={selectedAccount}
+              onChange={(e) => setSelectedAccount(e.target.value)}
+              className="w-full min-h-[48px] px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              {accounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.name} ({formatCurrency(Number(acc.balance))})
+                </option>
+              ))}
+            </select>
+          </div>
+        </>
+      )}
 
       {/* Date picker */}
-      <div className="mb-6">
-        <label className="text-sm font-medium text-gray-500 mb-2 block">
+      <div className="mb-5 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-2">
+        <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
           Date
         </label>
         <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full min-h-[48px] pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
           />
         </div>
       </div>
 
       {/* Note */}
-      <div className="mb-8">
-        <label className="text-sm font-medium text-gray-500 mb-2 block">
-          Note <span className="text-gray-300">(optional)</span>
+      <div className="mb-6 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-2">
+        <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
+          Note <span className="text-gray-400 font-normal lowercase">(optional)</span>
         </label>
         <input
           type="text"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Add a note..."
+          placeholder={type === 'transfer' ? 'e.g. ATM withdrawal, rent share' : 'Add a note...'}
           maxLength={200}
-          className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full min-h-[48px] px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         {note.length > 0 && (
-          <p className="text-xs text-gray-400 mt-1 text-right">
+          <p className="text-xs text-gray-500 mt-1 text-right">
             {note.length}/200
           </p>
         )}
@@ -233,26 +376,41 @@ export default function AddTransactionPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm">
+        <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-semibold">
           {error}
         </div>
       )}
 
       {/* Save button */}
       <button
+        type="button"
         onClick={handleSubmit}
         disabled={!isValid || loading}
-        className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+        className="w-full min-h-[52px] py-4 bg-indigo-600 text-white rounded-2xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-200"
       >
         {loading ? (
           <>
-            <Loader2 size={20} className="animate-spin" />
+            <Loader2 size={18} className="animate-spin" />
             Saving...
           </>
+        ) : type === 'transfer' ? (
+          'Confirm Transfer'
         ) : (
           'Save Transaction'
         )}
       </button>
+
+      {/* Category Manager Sheet */}
+      <CategoryManagerSheet
+        isOpen={showCategoryManager}
+        onClose={() => setShowCategoryManager(false)}
+        categories={categories}
+        onCategoryCreated={(newCat) => {
+          setCategories((prev) => [...prev, newCat as Category]);
+          setSelectedCategory(newCat.id);
+          setShowCategoryManager(false);
+        }}
+      />
     </div>
   );
 }

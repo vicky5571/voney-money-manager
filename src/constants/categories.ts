@@ -12,8 +12,30 @@ import {
   Laptop,
   Gift,
   DollarSign,
+  Coffee,
+  Plane,
+  Home,
+  Wifi,
+  Tv,
+  Dumbbell,
+  Shield,
+  Sparkles,
+  GraduationCap,
+  Film,
+  Music,
+  Fuel,
+  ShoppingCart,
+  Briefcase,
+  Zap,
+  Flame,
+  Baby,
+  Dog,
+  Cat,
+  Smartphone,
+  CreditCard,
+  Tag,
   HelpCircle,
-  type LucideIcon
+  type LucideIcon,
 } from 'lucide-react';
 
 export interface CategoryDefinition {
@@ -40,6 +62,62 @@ export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
   { name: 'Other Income', icon: 'DollarSign', color: '#10B981', type: 'income' },
 ];
 
+export const AVAILABLE_CATEGORY_ICONS = [
+  'UtensilsCrossed',
+  'Coffee',
+  'Car',
+  'Fuel',
+  'ShoppingBag',
+  'ShoppingCart',
+  'FileText',
+  'Home',
+  'Wifi',
+  'Tv',
+  'Gamepad2',
+  'Film',
+  'Music',
+  'Heart',
+  'Dumbbell',
+  'BookOpen',
+  'GraduationCap',
+  'Briefcase',
+  'Plane',
+  'Package',
+  'Banknote',
+  'DollarSign',
+  'CreditCard',
+  'Laptop',
+  'Smartphone',
+  'Gift',
+  'Sparkles',
+  'Shield',
+  'Zap',
+  'Flame',
+  'Baby',
+  'Dog',
+  'Cat',
+  'Tag',
+];
+
+export const AVAILABLE_CATEGORY_COLORS = [
+  '#EF4444', // Red
+  '#F97316', // Orange
+  '#F59E0B', // Amber
+  '#EAB308', // Yellow
+  '#84CC16', // Lime
+  '#10B981', // Emerald
+  '#14B8A6', // Teal
+  '#06B6D4', // Cyan
+  '#3B82F6', // Blue
+  '#6366F1', // Indigo
+  '#8B5CF6', // Violet
+  '#A855F7', // Purple
+  '#D946EF', // Fuchsia
+  '#EC4899', // Pink
+  '#F43F5E', // Rose
+  '#64748B', // Slate
+];
+
 const iconMap: Record<string, LucideIcon> = {
   UtensilsCrossed,
   Car,
@@ -53,6 +131,28 @@ const iconMap: Record<string, LucideIcon> = {
   Laptop,
   Gift,
   DollarSign,
+  Coffee,
+  Plane,
+  Home,
+  Wifi,
+  Tv,
+  Dumbbell,
+  Shield,
+  Sparkles,
+  GraduationCap,
+  Film,
+  Music,
+  Fuel,
+  ShoppingCart,
+  Briefcase,
+  Zap,
+  Flame,
+  Baby,
+  Dog,
+  Cat,
+  Smartphone,
+  CreditCard,
+  Tag,
 };
 
 export function getCategoryIcon(iconName: string): LucideIcon {

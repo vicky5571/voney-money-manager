@@ -218,6 +218,66 @@ export async function getDashboardData() {
     };
   }
 
+  // Month-over-Month Comparison
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const firstOfPrevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
+  const lastOfPrevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}-${new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0).getDate()}`;
+
+  const { data: prevMonthTransactions } = await supabase
+    .from('transactions')
+    .select('amount')
+    .eq('user_id', user.id)
+    .eq('type', 'expense')
+    .gte('transaction_date', firstOfPrevMonth)
+    .lte('transaction_date', lastOfPrevMonth);
+
+  const prevMonthExpense = (prevMonthTransactions ?? []).reduce((sum, t) => sum + Number(t.amount), 0);
+
+  let momComparison = null;
+  if (prevMonthExpense > 0) {
+    const diff = Math.round(((expense - prevMonthExpense) / prevMonthExpense) * 100);
+    momComparison = {
+      lastMonthTotal: prevMonthExpense,
+      diffPercentage: diff,
+      isLower: diff < 0,
+    };
+  }
+
+  const categorySpendingBreakdown = sortedCategories.map((cat) => ({
+    name: cat.name,
+    amount: cat.amount,
+    percentage: expense > 0 ? Math.round((cat.amount / expense) * 100) : 0,
+    color: cat.color,
+    icon: cat.icon,
+  }));
+
+  // Get active upcoming recurring bills
+  const { data: upcomingBillsRaw } = await supabase
+    .from('recurring_bills')
+    .select(`
+      id,
+      name,
+      amount,
+      frequency,
+      next_due_date,
+      categories ( id, name, icon, color ),
+      accounts ( id, name )
+    `)
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .order('next_due_date', { ascending: true })
+    .limit(3);
+
+  const upcomingBills = (upcomingBillsRaw ?? []).map((bill) => ({
+    id: bill.id,
+    name: bill.name,
+    amount: Number(bill.amount),
+    frequency: bill.frequency,
+    next_due_date: bill.next_due_date,
+    categories: Array.isArray(bill.categories) ? bill.categories[0] ?? null : bill.categories,
+    accounts: Array.isArray(bill.accounts) ? bill.accounts[0] ?? null : bill.accounts,
+  }));
+
   // Get recent 5 transactions with category info
   const { data: recentTransactions } = await supabase
     .from('transactions')
@@ -245,6 +305,9 @@ export async function getDashboardData() {
     categoryBudgets,
     spendingInsight: insight,
     spendingTrend,
+    categorySpendingBreakdown,
+    momComparison,
+    upcomingBills,
     recentTransactions: recentTransactions ?? [],
   };
 }

@@ -40,6 +40,9 @@ export default async function DashboardPage() {
       categoryBudgets={data.categoryBudgets}
       spendingInsight={data.spendingInsight}
       spendingTrend={data.spendingTrend}
+      categorySpendingBreakdown={data.categorySpendingBreakdown}
+      momComparison={data.momComparison}
+      upcomingBills={data.upcomingBills}
       recentTransactions={recentTransactions}
     />
   );

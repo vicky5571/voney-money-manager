@@ -1,4 +1,5 @@
 import { getAccounts } from '@/app/actions/accounts';
+import { getCategories } from '@/app/actions/categories';
 import { AccountsClient, type AccountData } from '@/components/accounts-client';
 
 export default async function AccountsPage({
@@ -7,7 +8,11 @@ export default async function AccountsPage({
   searchParams: Promise<{ edit?: string }>;
 }) {
   const params = await searchParams;
-  const data = await getAccounts();
+  const [data, categories] = await Promise.all([
+    getAccounts(),
+    getCategories(),
+  ]);
+
   const accounts: AccountData[] = data.map((acc) => ({
     id: acc.id,
     name: acc.name,
@@ -16,5 +21,11 @@ export default async function AccountsPage({
     balance: Number(acc.balance || 0),
   }));
 
-  return <AccountsClient accounts={accounts} initialEditId={params?.edit} />;
+  return (
+    <AccountsClient
+      accounts={accounts}
+      categories={categories}
+      initialEditId={params?.edit}
+    />
+  );
 }

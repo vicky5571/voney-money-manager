@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import { BalanceCard } from '@/components/balance-card';
 import { DashboardOnboarding } from '@/components/dashboard-onboarding';
 import { SpendingTrendChart, type SpendingTrendPoint } from '@/components/spending-trend-chart';
 import { TransactionItem } from '@/components/transaction-item';
 import { TransactionDetailSheet } from '@/components/transaction-detail-sheet';
+import { CategoryBreakdownChart, type CategorySpendingItem, type MonthOverMonthComparison } from '@/components/category-breakdown-chart';
+import { CategoryIcon } from '@/constants/categories';
 import type { CategoryBudgetStatus, SpendingInsight } from '@/app/actions/dashboard';
 import {
   Wallet,
@@ -30,6 +32,16 @@ interface AccountItem {
   type: 'cash' | 'bank' | 'e-wallet';
   balance: number;
   icon?: string;
+}
+
+interface UpcomingBillItem {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: string;
+  next_due_date: string;
+  categories: { id?: string; name: string; icon: string; color: string } | null;
+  accounts: { id?: string; name: string } | null;
 }
 
 interface RecentTxItem {
@@ -57,6 +69,9 @@ interface DashboardClientProps {
   budgetSummary: BudgetSummary;
   categoryBudgets?: CategoryBudgetStatus[];
   spendingInsight?: SpendingInsight | null;
+  categorySpendingBreakdown?: CategorySpendingItem[];
+  momComparison?: MonthOverMonthComparison | null;
+  upcomingBills?: UpcomingBillItem[];
   recentTransactions: RecentTxItem[];
   spendingTrend: SpendingTrendPoint[];
 }
@@ -85,6 +100,9 @@ export function DashboardClient({
   budgetSummary,
   categoryBudgets = [],
   spendingInsight = null,
+  categorySpendingBreakdown = [],
+  momComparison = null,
+  upcomingBills = [],
   recentTransactions,
   spendingTrend,
 }: DashboardClientProps) {
@@ -307,7 +325,14 @@ export function DashboardClient({
 
       {recentTransactions.length > 0 && <SpendingTrendChart data={spendingTrend} />}
 
-      {/* Wallets Preview (Links directly to specific wallet detail) */}
+      {/* Visual Analytics: Category Spending Breakdown */}
+      {categorySpendingBreakdown.length > 0 && (
+        <CategoryBreakdownChart
+          data={categorySpendingBreakdown}
+          totalExpense={expense}
+          momComparison={momComparison}
+        />
+      )}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
@@ -356,6 +381,68 @@ export function DashboardClient({
               className="min-h-[44px] inline-flex items-center gap-1 text-xs font-semibold text-indigo-600"
             >
               <Plus size={14} /> Add Wallet
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* Upcoming Subscriptions & Bills */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">Upcoming Subscriptions</h2>
+            <p className="text-xs text-gray-500 font-medium">Recurring bills & renewals</p>
+          </div>
+          <Link
+            href="/recurring"
+            className="min-h-[44px] px-2.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
+          >
+            {upcomingBills.length > 0 ? `Manage (${upcomingBills.length})` : 'Add'} <ChevronRight size={14} />
+          </Link>
+        </div>
+
+        {upcomingBills.length > 0 ? (
+          <div className="space-y-2">
+            {upcomingBills.map((bill) => (
+              <Link
+                key={bill.id}
+                href="/recurring"
+                className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md active:scale-[0.98] transition-all"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: `${bill.categories?.color ?? '#6366f1'}1A`,
+                    }}
+                  >
+                    <CategoryIcon
+                      name={bill.categories?.icon ?? 'Repeat'}
+                      size={20}
+                      style={{ color: bill.categories?.color ?? '#6366f1' }}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-gray-900 truncate">{bill.name}</p>
+                    <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                      Due {formatDate(bill.next_due_date)} • {bill.frequency}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0 font-bold text-xs text-gray-900">
+                  {formatCurrency(bill.amount)}
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-2xl p-4 text-center border border-dashed border-gray-200">
+            <p className="text-xs text-gray-600 mb-2">No active subscriptions tracked</p>
+            <Link
+              href="/recurring"
+              className="min-h-[44px] inline-flex items-center gap-1 text-xs font-semibold text-indigo-600"
+            >
+              <Plus size={14} /> Track Subscription
             </Link>
           </div>
         )}

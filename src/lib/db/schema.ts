@@ -88,6 +88,33 @@ export const budgets = pgTable('budgets', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+/**
+ * Recurring Bills & Subscriptions Table
+ * Tracks recurring expenses/income (Netflix, rent, gym, bills)
+ */
+export const recurringBills = pgTable('recurring_bills', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  accountId: uuid('account_id')
+    .notNull()
+    .references(() => accounts.id, { onDelete: 'cascade' }),
+  categoryId: uuid('category_id')
+    .notNull()
+    .references(() => categories.id, { onDelete: 'restrict' }),
+  name: text('name').notNull(),
+  amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
+  frequency: text('frequency').notNull().default('monthly'), // 'monthly' | 'weekly' | 'yearly'
+  dueDay: integer('due_day').notNull().default(1),
+  nextDueDate: date('next_due_date').notNull(),
+  lastPaidDate: date('last_paid_date'),
+  isActive: boolean('is_active').notNull().default(true),
+  note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 /* ==========================================================================
    Relations
    ========================================================================== */
@@ -97,6 +124,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   categories: many(categories),
   transactions: many(transactions),
   budgets: many(budgets),
+  recurringBills: many(recurringBills),
 }));
 
 export const accountsRelations = relations(accounts, ({ one, many }) => ({
@@ -105,6 +133,7 @@ export const accountsRelations = relations(accounts, ({ one, many }) => ({
     references: [users.id],
   }),
   transactions: many(transactions),
+  recurringBills: many(recurringBills),
 }));
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
@@ -114,6 +143,7 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
   }),
   transactions: many(transactions),
   budgets: many(budgets),
+  recurringBills: many(recurringBills),
 }));
 
 export const transactionsRelations = relations(transactions, ({ one }) => ({
@@ -142,6 +172,21 @@ export const budgetsRelations = relations(budgets, ({ one }) => ({
   }),
 }));
 
+export const recurringBillsRelations = relations(recurringBills, ({ one }) => ({
+  user: one(users, {
+    fields: [recurringBills.userId],
+    references: [users.id],
+  }),
+  account: one(accounts, {
+    fields: [recurringBills.accountId],
+    references: [accounts.id],
+  }),
+  category: one(categories, {
+    fields: [recurringBills.categoryId],
+    references: [categories.id],
+  }),
+}));
+
 /* ==========================================================================
    TypeScript Types
    ========================================================================== */
@@ -163,3 +208,6 @@ export type TransactionType = 'income' | 'expense';
 
 export type Budget = typeof budgets.$inferSelect;
 export type NewBudget = typeof budgets.$inferInsert;
+
+export type RecurringBill = typeof recurringBills.$inferSelect;
+export type NewRecurringBill = typeof recurringBills.$inferInsert;

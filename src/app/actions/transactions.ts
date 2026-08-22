@@ -310,3 +310,82 @@ export async function deleteTransaction(id: string) {
   revalidatePath('/transactions');
   revalidatePath('/accounts');
 }
+
+export async function createTransfer(formData: {
+  from_account_id: string;
+  to_account_id: string;
+  amount: number;
+  transaction_date: string;
+  note?: string;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  if (formData.from_account_id === formData.to_account_id) {
+    throw new Error('Source and destination accounts must be different');
+  }
+
+  if (formData.amount <= 0) {
+    throw new Error('Transfer amount must be greater than 0');
+  }
+
+  // Get source and destination accounts
+  const [{ data: fromAccount }, { data: toAccount }] = await Promise.all([
+    supabase.from('accounts').select('id, name, balance').eq('id', formData.from_account_id).eq('user_id', user.id).single(),
+    supabase.from('accounts').select('id, name, balance').eq('id', formData.to_account_id).eq('user_id', user.id).single(),
+  ]);
+
+  if (!fromAccount || !toAccount) throw new Error('Account not found');
+
+  // Find or use a category for transfer logging
+  const { data: catData } = await supabase
+    .from('categories')
+    .select('id')
+    .limit(1);
+  const fallbackCategoryId = catData?.[0]?.id;
+
+  // Deduct from source account
+  await supabase
+    .from('accounts')
+    .update({ balance: Number(fromAccount.balance) - formData.amount })
+    .eq('id', fromAccount.id);
+
+  // Add to destination account
+  await supabase
+    .from('accounts')
+    .update({ balance: Number(toAccount.balance) + formData.amount })
+    .eq('id', toAccount.id);
+
+  if (fallbackCategoryId) {
+    // Log outbound transfer record
+    await supabase.from('transactions').insert({
+      user_id: user.id,
+      account_id: fromAccount.id,
+      category_id: fallbackCategoryId,
+      type: 'expense',
+      amount: formData.amount,
+      transaction_date: formData.transaction_date,
+      note: formData.note
+        ? `Transfer to ${toAccount.name}: ${formData.note}`
+        : `Transfer to ${toAccount.name}`,
+    });
+
+    // Log inbound transfer record
+    await supabase.from('transactions').insert({
+      user_id: user.id,
+      account_id: toAccount.id,
+      category_id: fallbackCategoryId,
+      type: 'income',
+      amount: formData.amount,
+      transaction_date: formData.transaction_date,
+      note: formData.note
+        ? `Transfer from ${fromAccount.name}: ${formData.note}`
+        : `Transfer from ${fromAccount.name}`,
+    });
+  }
+
+  revalidatePath('/');
+  revalidatePath('/transactions');
+  revalidatePath('/accounts');
+}

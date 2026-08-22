@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, X, Trash2, Loader2 } from 'lucide-react';
+import { Plus, X, Trash2, Loader2, Repeat, Tags, ChevronRight } from 'lucide-react';
 import { createAccount, updateAccount, deleteAccount } from '@/app/actions/accounts';
 import { AccountCard } from '@/components/account-card';
+import { CategoryManagerSheet, type CategoryItem } from '@/components/category-manager-sheet';
 import { formatCurrency, cn } from '@/lib/utils';
 
 export interface AccountData {
@@ -17,12 +19,14 @@ export interface AccountData {
 
 interface AccountsClientProps {
   accounts: AccountData[];
+  categories?: CategoryItem[];
   initialEditId?: string;
 }
 
-export function AccountsClient({ accounts, initialEditId }: AccountsClientProps) {
+export function AccountsClient({ accounts, categories = [], initialEditId }: AccountsClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
   
   const initialAccount = initialEditId ? accounts.find(a => a.id === initialEditId) || null : null;
   const [mode, setMode] = useState<'add' | 'edit' | null>(initialAccount ? 'edit' : null);
@@ -113,6 +117,41 @@ export function AccountsClient({ accounts, initialEditId }: AccountsClientProps)
       <div className="bg-indigo-600 text-white rounded-2xl p-6 shadow-sm">
         <h2 className="text-sm font-medium opacity-80">Total Balance</h2>
         <p className="text-3xl font-bold mt-1">{formatCurrency(totalBalance)}</p>
+      </div>
+
+      {/* Quick Shortcuts */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <Link
+          href="/recurring"
+          className="min-h-[44px] p-3.5 bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl shadow-xs flex items-center justify-between transition-all active:scale-[0.98]"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Repeat size={16} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-900">Subscriptions</p>
+              <p className="text-[10px] text-gray-500">Recurring bills</p>
+            </div>
+          </div>
+          <ChevronRight size={14} className="text-gray-400" />
+        </Link>
+        <button
+          type="button"
+          onClick={() => setShowCategoryManager(true)}
+          className="min-h-[44px] p-3.5 bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl shadow-xs flex items-center justify-between transition-all active:scale-[0.98] text-left"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <Tags size={16} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-900">Categories</p>
+              <p className="text-[10px] text-gray-500">Custom labels</p>
+            </div>
+          </div>
+          <ChevronRight size={14} className="text-gray-400" />
+        </button>
       </div>
 
       <div className="space-y-4">
@@ -256,6 +295,16 @@ export function AccountsClient({ accounts, initialEditId }: AccountsClientProps)
           </div>
         </div>
       )}
+
+      {/* Category Manager Sheet */}
+      <CategoryManagerSheet
+        isOpen={showCategoryManager}
+        onClose={() => {
+          setShowCategoryManager(false);
+          router.refresh();
+        }}
+        categories={categories}
+      />
     </div>
   );
 }
