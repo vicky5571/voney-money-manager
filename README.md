@@ -11,7 +11,7 @@
 
 **A sleek, fast, mobile-first personal finance app built for effortless expense tracking, smart budget management, subscription monitoring, and financial health forecasting.**
 
-[Live Demo](https://voney-money-manager.vercel.app) • [Download APK](https://github.com/vicky5571/voney-money-manager/raw/main/android-app/app-release-signed.apk) • [Features](#-features) • [Installation](#-getting-started) • [PWA Guide](#-pwa--offline-mode)
+[Live Demo](https://voney-money-manager.vercel.app) • [Features](#-features) • [Installation](#-getting-started) • [PWA Guide](#-pwa--offline-mode)
 
 </div>
 
@@ -135,6 +135,13 @@ Open [http://localhost:3000](http://localhost:3000) on your browser.
 1. Open the website in **Google Chrome**.
 2. Tap **"Install App"** on the bottom prompt (or menu `⋮` $\rightarrow$ **"Install app"**).
 3. Voney installs directly into your app drawer.
+
+#### 📦 Android (APK Download)
+Prefer a native install? Download the latest signed APK:
+
+[**⬇️ Download Voney APK**](./android-app/app-release-signed.apk)
+
+> Enable *"Install unknown apps"* for your browser or file manager, then open the downloaded APK and tap **Install**.
 
 ---
 
