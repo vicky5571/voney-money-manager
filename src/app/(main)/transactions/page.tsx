@@ -13,6 +13,7 @@ import { TransactionItem } from '@/components/transaction-item';
 import { TransactionDetailSheet } from '@/components/transaction-detail-sheet';
 import { FinancialHealthCard } from '@/components/financial-health-card';
 import type { FinancialHealthResult } from '@/lib/financial-health';
+import { useAppStore, type CachedTransaction } from '@/lib/store/use-app-store';
 import { Search, TrendingUp, TrendingDown, Receipt, X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/utils';
 
@@ -52,8 +53,24 @@ export default function TransactionsPage() {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  const monthKey = `${selectedMonth}-${selectedYear}`;
+  const {
+    txCache,
+    summaryCache,
+    healthCache,
+    setTransactionsForMonth,
+    setSummaryForMonth,
+    setHealthForMonth,
+    optimisticDeleteTransaction,
+  } = useAppStore();
+
+  const cachedTxs = txCache[monthKey];
+  const cachedSummary = summaryCache[monthKey];
+  const cachedHealth = healthCache[monthKey];
+
+  const [transactions, setTransactions] = useState<Transaction[]>(() => (cachedTxs ? (cachedTxs as Transaction[]) : []));
+  const [loading, setLoading] = useState<boolean>(() => !cachedTxs);
   const [loadingMore, setLoadingMore] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [searchInput, setSearchInput] = useState('');
@@ -61,32 +78,38 @@ export default function TransactionsPage() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [summary, setSummary] = useState<MonthSummary | null>(null);
-  const [health, setHealth] = useState<FinancialHealthResult | null>(null);
+  const [summary, setSummary] = useState<MonthSummary | null>(() => cachedSummary || null);
+  const [health, setHealth] = useState<FinancialHealthResult | null>(() => cachedHealth || null);
   const [counts, setCounts] = useState<{ all: number; income: number; expense: number } | null>(null);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const observerRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Month summary & Financial Health — re-fetch when month changes
+  // Month summary & Financial Health — re-fetch in background
   useEffect(() => {
     let ignore = false;
     getMonthSummary(selectedMonth, selectedYear)
       .then((res) => {
-        if (!ignore) setSummary(res);
+        if (!ignore) {
+          setSummary(res);
+          setSummaryForMonth(monthKey, res);
+        }
       })
       .catch(console.error);
 
     getMonthFinancialHealth(selectedMonth, selectedYear)
       .then((res) => {
-        if (!ignore) setHealth(res);
+        if (!ignore) {
+          setHealth(res);
+          setHealthForMonth(monthKey, res);
+        }
       })
       .catch(console.error);
 
     return () => {
       ignore = true;
     };
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, monthKey, setSummaryForMonth, setHealthForMonth]);
 
   // Counts — re-fetch when search or month changes
   useEffect(() => {
@@ -101,12 +124,16 @@ export default function TransactionsPage() {
     };
   }, [search, selectedMonth, selectedYear]);
 
-  // Initial load + reset on filter / search / month change
+  // Initial load + background refresh on filter / search / month change
   useEffect(() => {
     let ignore = false;
 
     async function loadInitial() {
-      setLoading(true);
+      // Only show full loading spinner if we don't have cached data
+      if (!txCache[monthKey] || search || filter !== 'all') {
+        setLoading(true);
+      }
+
       try {
         const result = await getTransactions({
           page: 1,
@@ -117,9 +144,14 @@ export default function TransactionsPage() {
           year: selectedYear,
         });
         if (ignore) return;
-        setTransactions((result.transactions as unknown as Record<string, unknown>[]).map(mapRaw));
+        const mapped = (result.transactions as unknown as Record<string, unknown>[]).map(mapRaw);
+        setTransactions(mapped);
         setHasMore(result.hasMore);
         setPage(1);
+
+        if (!search && filter === 'all') {
+          setTransactionsForMonth(monthKey, mapped as CachedTransaction[]);
+        }
       } catch {
         console.error('Failed to fetch transactions');
       } finally {
@@ -131,7 +163,7 @@ export default function TransactionsPage() {
     return () => {
       ignore = true;
     };
-  }, [filter, search, selectedMonth, selectedYear]);
+  }, [filter, search, selectedMonth, selectedYear, monthKey, setTransactionsForMonth, txCache]);
 
   const loadMoreTransactions = useCallback(async (pageNum: number) => {
     try {
@@ -238,13 +270,17 @@ export default function TransactionsPage() {
     }
   };
 
-  // Swipe delete — optimistic removal then server delete
+  // Swipe delete — optimistic removal in store then server delete
   const handleSwipeDelete = async (id: string) => {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
+    optimisticDeleteTransaction(id, monthKey);
     try {
       await deleteTransaction(id);
       // Refresh aggregates
-      getMonthSummary(selectedMonth, selectedYear).then(setSummary).catch(console.error);
+      getMonthSummary(selectedMonth, selectedYear).then((res) => {
+        setSummary(res);
+        setSummaryForMonth(monthKey, res);
+      }).catch(console.error);
       getTransactionCounts(search || undefined, selectedMonth, selectedYear).then(setCounts).catch(console.error);
     } catch {
       console.error('Failed to delete transaction');

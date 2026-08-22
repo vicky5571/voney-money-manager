@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useAppStore } from '@/lib/store/use-app-store';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import { BalanceCard } from '@/components/balance-card';
@@ -112,6 +113,18 @@ export function DashboardClient({
 }: DashboardClientProps) {
   const [selectedTx, setSelectedTx] = useState<RecentTxItem | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Pre-seed global Zustand client cache
+  useEffect(() => {
+    const now = new Date();
+    const monthKey = `${now.getMonth() + 1}-${now.getFullYear()}`;
+    const { setDashboardCache, setSummaryForMonth, setHealthForMonth } = useAppStore.getState();
+    setDashboardCache(totalBalance, income, expense);
+    setSummaryForMonth(monthKey, { income, expense, net: income - expense });
+    if (financialHealth) {
+      setHealthForMonth(monthKey, financialHealth);
+    }
+  }, [totalBalance, income, expense, financialHealth]);
 
   const getAccountIcon = (type: string) => {
     switch (type) {

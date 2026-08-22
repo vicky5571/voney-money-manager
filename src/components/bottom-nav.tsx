@@ -18,6 +18,7 @@ export function BottomNav() {
         <div className="flex flex-col items-center justify-center -mt-6 z-10">
           <Link
             href="/add"
+            prefetch={true}
             className="flex items-center justify-center w-14 h-14 bg-indigo-600 text-white rounded-full shadow-xl ring-4 ring-white active:scale-95 transition-transform"
             aria-label="Add Transaction"
           >
@@ -46,13 +47,14 @@ function NavItem({
   return (
     <Link
       href={href}
+      prefetch={true}
       className={cn(
-        "flex flex-col items-center justify-center w-16 h-full transition-colors",
-        isActive ? "text-indigo-600" : "text-gray-400"
+        "flex flex-col items-center justify-center w-16 h-full transition-colors min-h-[44px] min-w-[44px]",
+        isActive ? "text-indigo-600 font-bold" : "text-gray-400 font-medium hover:text-gray-600"
       )}
     >
-      <Icon size={24} className="mb-1" />
-      <span className="text-[10px] font-medium">{name}</span>
+      <Icon size={24} className="mb-1 shrink-0" />
+      <span className="text-[10px] leading-tight">{name}</span>
     </Link>
   );
 }

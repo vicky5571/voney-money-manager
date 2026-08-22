@@ -11,6 +11,7 @@ import { CategoryGrid } from '@/components/category-grid';
 import { SpeedKeypad } from '@/components/speed-keypad';
 import { CategoryManagerSheet } from '@/components/category-manager-sheet';
 import { saveOfflineTransaction, saveOfflineTransfer } from '@/lib/offline-sync';
+import { useAppStore } from '@/lib/store/use-app-store';
 import { formatCurrency, cn } from '@/lib/utils';
 
 type Category = {
@@ -48,6 +49,7 @@ export default function AddTransactionPage() {
   // Data
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const { optimisticAddTransaction } = useAppStore();
 
   useEffect(() => {
     async function loadData() {
@@ -143,6 +145,27 @@ export default function AddTransactionPage() {
     }
 
     try {
+      const selCat = categories.find((c) => c.id === selectedCategory);
+      const selAcc = accounts.find((a) => a.id === selectedAccount);
+      if (type !== 'transfer' && selCat && selAcc) {
+        optimisticAddTransaction({
+          type,
+          amount: parsedAmount,
+          note: note || null,
+          transaction_date: date,
+          categories: {
+            id: selCat.id,
+            name: selCat.name,
+            icon: selCat.icon,
+            color: selCat.color,
+          },
+          accounts: {
+            id: selAcc.id,
+            name: selAcc.name,
+          },
+        });
+      }
+
       if (type === 'transfer') {
         await createTransfer({
           from_account_id: selectedAccount,
