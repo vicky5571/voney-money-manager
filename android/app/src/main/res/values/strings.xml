@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Voney</string>
+    <string name="title_activity_main">Voney</string>
+    <string name="package_name">app.voney.twa</string>
+    <string name="custom_url_scheme">app.voney.twa</string>
+</resources>

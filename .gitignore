@@ -38,7 +38,7 @@ yarn-error.log*
 # vercel
 .vercel
 
-# android / TWA
+# android / TWA + Capacitor
 *.keystore
 *.jks
 android-app/app/build/
@@ -46,6 +46,9 @@ android-app/build/
 android-app/.gradle/
 android-app/app/release/
 *.idsig
+android/app/build/
+android/.gradle/
+android/capacitor-cordova-android-plugins/
 
 # typescript
 *.tsbuildinfo

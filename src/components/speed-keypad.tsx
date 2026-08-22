@@ -43,9 +43,14 @@ export function SpeedKeypad({ value, onChange, onDone }: SpeedKeypadProps) {
   };
 
   const handleKeyPress = (key: string) => {
-    // haptic + a11y: light tap feedback
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      try { navigator.vibrate(10); } catch {}
+    // haptic: Capacitor Haptics → fallback vibrate
+    try {
+      // lazy to avoid SSR break
+      import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => Haptics.impact({ style: ImpactStyle.Light })).catch(() => {
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(10);
+      });
+    } catch {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) try { navigator.vibrate(10); } catch {}
     }
     if (key === 'C') {
       onChange('');

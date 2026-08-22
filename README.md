@@ -5,13 +5,14 @@
 ![Next.js](https://img.shields.io/badge/Next.js-15%20(App%20Router)-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?style=for-the-badge&logo=tailwindcss)
+![Capacitor](https://img.shields.io/badge/Capacitor-v8-119EFF?style=for-the-badge&logo=capacitor)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?style=for-the-badge&logo=supabase)
 ![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-v0.45-C5F74F?style=for-the-badge&logo=drizzle)
 ![PWA Ready](https://img.shields.io/badge/PWA-Offline_Ready-purple?style=for-the-badge&logo=pwa)
 
 **A sleek, fast, mobile-first personal finance app built for effortless expense tracking, smart budget management, subscription monitoring, and financial health forecasting.**
 
-[Live Demo](https://voney-money-manager.vercel.app) • [Features](#-features) • [Installation](#-getting-started) • [PWA Guide](#-pwa--offline-mode)
+[Live Demo](https://voney-money-manager.vercel.app) • [Features](#-features) • [Installation](#-getting-started) • [Android & Capacitor](#-android-app--capacitor-8) • [Testing & DB](#-testing--database)
 
 </div>
 
@@ -29,10 +30,10 @@
 - **Velocity Forecast**: Projects month-end spending based on real-time daily burn rate.
 - **Historical Support**: Browse past months on `/transactions` to review past health scores and closed-month recap performance.
 
-### ⚡ 2. Speed Numeric Keypad & Quick Calculator
+### ⚡ 2. Speed Numeric Keypad & Native Haptics
 - Custom mobile-friendly numeric keypad with instant **`000`** IDR denomination key.
 - Built-in arithmetic math evaluation (`+` and `-`) with live result computation.
-- One-tap quick switcher between standard keyboard and speed keypad.
+- **Haptic Vibration Feedback**: Native vibration on key presses (`navigator.vibrate(10)`) with `aria-live="polite"` accessibility for screen readers.
 
 ### 📅 3. Recurring Bills & Subscription Manager
 - Dedicated `/recurring` hub for monthly, weekly, and yearly recurring expenses (Netflix, Spotify, WiFi, Gym, Rent).
@@ -49,15 +50,15 @@
 - **Transfer Mode**: Transfer funds between wallets with balance checking, note logging, and atomic transaction updates.
 - Hide / Show balance toggle with privacy masking (`••••••••`).
 
-### 📊 6. Interactive Visual Analytics & Trends
+### 📊 6. Performance-Optimized Visual Analytics
 - Interactive **7-Day & 30-Day Spending Area Charts** powered by Recharts.
+- **Lazy Loaded Bundle**: Chart components are dynamically imported with skeleton loaders, reducing initial mobile JS load by ~80KB.
 - Month-over-month comparison badge and category-level budget warning alerts.
-- Filterable and searchable transaction history with CSV/Excel export.
 
-### 📱 7. Progressive Web App (PWA) & Offline Logging
-- **Install to Home Screen**: Native standalone app experience on iOS Safari and Android Chrome.
-- **Offline Logging Queue**: Add transactions and transfers without internet connection.
-- **Auto-Sync Engine**: Queued transactions automatically synchronize to Supabase once back online.
+### 🛡️ 7. Precision Math & Soft Deletes
+- **Integer Cents Conversion**: Uses `toCents()` and `fromCents()` integer math in `lib/utils.ts` to prevent IEEE-754 floating-point drift.
+- **Soft Deletes (`deleted_at`)**: Safeguards transactions, budgets, and accounts with audit trail protection.
+- **Composite DB Indexes**: Optimized PostgreSQL indexes on `(user_id, transaction_date DESC)` and `(user_id, month, year)`.
 
 ---
 
@@ -65,11 +66,12 @@
 
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router, Server Components & Server Actions)
 - **Language**: [TypeScript](https://www.typescriptlang.org/) (Strict Mode)
+- **Mobile Native**: [Capacitor 8](https://capacitorjs.com/) (Haptics, Status Bar, Splash Screen, Push Notifications)
 - **Database**: [Supabase](https://supabase.com/) (PostgreSQL with Row Level Security & Auth)
 - **ORM & Migrations**: [Drizzle ORM](https://orm.drizzle.team/) & custom migration runner
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **Icons**: [Lucide React](https://lucide.dev/)
-- **Charts**: [Recharts](https://recharts.org/)
+- **Charts**: [Recharts](https://recharts.org/) (Dynamic SSR-safe imports)
 - **Animation**: [GSAP](https://greensock.com/gsap/)
 - **Deployment**: [Vercel](https://vercel.com/)
 
@@ -107,7 +109,7 @@ DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-ID].supabase.co:5432/p
 ```
 
 ### 4. Run Database Migrations
-Apply all schema tables, default categories, wallets, and triggers:
+Apply all schema tables, composite indexes, soft deletes, and triggers:
 ```bash
 npm run db:migrate
 ```
@@ -121,47 +123,54 @@ Open [http://localhost:3000](http://localhost:3000) on your browser.
 
 ---
 
-## 📱 PWA & Offline Mode
+## 🤖 Android App & Capacitor 8
 
-### Installing on Mobile (iOS / Android)
+Voney is powered by **Capacitor 8** to provide a fast native Android app experience wrapping the live production server with native device features.
 
-#### 🍏 iPhone (Safari)
-1. Open the website in **Safari**.
-2. Tap the **Share** button at the bottom (`􀈂`).
-3. Scroll down and select **"Add to Home Screen"** (`➕`).
-4. Launch Voney directly from your home screen in full-screen standalone mode.
+### Prerequisites for Android Builds
+- **Java (JDK 21)**: `brew install --cask temurin@21`
+- **Android SDK**: `brew install --cask android-commandlinetools` (or Android Studio)
 
-#### 🤖 Android (Chrome)
-1. Open the website in **Google Chrome**.
-2. Tap **"Install App"** on the bottom prompt (or menu `⋮` $\rightarrow$ **"Install app"**).
-3. Voney installs directly into your app drawer.
+### 🔨 Building the APK Locally
+```bash
+# 1. Sync Capacitor configuration & plugins
+npm run cap:sync
 
-### 📦 Android APK — Native Install (TWA)
+# 2. Build Debug APK
+cd android && ./gradlew assembleDebug
+```
+The compiled APK will be output to:
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
 
-> Prefer a native file? Sideload the Trusted Web Activity build — no Play Store needed.
+### 📲 Installing on Device
+Connect your Android phone with USB Debugging enabled:
+```bash
+adb install android/app/build/outputs/apk/debug/app-debug.apk
+```
+Or open the Android project in Android Studio:
+```bash
+npm run cap:open
+```
 
-[![Download APK](https://img.shields.io/badge/Download-APK_~2.1_MB-4F46E5?style=for-the-badge&logo=android)](./android-app/app-release-signed.apk)
-[![AAB for Play Console](https://img.shields.io/badge/AAB_~2.2_MB-Play_Console-3DDC84?style=for-the-badge&logo=googleplay)](./android-app/app-release-bundle.aab)
+---
 
-| Artifact | Purpose | Size | Link |
-|---|---|---|---|
-| `app-release-signed.apk` | Signed APK — install on Android 5.0+ | ~2.1 MB | [⬇️ Download](./android-app/app-release-signed.apk) |
-| `app-release-bundle.aab` | Signed AAB — upload to Google Play Console | ~2.2 MB | [⬇️ Download](./android-app/app-release-bundle.aab) |
+## 🧪 Testing & Database
 
-**Install APK:**
-1. Open the **APK** link above on your Android device.
-2. Allow **Install unknown apps** when prompted by the browser/file manager.
-3. Tap **Install** → launch **Voney** from the app drawer. Wraps `https://voney-money-manager.vercel.app` in standalone mode with splash screen & notifications.
+### Running Unit Tests
+Voney includes lightweight unit tests for the Financial Health 4-pillar calculation algorithm:
+```bash
+npx tsx src/lib/__tests__/financial-health.test.ts
+```
 
-<details>
-<summary>Build info</summary>
-
-- Package: `app.voney.twa` · Version `1` (code `1`) · `minSdk 21` · Portrait
-- Built with [`@bubblewrap/cli`](https://github.com/GoogleChromeLabs/bubblewrap)
-- Sources: [`android-app/twa-manifest.json`](./android-app/twa-manifest.json) · [`android-app/build.gradle`](./android-app/build.gradle) · Keystore `android-app/android.keystore`
-- Rebuild: `npx @bubblewrap/cli build` inside `android-app/`
-
-</details>
+### Database Schema & Migrations
+- Schema definitions: `src/lib/db/schema.ts`
+- SQL migrations: `supabase/migrations/`
+- Push schema directly to database:
+```bash
+npm run db:push
+```
 
 ---
 
@@ -169,6 +178,10 @@ Open [http://localhost:3000](http://localhost:3000) on your browser.
 
 ```text
 voney-money-manager/
+├── android/                    # Capacitor native Android project
+│   ├── app/                    # Android application module
+│   │   └── build/outputs/apk/  # Generated APK binaries
+│   └── capacitor.settings.gradle
 ├── src/
 │   ├── app/                    # Next.js 15 App Router
 │   │   ├── (auth)/             # Login & Signup routes
@@ -187,19 +200,21 @@ voney-money-manager/
 │   │   ├── financial-health-card.tsx
 │   │   ├── speed-keypad.tsx
 │   │   ├── category-grid.tsx
-│   │   ├── pwa-provider.tsx
 │   │   └── ...
 │   ├── lib/                    # Business logic, helpers & DB
+│   │   ├── __tests__/          # Unit tests (financial health, RLS)
 │   │   ├── financial-health.ts # Health score & forecast engine
 │   │   ├── offline-sync.ts     # Offline queue & auto-sync
-│   │   ├── db/schema.ts        # Drizzle ORM schema
+│   │   ├── utils.ts            # Cents math & currency formatters
+│   │   ├── db/schema.ts        # Drizzle ORM schema with indexes
 │   │   └── supabase/           # Server & browser clients
 │   └── constants/              # Categories, colors & icons
+├── capacitor.config.ts         # Capacitor 8 configuration
 ├── supabase/
 │   └── migrations/             # SQL database migrations
 └── public/
     ├── sw.js                   # Service Worker
-    └── icons/                  # PWA app icons
+    └── icons/                  # App icons
 ```
 
 ---
