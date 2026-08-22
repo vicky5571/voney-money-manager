@@ -10,6 +10,7 @@ interface TransactionItemProps {
   categoryName: string;
   categoryIcon: string;
   categoryColor: string;
+  accountName?: string | null;
   note: string | null;
   amount: number;
   type: 'income' | 'expense';
@@ -25,6 +26,7 @@ export function TransactionItem({
   categoryName,
   categoryIcon,
   categoryColor,
+  accountName,
   note,
   amount,
   type,
@@ -126,15 +128,22 @@ export function TransactionItem({
           >
             <CategoryIcon name={categoryIcon} size={20} style={{ color: categoryColor }} />
           </div>
-          <div className="flex flex-col">
-            <span className="font-semibold text-gray-900 text-sm">{categoryName}</span>
-            {note && (
-              <span className="text-xs text-gray-500 max-w-[150px] truncate">{note}</span>
-            )}
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold text-gray-900 text-sm truncate">{categoryName}</span>
+            <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+              {accountName && (
+                <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded shrink-0">
+                  {accountName}
+                </span>
+              )}
+              {note && (
+                <span className="text-xs text-gray-500 truncate max-w-[140px]">{note}</span>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className={cn('font-semibold shrink-0', isIncome ? 'text-emerald-600' : 'text-red-500')}>
+        <div className={cn('font-semibold shrink-0 text-sm', isIncome ? 'text-emerald-600' : 'text-red-500')}>
           {isIncome ? '+' : '-'}{formatCurrency(amount)}
         </div>
       </div>

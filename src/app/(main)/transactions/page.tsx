@@ -61,23 +61,36 @@ export default function TransactionsPage() {
   // Fetch month summary once on mount
   // Month summary — re-fetch when month changes
   useEffect(() => {
-    setSummary(null);
-    getMonthSummary(selectedMonth, selectedYear).then(setSummary).catch(console.error);
+    let ignore = false;
+    getMonthSummary(selectedMonth, selectedYear)
+      .then((res) => {
+        if (!ignore) setSummary(res);
+      })
+      .catch(console.error);
+    return () => {
+      ignore = true;
+    };
   }, [selectedMonth, selectedYear]);
 
   // Counts — re-fetch when search or month changes
   useEffect(() => {
+    let ignore = false;
     getTransactionCounts(search || undefined, selectedMonth, selectedYear)
-      .then(setCounts)
+      .then((res) => {
+        if (!ignore) setCounts(res);
+      })
       .catch(console.error);
+    return () => {
+      ignore = true;
+    };
   }, [search, selectedMonth, selectedYear]);
 
   // Initial load + reset on filter / search / month change
   useEffect(() => {
     let ignore = false;
-    setLoading(true);
 
     async function loadInitial() {
+      setLoading(true);
       try {
         const result = await getTransactions({
           page: 1,
@@ -99,7 +112,9 @@ export default function TransactionsPage() {
     }
 
     loadInitial();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, [filter, search, selectedMonth, selectedYear]);
 
   const loadMoreTransactions = useCallback(async (pageNum: number) => {

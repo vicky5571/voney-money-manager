@@ -17,13 +17,16 @@ export interface AccountData {
 
 interface AccountsClientProps {
   accounts: AccountData[];
+  initialEditId?: string;
 }
 
-export function AccountsClient({ accounts }: AccountsClientProps) {
+export function AccountsClient({ accounts, initialEditId }: AccountsClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [mode, setMode] = useState<'add' | 'edit' | null>(null);
-  const [selectedAccount, setSelectedAccount] = useState<AccountData | null>(null);
+  
+  const initialAccount = initialEditId ? accounts.find(a => a.id === initialEditId) || null : null;
+  const [mode, setMode] = useState<'add' | 'edit' | null>(initialAccount ? 'edit' : null);
+  const [selectedAccount, setSelectedAccount] = useState<AccountData | null>(initialAccount);
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
@@ -32,8 +35,8 @@ export function AccountsClient({ accounts }: AccountsClientProps) {
     type: 'cash' | 'bank' | 'e-wallet';
     balance: string;
   }>({
-    name: '',
-    type: 'cash',
+    name: initialAccount?.name || '',
+    type: initialAccount?.type || 'cash',
     balance: ''
   });
 

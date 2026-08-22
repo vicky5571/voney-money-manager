@@ -37,6 +37,8 @@ export default async function DashboardPage() {
         totalBudget: data.totalBudget,
         totalBudgetSpent: data.totalBudgetSpent,
       }}
+      categoryBudgets={data.categoryBudgets}
+      spendingInsight={data.spendingInsight}
       spendingTrend={data.spendingTrend}
       recentTransactions={recentTransactions}
     />
