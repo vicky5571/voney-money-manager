@@ -12,7 +12,7 @@
 
 **A sleek, fast, mobile-first personal finance app built for effortless expense tracking, smart budget management, subscription monitoring, and financial health forecasting.**
 
-[Live Demo](https://voney-money-manager.vercel.app) • [Features](#-features) • [Installation](#-getting-started) • [Android & Capacitor](#-android-app--capacitor-8) • [Testing & DB](#-testing--database)
+[Live Demo](https://voney-money-manager.vercel.app) • [📥 Download APK](./android/app/build/outputs/apk/debug/app-debug.apk) • [Features](#-features) • [Installation](#-getting-started) • [Android & Capacitor](#-android-app--capacitor-8)
 
 </div>
 
@@ -143,6 +143,15 @@ The compiled APK will be output to:
 ```text
 android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+### 📥 Download APK (latest build — 5.4 MB)
+
+[![Download APK](https://img.shields.io/badge/Download-APK_5.4_MB-4F46E5?style=for-the-badge&logo=android)](./android/app/build/outputs/apk/debug/app-debug.apk)
+
+| Artifact | Size | Link |
+|---|---|---|
+| `app-debug.apk` (Capacitor debug) | ~5.4 MB | [⬇️ Download](./android/app/build/outputs/apk/debug/app-debug.apk) |
+| `app-release-signed.apk` (TWA legacy) | ~2.1 MB | [⬇️ Download](./android-app/app-release-signed.apk) |
 
 ### 📲 Installing on Device
 Connect your Android phone with USB Debugging enabled:
