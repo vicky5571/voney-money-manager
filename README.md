@@ -136,12 +136,32 @@ Open [http://localhost:3000](http://localhost:3000) on your browser.
 2. Tap **"Install App"** on the bottom prompt (or menu `⋮` $\rightarrow$ **"Install app"**).
 3. Voney installs directly into your app drawer.
 
-#### 📦 Android (APK Download)
-Prefer a native install? Download the latest signed APK:
+### 📦 Android APK — Native Install (TWA)
 
-[**⬇️ Download Voney APK**](./android-app/app-release-signed.apk)
+> Prefer a native file? Sideload the Trusted Web Activity build — no Play Store needed.
 
-> Enable *"Install unknown apps"* for your browser or file manager, then open the downloaded APK and tap **Install**.
+[![Download APK](https://img.shields.io/badge/Download-APK_~2.1_MB-4F46E5?style=for-the-badge&logo=android)](./android-app/app-release-signed.apk)
+[![AAB for Play Console](https://img.shields.io/badge/AAB_~2.2_MB-Play_Console-3DDC84?style=for-the-badge&logo=googleplay)](./android-app/app-release-bundle.aab)
+
+| Artifact | Purpose | Size | Link |
+|---|---|---|---|
+| `app-release-signed.apk` | Signed APK — install on Android 5.0+ | ~2.1 MB | [⬇️ Download](./android-app/app-release-signed.apk) |
+| `app-release-bundle.aab` | Signed AAB — upload to Google Play Console | ~2.2 MB | [⬇️ Download](./android-app/app-release-bundle.aab) |
+
+**Install APK:**
+1. Open the **APK** link above on your Android device.
+2. Allow **Install unknown apps** when prompted by the browser/file manager.
+3. Tap **Install** → launch **Voney** from the app drawer. Wraps `https://voney-money-manager.vercel.app` in standalone mode with splash screen & notifications.
+
+<details>
+<summary>Build info</summary>
+
+- Package: `app.voney.twa` · Version `1` (code `1`) · `minSdk 21` · Portrait
+- Built with [`@bubblewrap/cli`](https://github.com/GoogleChromeLabs/bubblewrap)
+- Sources: [`android-app/twa-manifest.json`](./android-app/twa-manifest.json) · [`android-app/build.gradle`](./android-app/build.gradle) · Keystore `android-app/android.keystore`
+- Rebuild: `npx @bubblewrap/cli build` inside `android-app/`
+
+</details>
 
 ---
 
