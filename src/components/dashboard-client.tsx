@@ -9,6 +9,8 @@ import { SpendingTrendChart, type SpendingTrendPoint } from '@/components/spendi
 import { TransactionItem } from '@/components/transaction-item';
 import { TransactionDetailSheet } from '@/components/transaction-detail-sheet';
 import { CategoryBreakdownChart, type CategorySpendingItem, type MonthOverMonthComparison } from '@/components/category-breakdown-chart';
+import { FinancialHealthCard } from '@/components/financial-health-card';
+import type { FinancialHealthResult } from '@/lib/financial-health';
 import { CategoryIcon } from '@/constants/categories';
 import type { CategoryBudgetStatus, SpendingInsight } from '@/app/actions/dashboard';
 import {
@@ -72,6 +74,7 @@ interface DashboardClientProps {
   categorySpendingBreakdown?: CategorySpendingItem[];
   momComparison?: MonthOverMonthComparison | null;
   upcomingBills?: UpcomingBillItem[];
+  financialHealth?: FinancialHealthResult;
   recentTransactions: RecentTxItem[];
   spendingTrend: SpendingTrendPoint[];
 }
@@ -103,6 +106,7 @@ export function DashboardClient({
   categorySpendingBreakdown = [],
   momComparison = null,
   upcomingBills = [],
+  financialHealth,
   recentTransactions,
   spendingTrend,
 }: DashboardClientProps) {
@@ -324,6 +328,14 @@ export function DashboardClient({
       </div>
 
       {recentTransactions.length > 0 && <SpendingTrendChart data={spendingTrend} />}
+
+      {/* Financial Health Score & Forecast Engine */}
+      {financialHealth && (
+        <FinancialHealthCard
+          health={financialHealth}
+          income={income}
+        />
+      )}
 
       {/* Visual Analytics: Category Spending Breakdown */}
       {categorySpendingBreakdown.length > 0 && (

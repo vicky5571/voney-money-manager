@@ -43,6 +43,7 @@ export default async function DashboardPage() {
       categorySpendingBreakdown={data.categorySpendingBreakdown}
       momComparison={data.momComparison}
       upcomingBills={data.upcomingBills}
+      financialHealth={data.financialHealth}
       recentTransactions={recentTransactions}
     />
   );

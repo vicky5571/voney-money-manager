@@ -1,6 +1,9 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { calculateFinancialHealth, type FinancialHealthResult } from '@/lib/financial-health';
+
+export type { FinancialHealthResult };
 
 export interface CategoryBudgetStatus {
   id: string;
@@ -295,6 +298,23 @@ export async function getDashboardData() {
     .order('created_at', { ascending: false })
     .limit(5);
 
+  // Check for overdue bills
+  const hasOverdueBills = upcomingBills.some((bill) => {
+    const due = new Date(bill.next_due_date + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return due < today;
+  });
+
+  const financialHealth = calculateFinancialHealth({
+    income,
+    expense,
+    totalBalance,
+    totalBudget,
+    totalBudgetSpent,
+    hasOverdueBills,
+  });
+
   return {
     totalBalance,
     income,
@@ -308,6 +328,7 @@ export async function getDashboardData() {
     categorySpendingBreakdown,
     momComparison,
     upcomingBills,
+    financialHealth,
     recentTransactions: recentTransactions ?? [],
   };
 }
