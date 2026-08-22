@@ -465,17 +465,29 @@ export function RecurringBillsClient({
               <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5 block">
                 Pay From Wallet
               </label>
-              <select
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-              >
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name} ({formatCurrency(acc.balance)})
-                  </option>
-                ))}
-              </select>
+              {accounts.length === 0 ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                  <p className="text-xs text-amber-700 font-semibold mb-1">No wallets found</p>
+                  <a
+                    href="/accounts"
+                    className="inline-block text-xs font-bold text-indigo-600 underline"
+                  >
+                    + Create a wallet first
+                  </a>
+                </div>
+              ) : (
+                <select
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  {accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name} ({formatCurrency(acc.balance)})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Note */}

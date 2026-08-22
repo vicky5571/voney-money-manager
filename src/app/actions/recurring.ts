@@ -34,15 +34,14 @@ export async function getRecurringBills(): Promise<RecurringBillData[]> {
       last_paid_date,
       is_active,
       note,
-      accounts ( id, name ),
-      categories ( id, name, icon, color )
+      accounts:accounts!account_id ( id, name ),
+      categories:categories!category_id ( id, name, icon, color )
     `)
     .eq('user_id', user.id)
     .order('next_due_date', { ascending: true });
 
   if (error) {
-    // If table doesn't exist yet, return empty list gracefully
-    console.error('Error fetching recurring bills:', error);
+    console.warn('Error fetching recurring bills:', error.message);
     return [];
   }
 

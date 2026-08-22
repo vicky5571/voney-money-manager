@@ -377,17 +377,30 @@ export default function AddTransactionPage() {
             <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
               Account / Wallet
             </label>
-            <select
-              value={selectedAccount}
-              onChange={(e) => setSelectedAccount(e.target.value)}
-              className="w-full min-h-[48px] px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-            >
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.name} ({formatCurrency(Number(acc.balance))})
-                </option>
-              ))}
-            </select>
+            {accounts.length === 0 ? (
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-center space-y-2">
+                <p className="text-xs font-bold text-amber-900">No Wallets Found</p>
+                <p className="text-xs text-amber-700">Please create a wallet first before adding transactions.</p>
+                <Link
+                  href="/accounts"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm"
+                >
+                  + Add Wallet
+                </Link>
+              </div>
+            ) : (
+              <select
+                value={selectedAccount}
+                onChange={(e) => setSelectedAccount(e.target.value)}
+                className="w-full min-h-[48px] px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              >
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name} ({formatCurrency(Number(acc.balance))})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </>
       )}

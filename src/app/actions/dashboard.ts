@@ -263,8 +263,8 @@ export async function getDashboardData() {
       amount,
       frequency,
       next_due_date,
-      categories ( id, name, icon, color ),
-      accounts ( id, name )
+      categories:categories!category_id ( id, name, icon, color ),
+      accounts:accounts!account_id ( id, name )
     `)
     .eq('user_id', user.id)
     .eq('is_active', true)
