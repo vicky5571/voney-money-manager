@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
 import { BalanceCard } from '@/components/balance-card';
+import { DashboardOnboarding } from '@/components/dashboard-onboarding';
+import { SpendingTrendChart, type SpendingTrendPoint } from '@/components/spending-trend-chart';
 import { TransactionItem } from '@/components/transaction-item';
 import { TransactionDetailSheet } from '@/components/transaction-detail-sheet';
 import { Wallet, Building2, Smartphone, ChevronRight, PieChart, Plus, Bell } from 'lucide-react';
@@ -40,6 +42,7 @@ interface DashboardClientProps {
   accounts: AccountItem[];
   budgetSummary: BudgetSummary;
   recentTransactions: RecentTxItem[];
+  spendingTrend: SpendingTrendPoint[];
 }
 
 export function DashboardClient({
@@ -51,6 +54,7 @@ export function DashboardClient({
   accounts,
   budgetSummary,
   recentTransactions,
+  spendingTrend,
 }: DashboardClientProps) {
   const [selectedTx, setSelectedTx] = useState<RecentTxItem | null>(null);
 
@@ -99,6 +103,12 @@ export function DashboardClient({
           expense={expense}
         />
       </div>
+
+      <DashboardOnboarding
+        hasAccount={accounts.length > 0}
+        hasTransaction={recentTransactions.length > 0}
+        hasBudget={totalBudget > 0}
+      />
 
       {/* Budget Health Bar */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -149,6 +159,8 @@ export function DashboardClient({
           </div>
         )}
       </div>
+
+      {recentTransactions.length > 0 && <SpendingTrendChart data={spendingTrend} />}
 
       {/* Wallets Preview */}
       <div className="flex flex-col gap-3">

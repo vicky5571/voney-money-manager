@@ -37,8 +37,8 @@ export default async function DashboardPage() {
         totalBudget: data.totalBudget,
         totalBudgetSpent: data.totalBudgetSpent,
       }}
+      spendingTrend={data.spendingTrend}
       recentTransactions={recentTransactions}
     />
   );
 }
-

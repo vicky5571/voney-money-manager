@@ -11,7 +11,18 @@ interface BalanceCardProps {
 }
 
 export function BalanceCard({ totalBalance, income, expense }: BalanceCardProps) {
-  const [showBalance, setShowBalance] = useState(true);
+  const [showBalance, setShowBalance] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.localStorage.getItem('voney:show-balance') !== 'false';
+  });
+
+  const toggleBalance = () => {
+    setShowBalance((visible) => {
+      const nextVisible = !visible;
+      window.localStorage.setItem('voney:show-balance', String(nextVisible));
+      return nextVisible;
+    });
+  };
 
   const maskValue = (value: number) => {
     return showBalance ? formatCurrency(value) : '••••••••';
@@ -23,7 +34,7 @@ export function BalanceCard({ totalBalance, income, expense }: BalanceCardProps)
         <span>Total balance</span>
         <button
           type="button"
-          onClick={() => setShowBalance(!showBalance)}
+          onClick={toggleBalance}
           className="p-1 hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 text-xs text-indigo-200"
           aria-label={showBalance ? 'Hide balance' : 'Show balance'}
         >
@@ -62,4 +73,3 @@ export function BalanceCard({ totalBalance, income, expense }: BalanceCardProps)
     </div>
   );
 }
-

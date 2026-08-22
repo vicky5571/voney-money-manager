@@ -29,6 +29,32 @@ export async function getDashboardData() {
     .gte('transaction_date', firstOfMonth)
     .lte('transaction_date', lastOfMonth);
 
+  const trendStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+  const trendStartDate = `${trendStart.getFullYear()}-${String(trendStart.getMonth() + 1).padStart(2, '0')}-${String(trendStart.getDate()).padStart(2, '0')}`;
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const { data: trendTransactions } = await supabase
+    .from('transactions')
+    .select('amount, transaction_date')
+    .eq('user_id', user.id)
+    .eq('type', 'expense')
+    .gte('transaction_date', trendStartDate)
+    .lte('transaction_date', today);
+
+  const spendingByDate = (trendTransactions ?? []).reduce<Record<string, number>>((totals, transaction) => {
+    totals[transaction.transaction_date] = (totals[transaction.transaction_date] ?? 0) + Number(transaction.amount);
+    return totals;
+  }, {});
+  const spendingTrend = Array.from({ length: 30 }, (_, index) => {
+    const date = new Date(trendStart);
+    date.setDate(trendStart.getDate() + index);
+    const rawDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return {
+      date: rawDate,
+      label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      amount: spendingByDate[rawDate] ?? 0,
+    };
+  });
+
   const income = monthlyTransactions
     ?.filter(t => t.type === 'income')
     .reduce((sum, t) => sum + Number(t.amount), 0) ?? 0;
@@ -92,6 +118,7 @@ export async function getDashboardData() {
     accounts: accounts ?? [],
     totalBudget,
     totalBudgetSpent,
+    spendingTrend,
     recentTransactions: recentTransactions ?? [],
   };
 }
