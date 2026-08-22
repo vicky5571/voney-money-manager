@@ -172,18 +172,29 @@ export function DashboardClient({
           <p className="text-xs text-gray-500 mt-0.5 font-medium">Welcome back to Voney</p>
         </div>
         
-        {/* Notification Bell (44px min tap target) */}
-        <button
-          type="button"
-          onClick={() => setShowNotifications(true)}
-          className="relative min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center shrink-0 hover:bg-gray-50 active:scale-95 transition-all"
-          aria-label={`Notifications ${totalAlerts > 0 ? `(${totalAlerts} active alerts)` : ''}`}
-        >
-          <Bell size={18} className="text-gray-700" />
-          {totalAlerts > 0 && (
-            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white" />
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Notification Bell (44px min tap target) */}
+          <button
+            type="button"
+            onClick={() => setShowNotifications(true)}
+            className="relative min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center shrink-0 hover:bg-gray-50 active:scale-95 transition-all"
+            aria-label={`Notifications ${totalAlerts > 0 ? `(${totalAlerts} active alerts)` : ''}`}
+          >
+            <Bell size={18} className="text-gray-600" />
+            {totalAlerts > 0 && (
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+            )}
+          </button>
+
+          {/* Profile Avatar Button */}
+          <Link
+            href="/profile"
+            className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-800 text-white shadow-sm flex items-center justify-center font-bold text-xs shrink-0 active:scale-95 transition-transform"
+            aria-label="My Profile & Settings"
+          >
+            {(displayName?.[0] || 'U').toUpperCase()}
+          </Link>
+        </div>
       </div>
 
       {/* Balance Card with Hide/Show Toggle & Clear "This Month" Label */}
