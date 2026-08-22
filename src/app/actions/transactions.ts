@@ -33,6 +33,7 @@ export async function getTransactions({
       accounts ( id, name )
     `, { count: 'exact' })
     .eq('user_id', user.id)
+    .is('deleted_at', null)
     .order('transaction_date', { ascending: false })
     .order('created_at', { ascending: false })
     .range((page - 1) * limit, page * limit - 1);
@@ -65,6 +66,7 @@ export async function getMonthSummary(month: number, year: number) {
     .from('transactions')
     .select('type, amount')
     .eq('user_id', user.id)
+    .is('deleted_at', null)
     .gte('transaction_date', startDate)
     .lte('transaction_date', endDate);
 
@@ -85,11 +87,12 @@ export async function getMonthFinancialHealth(month: number, year: number) {
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-  // 1. Get transactions
+  // 1. Get transactions (exclude soft-deleted)
   const { data: txs } = await supabase
     .from('transactions')
     .select('type, amount')
     .eq('user_id', user.id)
+    .is('deleted_at', null)
     .gte('transaction_date', startDate)
     .lte('transaction_date', endDate);
 
@@ -145,6 +148,7 @@ export async function getTransactionCounts(search?: string, month?: number, year
       .from('transactions')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
+      .is('deleted_at', null)
       .eq('type', type);
     if (search) q = q.ilike('note', `%${search}%`);
     if (month && year) {
@@ -191,6 +195,7 @@ export async function getTransactionsForExport({
       accounts ( name )
     `)
     .eq('user_id', user.id)
+    .is('deleted_at', null)
     .order('transaction_date', { ascending: false })
     .order('created_at', { ascending: false });
 
@@ -341,14 +346,15 @@ export async function deleteTransaction(id: string) {
     .select('type, amount, account_id')
     .eq('id', id)
     .eq('user_id', user.id)
+    .is('deleted_at', null)
     .single();
 
   if (!transaction) throw new Error('Transaction not found');
 
-  // Delete the transaction
+  // Soft delete (audit + restore)
   const { error } = await supabase
     .from('transactions')
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq('id', id)
     .eq('user_id', user.id);
 

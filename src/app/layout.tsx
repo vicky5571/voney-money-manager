@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { PWAProvider } from "@/components/pwa-provider";
 import "./globals.css";
 
+// Analytics + Sentry placeholder — install @vercel/analytics & @sentry/nextjs when ready
+// import { Analytics } from "@vercel/analytics/next";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -49,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <PWAProvider>{children}</PWAProvider>
+        {/* <Analytics /> */}
       </body>
     </html>
   );

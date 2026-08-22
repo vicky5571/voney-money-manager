@@ -308,6 +308,8 @@ export default function AddTransactionPage() {
             placeholder="0.00"
             className="w-full px-4 py-3.5 text-3xl font-extrabold bg-gray-50 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 tracking-tight"
             inputMode="decimal"
+            aria-label="Amount"
+            aria-live="polite"
           />
           {parsedAmount > 0 && amount !== parsedAmount.toString() && (
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">

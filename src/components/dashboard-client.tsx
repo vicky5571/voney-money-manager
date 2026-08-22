@@ -4,12 +4,22 @@ import { useAppStore } from '@/lib/store/use-app-store';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
 import { BalanceCard } from '@/components/balance-card';
 import { DashboardOnboarding } from '@/components/dashboard-onboarding';
-import { SpendingTrendChart, type SpendingTrendPoint } from '@/components/spending-trend-chart';
+import type { SpendingTrendPoint } from '@/components/spending-trend-chart';
 import { TransactionItem } from '@/components/transaction-item';
 import { TransactionDetailSheet } from '@/components/transaction-detail-sheet';
-import { CategoryBreakdownChart, type CategorySpendingItem, type MonthOverMonthComparison } from '@/components/category-breakdown-chart';
+import type { CategorySpendingItem, MonthOverMonthComparison } from '@/components/category-breakdown-chart';
+
+const SpendingTrendChart = dynamic(() => import('@/components/spending-trend-chart').then((m) => m.SpendingTrendChart), {
+  ssr: false,
+  loading: () => <div className="h-36 animate-pulse rounded-2xl bg-gray-50" aria-hidden />,
+});
+const CategoryBreakdownChart = dynamic(() => import('@/components/category-breakdown-chart').then((m) => m.CategoryBreakdownChart), {
+  ssr: false,
+  loading: () => <div className="h-44 animate-pulse rounded-2xl bg-gray-50" aria-hidden />,
+});
 import { FinancialHealthCard } from '@/components/financial-health-card';
 import type { FinancialHealthResult } from '@/lib/financial-health';
 import { CategoryIcon } from '@/constants/categories';

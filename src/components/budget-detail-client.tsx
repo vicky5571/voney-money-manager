@@ -4,10 +4,15 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Trash2, Edit3, Calendar, AlertCircle, Loader2, X } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { CategoryIcon } from '@/constants/categories';
 import { formatCurrency } from '@/lib/utils';
 import { BudgetProgress } from '@/components/budget-progress';
-import { BudgetChart } from '@/components/budget-chart';
+
+const BudgetChart = dynamic(() => import('@/components/budget-chart').then((m) => m.BudgetChart), {
+  ssr: false,
+  loading: () => <div className="h-64 animate-pulse rounded-2xl bg-gray-50" aria-hidden />,
+});
 import { TransactionItem } from '@/components/transaction-item';
 import { deleteBudget, updateBudget, type BudgetDetailResult, type BudgetCategory } from '@/app/actions/budgets';
 

@@ -43,6 +43,10 @@ export function SpeedKeypad({ value, onChange, onDone }: SpeedKeypadProps) {
   };
 
   const handleKeyPress = (key: string) => {
+    // haptic + a11y: light tap feedback
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch {}
+    }
     if (key === 'C') {
       onChange('');
       return;
@@ -108,9 +112,13 @@ export function SpeedKeypad({ value, onChange, onDone }: SpeedKeypadProps) {
   };
 
   const isMathActive = value.includes('+') || value.includes('-');
+  const liveValue = isMathActive ? evaluateExpression(value) : value || '0';
 
   return (
     <div className="space-y-3 pt-2">
+      <span className="sr-only" aria-live="polite" aria-atomic="true">
+        Total {liveValue}
+      </span>
       {/* Quick Increment Chips */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
         {[10000, 50000, 100000, 500000].map((inc) => (

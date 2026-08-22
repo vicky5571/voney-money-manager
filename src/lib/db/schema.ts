@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, decimal, integer, boolean, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, decimal, integer, boolean, date, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 /**
@@ -66,7 +66,12 @@ export const transactions = pgTable('transactions', {
   transactionDate: date('transaction_date').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+}, (table) => [
+  index('idx_transactions_user_date_desc').on(table.userId, table.transactionDate),
+  index('idx_transactions_user_created_desc').on(table.userId, table.createdAt),
+  index('idx_transactions_user_deleted').on(table.userId, table.deletedAt),
+]);
 
 /**
  * Budgets Table
@@ -86,7 +91,11 @@ export const budgets = pgTable('budgets', {
   month: integer('month'),
   year: integer('year'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+}, (table) => [
+  index('idx_budgets_user_month_year_cover').on(table.userId, table.month, table.year),
+  index('idx_budgets_user_daterange').on(table.userId, table.startDate, table.endDate),
+]);
 
 /**
  * Recurring Bills & Subscriptions Table
@@ -113,7 +122,10 @@ export const recurringBills = pgTable('recurring_bills', {
   note: text('note'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+}, (table) => [
+  index('idx_recurring_user_nextdue_active').on(table.userId, table.nextDueDate, table.isActive),
+]);
 
 /* ==========================================================================
    Relations

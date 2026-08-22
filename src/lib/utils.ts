@@ -6,13 +6,33 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Format a number as currency. Example: formatCurrency(12450) => 'Rp 12.450' */
-export function formatCurrency(amount: number): string {
+/** Parse decimal(12,2) string safely to integer cents — no float drift */
+export function toCents(amount: string | number): number {
+  const s = typeof amount === 'number' ? amount.toFixed(2) : amount.trim();
+  const sign = s.startsWith('-') ? -1 : 1;
+  const abs = sign === -1 ? s.slice(1) : s;
+  const [i, d = ''] = abs.split('.');
+  return sign * (Number(i) * 100 + Number((d + '00').slice(0, 2)));
+}
+
+export function fromCents(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
+/** Format as currency. Accepts number or decimal string. Example: formatCurrency("12450.50") => 'Rp 12.451' */
+export function formatCurrency(amount: number | string): string {
+  const n = typeof amount === 'string' ? Number(amount) : amount;
+  if (Number.isNaN(n)) return 'Rp 0';
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
-  }).format(amount);
+  }).format(n);
+}
+
+/** Sum decimal strings without float drift via cents */
+export function sumAmounts(amounts: (string | number)[]): number {
+  return amounts.reduce<number>((acc, a) => acc + toCents(a), 0) / 100;
 }
 
 /** Get time-based greeting */
