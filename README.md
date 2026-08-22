@@ -136,24 +136,6 @@ Open [http://localhost:3000](http://localhost:3000) on your browser.
 2. Tap **"Install App"** on the bottom prompt (or menu `⋮` $\rightarrow$ **"Install app"**).
 3. Voney installs directly into your app drawer.
 
-### 📲 Android APK (TWA — Trusted Web Activity)
-
-Direct native install without browser:
-
-| File | Description | Size | Link |
-|------|-------------|------|------|
-| `app-release-signed.apk` | Signed release APK — sideload on any Android 5.0+ device | ~2.1 MB | [Download APK](https://github.com/vicky5571/voney-money-manager/raw/main/android-app/app-release-signed.apk) · [View in repo](./android-app/app-release-signed.apk) |
-| `app-release-bundle.aab` | Signed Android App Bundle — for Google Play Console upload | ~2.2 MB | [Download AAB](https://github.com/vicky5571/voney-money-manager/raw/main/android-app/app-release-bundle.aab) · [View in repo](./android-app/app-release-bundle.aab) |
-
-> If you are browsing the `vicky` branch, use: [APK (vicky branch)](https://github.com/vicky5571/voney-money-manager/raw/vicky/android-app/app-release-signed.apk)
-
-**Install APK:**
-1. Download the APK on your Android device.
-2. Open the file — allow **"Install unknown apps"** if prompted.
-3. Tap **Install** → launch **Voney** from the app drawer. The TWA wraps `https://voney-money-manager.vercel.app` in standalone mode with splash screen and notifications enabled.
-
-Built with [`@bubblewrap/cli`](https://github.com/GoogleChromeLabs/bubblewrap) — see `android-app/` for `twa-manifest.json`, keystore (`android.keystore`), and Gradle sources.
-
 ---
 
 ## 📂 Project Structure
