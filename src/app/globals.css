@@ -59,11 +59,13 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Safe area for iOS devices */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+/* Safe area for Android & iOS system UI */
+.safe-top {
+  padding-top: max(env(safe-area-inset-top, 0px), 0.5rem);
+}
+
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
 }
 
 /* Slide-up animation for bottom sheets */

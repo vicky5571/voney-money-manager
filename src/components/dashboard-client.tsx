@@ -33,6 +33,7 @@ import {
   Plus,
   Bell,
   AlertTriangle,
+  AlertCircle,
   TrendingUp,
   X,
   CheckCircle2,
@@ -321,7 +322,7 @@ export function DashboardClient({
                       className="flex items-center justify-between p-2.5 bg-red-50 hover:bg-red-100/80 border border-red-100 rounded-xl text-xs transition-colors"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="shrink-0 text-red-600 font-bold">⚠️</span>
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
                         <span className="font-semibold text-red-800 truncate">{b.categoryName}</span>
                       </div>
                       <span className="font-bold text-red-600 shrink-0">
@@ -336,7 +337,7 @@ export function DashboardClient({
                       className="flex items-center justify-between p-2.5 bg-amber-50 hover:bg-amber-100/80 border border-amber-100 rounded-xl text-xs transition-colors"
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="shrink-0 text-amber-600 font-bold">⚡</span>
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                         <span className="font-semibold text-amber-900 truncate">{b.categoryName}</span>
                       </div>
                       <span className="font-bold text-amber-700 shrink-0">

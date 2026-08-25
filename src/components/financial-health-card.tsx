@@ -14,6 +14,8 @@ import {
   PiggyBank,
   SlidersHorizontal,
   Check,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { FinancialHealthResult } from '@/lib/financial-health';
@@ -199,7 +201,14 @@ export function FinancialHealthCard({ health, income }: FinancialHealthCardProps
             </span>
           </div>
 
-          <p className="text-xs leading-relaxed">{health.forecast.forecastMessage}</p>
+          <div className="flex items-start gap-1.5 text-xs leading-relaxed">
+            {health.forecast.isProjectedOverBudget ? (
+              <AlertTriangle size={14} className="text-red-600 shrink-0 mt-0.5" />
+            ) : (
+              <CheckCircle2 size={14} className="text-emerald-600 shrink-0 mt-0.5" />
+            )}
+            <p>{health.forecast.forecastMessage}</p>
+          </div>
 
           {/* Month Pace Progress Bar */}
           <div className="w-full bg-white/70 rounded-full h-2 overflow-hidden">

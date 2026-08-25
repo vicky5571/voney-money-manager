@@ -46,7 +46,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     const { syncedCount } = await syncOfflineQueue();
     checkQueue();
     if (syncedCount > 0) {
-      setSyncStatus(`🟢 Synced ${syncedCount} offline ${syncedCount === 1 ? 'transaction' : 'transactions'}!`);
+      setSyncStatus(`Synced ${syncedCount} offline ${syncedCount === 1 ? 'transaction' : 'transactions'}!`);
       setTimeout(() => setSyncStatus(null), 4500);
     }
   }, [checkQueue]);
@@ -143,7 +143,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
 
       {/* Sync Success Toast Banner */}
       {syncStatus && (
-        <div className="sticky top-0 z-50 bg-emerald-600 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-md animate-in slide-in-from-top duration-200">
+        <div className="sticky top-0 z-50 bg-emerald-600 text-white px-4 py-2 pt-[max(env(safe-area-inset-top,0px),0.5rem)] text-xs font-semibold flex items-center justify-between shadow-md animate-in slide-in-from-top duration-200">
           <div className="flex items-center gap-2">
             <CheckCircle2 size={15} />
             <span>{syncStatus}</span>

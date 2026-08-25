@@ -193,11 +193,11 @@ export function calculateFinancialHealth({
       projectedDiffVsBudget = expense - totalBudget;
       isProjectedOverBudget = expense > totalBudget;
       if (isProjectedOverBudget) {
-        forecastMessage = `⚠️ Month finished: Exceeded budget by ${formatCurrency(
+        forecastMessage = `Month finished: Exceeded budget by ${formatCurrency(
           projectedDiffVsBudget
         )}. Total: ${formatCurrency(expense)}.`;
       } else {
-        forecastMessage = `✅ Month finished: Safely ${formatCurrency(
+        forecastMessage = `Month finished: Safely ${formatCurrency(
           Math.abs(projectedDiffVsBudget)
         )} under budget. Total: ${formatCurrency(expense)}.`;
       }
@@ -212,13 +212,13 @@ export function calculateFinancialHealth({
       projectedDiffVsBudget = projectedMonthEndSpend - totalBudget;
       isProjectedOverBudget = projectedMonthEndSpend > totalBudget;
       if (isProjectedOverBudget) {
-        forecastMessage = `⚠️ At current velocity (${formatCurrency(
+        forecastMessage = `At current velocity (${formatCurrency(
           dailySpendAverage
         )}/day), projected spend is ${formatCurrency(
           projectedMonthEndSpend
         )} — will exceed budget by ${formatCurrency(projectedDiffVsBudget)}.`;
       } else {
-        forecastMessage = `✅ Projected spend is ${formatCurrency(
+        forecastMessage = `Projected spend is ${formatCurrency(
           projectedMonthEndSpend
         )} — safely ${formatCurrency(
           Math.abs(projectedDiffVsBudget)
