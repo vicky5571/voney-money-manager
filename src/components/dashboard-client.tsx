@@ -3,7 +3,7 @@
 import { useAppStore } from '@/lib/store/use-app-store';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { formatCurrency, formatDate, cn } from '@/lib/utils';
+import { formatCurrency, formatDate, cn, getGreeting } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 import { BalanceCard } from '@/components/balance-card';
 import { DashboardOnboarding } from '@/components/dashboard-onboarding';
@@ -124,6 +124,11 @@ export function DashboardClient({
 }: DashboardClientProps) {
   const [selectedTx, setSelectedTx] = useState<RecentTxItem | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [currentGreeting, setCurrentGreeting] = useState(greeting);
+
+  useEffect(() => {
+    setCurrentGreeting(getGreeting());
+  }, []);
 
   // Pre-seed global Zustand client cache
   useEffect(() => {
@@ -179,7 +184,7 @@ export function DashboardClient({
       {/* Top greeting row */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{greeting}, {displayName}</h1>
+          <h1 className="text-xl font-bold text-gray-900">{currentGreeting}, {displayName}</h1>
           <p className="text-xs text-gray-500 mt-0.5 font-medium">Welcome back to Voney</p>
         </div>
         

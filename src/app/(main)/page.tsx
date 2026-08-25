@@ -8,7 +8,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   
   const displayName = user?.user_metadata?.display_name || 'User';
-  const greeting = getGreeting();
+  const greeting = getGreeting(new Date(), 'Asia/Jakarta');
   const data = await getDashboardData();
 
   const recentTransactions = (data.recentTransactions as unknown as Array<{

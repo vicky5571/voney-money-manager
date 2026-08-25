@@ -35,12 +35,28 @@ export function sumAmounts(amounts: (string | number)[]): number {
   return amounts.reduce<number>((acc, a) => acc + toCents(a), 0) / 100;
 }
 
-/** Get time-based greeting */
-export function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+/** Get time-based greeting based on location/timezone */
+export function getGreeting(date: Date = new Date(), timeZone?: string): string {
+  let hour: number;
+  if (timeZone) {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        hour12: false,
+        timeZone,
+      });
+      hour = Number(formatter.format(date));
+    } catch {
+      hour = date.getHours();
+    }
+  } else {
+    hour = date.getHours();
+  }
+
+  if (hour >= 5 && hour < 12) return 'Good morning';
+  if (hour >= 12 && hour < 17) return 'Good afternoon';
+  if (hour >= 17 && hour < 21) return 'Good evening';
+  return 'Good night';
 }
 
 /** Format date relative to today */
