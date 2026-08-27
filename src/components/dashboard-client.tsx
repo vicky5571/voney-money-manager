@@ -1,29 +1,53 @@
-'use client';
+"use client";
 
-import { useAppStore } from '@/lib/store/use-app-store';
-import { useEffect, useState, useMemo, Suspense } from 'react';
-import Link from 'next/link';
-import { formatCurrency, formatDate, cn, getGreeting } from '@/lib/utils';
-import dynamic from 'next/dynamic';
-import { BalanceCard } from '@/components/balance-card';
-import { DashboardOnboarding } from '@/components/dashboard-onboarding';
-import type { SpendingTrendPoint } from '@/components/spending-trend-chart';
-import { TransactionItem } from '@/components/transaction-item';
-import { TransactionDetailSheet } from '@/components/transaction-detail-sheet';
-import type { CategorySpendingItem, MonthOverMonthComparison } from '@/components/category-breakdown-chart';
+import { useAppStore } from "@/lib/store/use-app-store";
+import { useEffect, useState, useMemo, Suspense } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { formatCurrency, formatDate, cn, getGreeting } from "@/lib/utils";
+import { getOfflineQueueCount, syncOfflineQueue } from "@/lib/offline-sync";
+import dynamic from "next/dynamic";
+import { BalanceCard } from "@/components/balance-card";
+import { DashboardOnboarding } from "@/components/dashboard-onboarding";
+import type { SpendingTrendPoint } from "@/components/spending-trend-chart";
+import { TransactionItem } from "@/components/transaction-item";
+import { TransactionDetailSheet } from "@/components/transaction-detail-sheet";
+import type {
+  CategorySpendingItem,
+  MonthOverMonthComparison,
+} from "@/components/category-breakdown-chart";
 
-const SpendingTrendChart = dynamic(() => import('@/components/spending-trend-chart').then((m) => m.SpendingTrendChart), {
-  ssr: false,
-  loading: () => <div className="h-36 animate-pulse rounded-2xl bg-gray-50" aria-hidden />,
-});
-const CategoryBreakdownChart = dynamic(() => import('@/components/category-breakdown-chart').then((m) => m.CategoryBreakdownChart), {
-  ssr: false,
-  loading: () => <div className="h-44 animate-pulse rounded-2xl bg-gray-50" aria-hidden />,
-});
-import { FinancialHealthCard } from '@/components/financial-health-card';
-import type { FinancialHealthResult } from '@/lib/financial-health';
-import { CategoryIcon } from '@/constants/categories';
-import type { CategoryBudgetStatus, SpendingInsight } from '@/app/actions/dashboard';
+const SpendingTrendChart = dynamic(
+  () =>
+    import("@/components/spending-trend-chart").then(
+      (m) => m.SpendingTrendChart,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-36 animate-pulse rounded-2xl bg-gray-50" aria-hidden />
+    ),
+  },
+);
+const CategoryBreakdownChart = dynamic(
+  () =>
+    import("@/components/category-breakdown-chart").then(
+      (m) => m.CategoryBreakdownChart,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-44 animate-pulse rounded-2xl bg-gray-50" aria-hidden />
+    ),
+  },
+);
+import { FinancialHealthCard } from "@/components/financial-health-card";
+import type { FinancialHealthResult } from "@/lib/financial-health";
+import { CategoryIcon } from "@/constants/categories";
+import type {
+  CategoryBudgetStatus,
+  SpendingInsight,
+} from "@/app/actions/dashboard";
 import {
   Wallet,
   Building2,
@@ -38,12 +62,13 @@ import {
   X,
   CheckCircle2,
   Sparkles,
-} from 'lucide-react';
+  RefreshCw,
+} from "lucide-react";
 
 interface AccountItem {
   id: string;
   name: string;
-  type: 'cash' | 'bank' | 'e-wallet';
+  type: "cash" | "bank" | "e-wallet";
   balance: number;
   icon?: string;
 }
@@ -60,7 +85,7 @@ interface UpcomingBillItem {
 
 interface RecentTxItem {
   id: string;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   amount: number;
   note: string | null;
   transaction_date: string;
@@ -93,16 +118,16 @@ interface DashboardClientProps {
 
 function formatTxDateGroup(dateStr: string): string {
   const today = new Date();
-  const txDate = new Date(dateStr + 'T00:00:00');
+  const txDate = new Date(dateStr + "T00:00:00");
 
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
-  const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+  const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
 
-  if (dateStr === todayStr) return 'Today';
-  if (dateStr === yesterdayStr) return 'Yesterday';
-  return txDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (dateStr === todayStr) return "Today";
+  if (dateStr === yesterdayStr) return "Yesterday";
+  return txDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export function DashboardClient({
@@ -122,19 +147,57 @@ export function DashboardClient({
   recentTransactions,
   spendingTrend,
 }: DashboardClientProps) {
+  const router = useRouter();
   const [selectedTx, setSelectedTx] = useState<RecentTxItem | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [currentGreeting, setCurrentGreeting] = useState(greeting);
+  const [offlineCount, setOfflineCount] = useState<number>(() =>
+    typeof window !== "undefined" ? getOfflineQueueCount() : 0,
+  );
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     setCurrentGreeting(getGreeting());
   }, []);
 
+  // Listen for offline queue changes and network status
+  useEffect(() => {
+    const updateQueue = () => {
+      if (typeof window !== "undefined") {
+        setOfflineCount(getOfflineQueueCount());
+      }
+    };
+    updateQueue();
+    window.addEventListener("voney:offline-queue-updated", updateQueue);
+    window.addEventListener("voney:offline-synced", updateQueue);
+    window.addEventListener("online", updateQueue);
+    window.addEventListener("offline", updateQueue);
+    return () => {
+      window.removeEventListener("voney:offline-queue-updated", updateQueue);
+      window.removeEventListener("voney:offline-synced", updateQueue);
+      window.removeEventListener("online", updateQueue);
+      window.removeEventListener("offline", updateQueue);
+    };
+  }, []);
+
+  const handleManualSync = async () => {
+    if (typeof window === "undefined" || !navigator.onLine || isSyncing) return;
+    setIsSyncing(true);
+    try {
+      await syncOfflineQueue();
+      setOfflineCount(getOfflineQueueCount());
+      router.refresh();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Pre-seed global Zustand client cache
   useEffect(() => {
     const now = new Date();
     const monthKey = `${now.getMonth() + 1}-${now.getFullYear()}`;
-    const { setDashboardCache, setSummaryForMonth, setHealthForMonth } = useAppStore.getState();
+    const { setDashboardCache, setSummaryForMonth, setHealthForMonth } =
+      useAppStore.getState();
     setDashboardCache(totalBalance, income, expense);
     setSummaryForMonth(monthKey, { income, expense, net: income - expense });
     if (financialHealth) {
@@ -144,32 +207,38 @@ export function DashboardClient({
 
   const getAccountIcon = (type: string) => {
     switch (type) {
-      case 'bank':
-        return { Icon: Building2, bg: 'bg-blue-50 text-blue-600' };
-      case 'e-wallet':
-        return { Icon: Smartphone, bg: 'bg-purple-50 text-purple-600' };
+      case "bank":
+        return { Icon: Building2, bg: "bg-blue-50 text-blue-600" };
+      case "e-wallet":
+        return { Icon: Smartphone, bg: "bg-purple-50 text-purple-600" };
       default:
-        return { Icon: Wallet, bg: 'bg-emerald-50 text-emerald-600' };
+        return { Icon: Wallet, bg: "bg-emerald-50 text-emerald-600" };
     }
   };
 
   // Budget Health Calculation
   const { totalBudget, totalBudgetSpent } = budgetSummary;
-  const budgetPercent = totalBudget > 0 ? Math.min(100, Math.round((totalBudgetSpent / totalBudget) * 100)) : 0;
+  const budgetPercent =
+    totalBudget > 0
+      ? Math.min(100, Math.round((totalBudgetSpent / totalBudget) * 100))
+      : 0;
   const budgetRemaining = Math.max(0, totalBudget - totalBudgetSpent);
   const isOverBudget = totalBudgetSpent > totalBudget && totalBudget > 0;
 
-  let progressColor = 'bg-emerald-500';
+  let progressColor = "bg-emerald-500";
   if (isOverBudget || budgetPercent >= 90) {
-    progressColor = 'bg-red-500';
+    progressColor = "bg-red-500";
   } else if (budgetPercent >= 75) {
-    progressColor = 'bg-amber-500';
+    progressColor = "bg-amber-500";
   }
 
   // Category-level alerts
   const overBudgets = categoryBudgets.filter((b) => b.isOver);
   const nearBudgets = categoryBudgets.filter((b) => b.isNear);
-  const totalAlerts = overBudgets.length + nearBudgets.length + (spendingInsight?.type === 'warning' ? 1 : 0);
+  const totalAlerts =
+    overBudgets.length +
+    nearBudgets.length +
+    (spendingInsight?.type === "warning" ? 1 : 0);
 
   // Group recent transactions by date — memoized to avoid recompute on every render (perf: INP)
   const groupedTransactions = useMemo(
@@ -180,7 +249,7 @@ export function DashboardClient({
         acc[key].push(tx);
         return acc;
       }, {}),
-    [recentTransactions]
+    [recentTransactions],
   );
 
   return (
@@ -188,17 +257,45 @@ export function DashboardClient({
       {/* Top greeting row */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{currentGreeting}, {displayName}</h1>
-          <p className="text-xs text-gray-500 mt-0.5 font-medium">Welcome back to Voney</p>
+          <h1 className="text-xl font-bold text-gray-900">
+            {currentGreeting}, {displayName}
+          </h1>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-xs text-gray-500 font-medium">
+              Welcome back to Voney
+            </p>
+            {offlineCount > 0 && (
+              <button
+                type="button"
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                className={cn(
+                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all active:scale-95 cursor-pointer",
+                  isSyncing
+                    ? "bg-indigo-50 text-indigo-700 border border-indigo-200 animate-pulse"
+                    : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100",
+                )}
+                aria-label={`${offlineCount} offline transactions queued. Tap to sync.`}
+              >
+                <RefreshCw
+                  size={10}
+                  className={cn("shrink-0", isSyncing && "animate-spin")}
+                />
+                <span>
+                  {isSyncing ? "Syncing..." : `${offlineCount} unsynced`}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* Notification Bell (44px min tap target) */}
           <button
             type="button"
             onClick={() => setShowNotifications(true)}
             className="relative min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center shrink-0 hover:bg-gray-50 active:scale-95 transition-all"
-            aria-label={`Notifications ${totalAlerts > 0 ? `(${totalAlerts} active alerts)` : ''}`}
+            aria-label={`Notifications ${totalAlerts > 0 ? `(${totalAlerts} active alerts)` : ""}`}
           >
             <Bell size={18} className="text-gray-600" />
             {totalAlerts > 0 && (
@@ -212,7 +309,7 @@ export function DashboardClient({
             className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-800 text-white shadow-sm flex items-center justify-center font-bold text-xs shrink-0 active:scale-95 transition-transform"
             aria-label="My Profile & Settings"
           >
-            {(displayName?.[0] || 'U').toUpperCase()}
+            {(displayName?.[0] || "U").toUpperCase()}
           </Link>
         </div>
       </div>
@@ -237,25 +334,25 @@ export function DashboardClient({
         <div
           className={cn(
             "rounded-2xl p-4 border shadow-sm transition-all",
-            spendingInsight.type === 'warning'
+            spendingInsight.type === "warning"
               ? "bg-amber-50/70 border-amber-200"
-              : spendingInsight.type === 'positive'
-              ? "bg-emerald-50/70 border-emerald-200"
-              : "bg-indigo-50/70 border-indigo-200"
+              : spendingInsight.type === "positive"
+                ? "bg-emerald-50/70 border-emerald-200"
+                : "bg-indigo-50/70 border-indigo-200",
           )}
         >
           <div className="flex items-start gap-3">
             <div
               className={cn(
                 "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
-                spendingInsight.type === 'warning'
+                spendingInsight.type === "warning"
                   ? "bg-amber-100 text-amber-700"
-                  : spendingInsight.type === 'positive'
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-indigo-100 text-indigo-700"
+                  : spendingInsight.type === "positive"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-indigo-100 text-indigo-700",
               )}
             >
-              {spendingInsight.type === 'warning' ? (
+              {spendingInsight.type === "warning" ? (
                 <AlertTriangle size={18} />
               ) : (
                 <Sparkles size={18} />
@@ -267,8 +364,12 @@ export function DashboardClient({
                   Monthly Insight
                 </span>
               </div>
-              <h3 className="text-sm font-bold text-gray-900 mt-1">{spendingInsight.headline}</h3>
-              <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">{spendingInsight.subtext}</p>
+              <h3 className="text-sm font-bold text-gray-900 mt-1">
+                {spendingInsight.headline}
+              </h3>
+              <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
+                {spendingInsight.subtext}
+              </p>
             </div>
           </div>
         </div>
@@ -282,7 +383,9 @@ export function DashboardClient({
               <PieChart size={15} />
             </div>
             <div>
-              <h2 className="text-xs font-bold text-gray-800 uppercase tracking-wider">Monthly Budget</h2>
+              <h2 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+                Monthly Budget
+              </h2>
             </div>
           </div>
           <Link
@@ -297,10 +400,15 @@ export function DashboardClient({
           <div className="space-y-2">
             <div className="flex items-baseline justify-between text-xs">
               <span className="font-semibold text-gray-700">
-                {formatCurrency(totalBudgetSpent)} <span className="text-gray-500 font-normal">spent</span>
+                {formatCurrency(totalBudgetSpent)}{" "}
+                <span className="text-gray-500 font-normal">spent</span>
               </span>
-              <span className={`font-bold ${isOverBudget ? 'text-red-600' : 'text-gray-600'}`}>
-                {isOverBudget ? 'Over Budget!' : `${formatCurrency(budgetRemaining)} left`}
+              <span
+                className={`font-bold ${isOverBudget ? "text-red-600" : "text-gray-600"}`}
+              >
+                {isOverBudget
+                  ? "Over Budget!"
+                  : `${formatCurrency(budgetRemaining)} left`}
               </span>
             </div>
 
@@ -332,10 +440,13 @@ export function DashboardClient({
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                        <span className="font-semibold text-red-800 truncate">{b.categoryName}</span>
+                        <span className="font-semibold text-red-800 truncate">
+                          {b.categoryName}
+                        </span>
                       </div>
                       <span className="font-bold text-red-600 shrink-0">
-                        {b.percentage}% (Over by {formatCurrency(b.spentAmount - b.budgetAmount)})
+                        {b.percentage}% (Over by{" "}
+                        {formatCurrency(b.spentAmount - b.budgetAmount)})
                       </span>
                     </Link>
                   ))}
@@ -347,7 +458,9 @@ export function DashboardClient({
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        <span className="font-semibold text-amber-900 truncate">{b.categoryName}</span>
+                        <span className="font-semibold text-amber-900 truncate">
+                          {b.categoryName}
+                        </span>
                       </div>
                       <span className="font-bold text-amber-700 shrink-0">
                         {b.percentage}% used
@@ -372,22 +485,33 @@ export function DashboardClient({
       </div>
 
       {recentTransactions.length > 0 && (
-        <Suspense fallback={<div className="h-36 animate-pulse rounded-2xl bg-gray-50" aria-hidden />}>
+        <Suspense
+          fallback={
+            <div
+              className="h-36 animate-pulse rounded-2xl bg-gray-50"
+              aria-hidden
+            />
+          }
+        >
           <SpendingTrendChart data={spendingTrend} />
         </Suspense>
       )}
 
       {/* Financial Health Score & Forecast Engine */}
       {financialHealth && (
-        <FinancialHealthCard
-          health={financialHealth}
-          income={income}
-        />
+        <FinancialHealthCard health={financialHealth} income={income} />
       )}
 
       {/* Visual Analytics: Category Spending Breakdown */}
       {categorySpendingBreakdown.length > 0 && (
-        <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-gray-50" aria-hidden />}>
+        <Suspense
+          fallback={
+            <div
+              className="h-44 animate-pulse rounded-2xl bg-gray-50"
+              aria-hidden
+            />
+          }
+        >
           <CategoryBreakdownChart
             data={categorySpendingBreakdown}
             totalExpense={expense}
@@ -399,7 +523,9 @@ export function DashboardClient({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-gray-900">Your Wallets</h2>
-            <p className="text-xs text-gray-500 font-medium">Tap any wallet to manage</p>
+            <p className="text-xs text-gray-500 font-medium">
+              Tap any wallet to manage
+            </p>
           </div>
           <Link
             href="/accounts"
@@ -420,7 +546,9 @@ export function DashboardClient({
                   className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm flex flex-col justify-between gap-2.5 hover:shadow-md active:scale-[0.98] transition-all min-h-[96px]"
                 >
                   <div className="flex items-center justify-between">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${bg}`}
+                    >
                       <Icon size={16} />
                     </div>
                     <span className="text-[10px] uppercase font-semibold text-gray-500 tracking-wider">
@@ -428,8 +556,12 @@ export function DashboardClient({
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-600 truncate">{acc.name}</p>
-                    <p className="text-sm font-bold text-gray-900 mt-0.5">{formatCurrency(acc.balance)}</p>
+                    <p className="text-xs font-medium text-gray-600 truncate">
+                      {acc.name}
+                    </p>
+                    <p className="text-sm font-bold text-gray-900 mt-0.5">
+                      {formatCurrency(acc.balance)}
+                    </p>
                   </div>
                 </Link>
               );
@@ -452,14 +584,21 @@ export function DashboardClient({
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-gray-900">Upcoming Subscriptions</h2>
-            <p className="text-xs text-gray-500 font-medium">Recurring bills & renewals</p>
+            <h2 className="text-base font-bold text-gray-900">
+              Upcoming Subscriptions
+            </h2>
+            <p className="text-xs text-gray-500 font-medium">
+              Recurring bills & renewals
+            </p>
           </div>
           <Link
             href="/recurring"
             className="min-h-[44px] px-2.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
           >
-            {upcomingBills.length > 0 ? `Manage (${upcomingBills.length})` : 'Add'} <ChevronRight size={14} />
+            {upcomingBills.length > 0
+              ? `Manage (${upcomingBills.length})`
+              : "Add"}{" "}
+            <ChevronRight size={14} />
           </Link>
         </div>
 
@@ -475,17 +614,19 @@ export function DashboardClient({
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                     style={{
-                      backgroundColor: `${bill.categories?.color ?? '#6366f1'}1A`,
+                      backgroundColor: `${bill.categories?.color ?? "#6366f1"}1A`,
                     }}
                   >
                     <CategoryIcon
-                      name={bill.categories?.icon ?? 'Repeat'}
+                      name={bill.categories?.icon ?? "Repeat"}
                       size={20}
-                      style={{ color: bill.categories?.color ?? '#6366f1' }}
+                      style={{ color: bill.categories?.color ?? "#6366f1" }}
                     />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-gray-900 truncate">{bill.name}</p>
+                    <p className="text-xs font-bold text-gray-900 truncate">
+                      {bill.name}
+                    </p>
                     <p className="text-[11px] text-gray-500 font-medium mt-0.5">
                       Due {formatDate(bill.next_due_date)} • {bill.frequency}
                     </p>
@@ -499,7 +640,9 @@ export function DashboardClient({
           </div>
         ) : (
           <div className="bg-gray-50 rounded-2xl p-4 text-center border border-dashed border-gray-200">
-            <p className="text-xs text-gray-600 mb-2">No active subscriptions tracked</p>
+            <p className="text-xs text-gray-600 mb-2">
+              No active subscriptions tracked
+            </p>
             <Link
               href="/recurring"
               className="min-h-[44px] inline-flex items-center gap-1 text-xs font-semibold text-indigo-600"
@@ -514,7 +657,9 @@ export function DashboardClient({
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between mt-1">
           <div>
-            <h2 className="text-base font-bold text-gray-900">Recent Transactions</h2>
+            <h2 className="text-base font-bold text-gray-900">
+              Recent Transactions
+            </h2>
             <p className="text-xs text-gray-500 font-medium">Latest activity</p>
           </div>
           <div className="flex items-center gap-2">
@@ -545,9 +690,9 @@ export function DashboardClient({
                     <TransactionItem
                       key={tx.id}
                       id={tx.id}
-                      categoryName={tx.categories?.name || 'Unknown'}
-                      categoryIcon={tx.categories?.icon || 'help-circle'}
-                      categoryColor={tx.categories?.color || '#94a3b8'}
+                      categoryName={tx.categories?.name || "Unknown"}
+                      categoryIcon={tx.categories?.icon || "help-circle"}
+                      categoryColor={tx.categories?.color || "#94a3b8"}
                       accountName={tx.accounts?.name}
                       note={tx.note}
                       amount={Number(tx.amount)}
@@ -576,14 +721,19 @@ export function DashboardClient({
       {/* Notifications Modal Sheet */}
       {showNotifications && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="absolute inset-0" onClick={() => setShowNotifications(false)} />
+          <div
+            className="absolute inset-0"
+            onClick={() => setShowNotifications(false)}
+          />
           <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
                   <Bell size={16} />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900">Notifications & Alerts</h2>
+                <h2 className="text-lg font-bold text-gray-900">
+                  Notifications & Alerts
+                </h2>
               </div>
               <button
                 type="button"
@@ -605,11 +755,17 @@ export function DashboardClient({
                     <span className="font-bold text-red-700 flex items-center gap-1.5">
                       <AlertTriangle size={14} /> Over Budget Alert
                     </span>
-                    <span className="text-[11px] font-bold text-red-600">{b.percentage}%</span>
+                    <span className="text-[11px] font-bold text-red-600">
+                      {b.percentage}%
+                    </span>
                   </div>
                   <p className="text-gray-700">
-                    <span className="font-semibold">{b.categoryName}</span> exceeded its monthly limit by{' '}
-                    <span className="font-bold">{formatCurrency(b.spentAmount - b.budgetAmount)}</span>.
+                    <span className="font-semibold">{b.categoryName}</span>{" "}
+                    exceeded its monthly limit by{" "}
+                    <span className="font-bold">
+                      {formatCurrency(b.spentAmount - b.budgetAmount)}
+                    </span>
+                    .
                   </p>
                   <Link
                     href={`/budgets/${b.id}`}
@@ -630,10 +786,13 @@ export function DashboardClient({
                     <span className="font-bold text-amber-800 flex items-center gap-1.5">
                       <AlertTriangle size={14} /> Approaching Limit
                     </span>
-                    <span className="text-[11px] font-bold text-amber-700">{b.percentage}%</span>
+                    <span className="text-[11px] font-bold text-amber-700">
+                      {b.percentage}%
+                    </span>
                   </div>
                   <p className="text-gray-700">
-                    <span className="font-semibold">{b.categoryName}</span> has used {b.percentage}% of its allocated budget.
+                    <span className="font-semibold">{b.categoryName}</span> has
+                    used {b.percentage}% of its allocated budget.
                   </p>
                   <Link
                     href={`/budgets/${b.id}`}
@@ -652,7 +811,9 @@ export function DashboardClient({
                       <TrendingUp size={14} /> Monthly Insight
                     </span>
                   </div>
-                  <p className="font-semibold text-gray-900">{spendingInsight.headline}</p>
+                  <p className="font-semibold text-gray-900">
+                    {spendingInsight.headline}
+                  </p>
                   <p className="text-gray-600">{spendingInsight.subtext}</p>
                 </div>
               )}
@@ -662,9 +823,12 @@ export function DashboardClient({
                   <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
                     <CheckCircle2 size={24} />
                   </div>
-                  <h3 className="font-bold text-gray-900 text-sm">All Caught Up!</h3>
+                  <h3 className="font-bold text-gray-900 text-sm">
+                    All Caught Up!
+                  </h3>
                   <p className="text-xs text-gray-500 max-w-xs mx-auto">
-                    Your budgets and accounts are in great shape. No urgent alerts this month.
+                    Your budgets and accounts are in great shape. No urgent
+                    alerts this month.
                   </p>
                 </div>
               )}
@@ -693,9 +857,15 @@ export function DashboardClient({
             note: selectedTx.note,
             transaction_date: selectedTx.transaction_date,
             categories: selectedTx.categories
-              ? { name: selectedTx.categories.name, icon: selectedTx.categories.icon, color: selectedTx.categories.color }
+              ? {
+                  name: selectedTx.categories.name,
+                  icon: selectedTx.categories.icon,
+                  color: selectedTx.categories.color,
+                }
               : null,
-            accounts: selectedTx.accounts ? { name: selectedTx.accounts.name } : null,
+            accounts: selectedTx.accounts
+              ? { name: selectedTx.accounts.name }
+              : null,
           }}
         />
       )}

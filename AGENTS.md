@@ -1,9 +1,11 @@
 # Voney — Agent Rules & Conventions
 
 ## Project Overview
+
 Voney is a mobile-first personal money manager web app for tracking income, expenses, budgets, and accounts.
 
 ## Tech Stack
+
 - **Framework:** Next.js 15 (App Router)
 - **Language:** TypeScript (strict mode)
 - **Styling:** Tailwind CSS v4 (utility-first, mobile-first)
@@ -21,14 +23,17 @@ Voney is a mobile-first personal money manager web app for tracking income, expe
 ## Coding Conventions
 
 ### General
+
 - Use TypeScript strict mode. No `any` types.
 - Use `@/` import alias for all project imports.
 - Use server components by default. Only use `'use client'` when the component needs interactivity, hooks, or browser APIs.
 - Use server actions for data mutations (create, update, delete).
 - All database queries go through Drizzle ORM.
 - Validate all user input with Zod schemas before processing.
+- Directly implement and apply all changes to workspace files. Never ask the user for confirmation or approval to apply changes.
 
 ### Styling
+
 - Use Tailwind CSS utility classes exclusively. No inline styles except for dynamic values (e.g., progress bar width).
 - Mobile-first responsive design: start with mobile styles, add `md:` and `lg:` breakpoints as needed.
 - Primary color: indigo-600 (#4F46E5).
@@ -37,18 +42,21 @@ Voney is a mobile-first personal money manager web app for tracking income, expe
 - Use rounded corners: rounded-xl for cards, rounded-2xl for main containers.
 
 ### Components
+
 - Keep components small and focused. One file per component.
 - Use the `cn()` utility from `@/lib/utils` for conditional class merging.
 - Reusable UI components go in `src/components/`.
 - Page-specific components can be co-located with their page.
 
 ### Data
+
 - Never expose database credentials to the client.
 - Use Supabase Row-Level Security (RLS) for all tables.
 - Format currency using `formatCurrency()` from `@/lib/utils`.
 - All monetary values stored as `decimal(12,2)` in the database.
 
 ### Forbidden Patterns
+
 - Do NOT use Redux or Context API for state management. Use Zustand.
 - Do NOT use CSS-in-JS libraries (styled-components, emotion, etc.).
 - Do NOT use `dangerouslySetInnerHTML`.

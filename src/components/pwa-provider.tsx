@@ -8,6 +8,7 @@ import {
   Share2,
   PlusSquare,
   CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 import { syncOfflineQueue, getOfflineQueueCount } from '@/lib/offline-sync';
 
@@ -141,6 +142,23 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
+      {/* Global Syncing Banner when Online and offlineCount > 0 */}
+      {isOnline && offlineCount > 0 && (
+        <div className="sticky top-0 z-50 bg-indigo-600 text-white px-4 py-2 pt-[max(env(safe-area-inset-top,0px),0.5rem)] text-xs font-semibold flex items-center justify-between shadow-md animate-in slide-in-from-top duration-200">
+          <div className="flex items-center gap-2">
+            <RefreshCw size={14} className="animate-spin" />
+            <span>Syncing {offlineCount} offline {offlineCount === 1 ? 'item' : 'items'} with cloud...</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleSync}
+            className="bg-indigo-800 hover:bg-indigo-900 px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide uppercase transition-colors cursor-pointer"
+          >
+            Sync Now
+          </button>
+        </div>
+      )}
+
       {/* Sync Success Toast Banner */}
       {syncStatus && (
         <div className="sticky top-0 z-50 bg-emerald-600 text-white px-4 py-2 pt-[max(env(safe-area-inset-top,0px),0.5rem)] text-xs font-semibold flex items-center justify-between shadow-md animate-in slide-in-from-top duration-200">
@@ -151,7 +169,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => setSyncStatus(null)}
-            className="p-1 text-white/80 hover:text-white"
+            className="p-1 text-white/80 hover:text-white cursor-pointer"
             aria-label="Dismiss sync banner"
           >
             <X size={14} />
