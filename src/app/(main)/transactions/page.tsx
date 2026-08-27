@@ -22,7 +22,7 @@ import {
   ChevronRight,
   Download,
 } from "lucide-react";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatDate, formatCurrency, cn } from "@/lib/utils";
 
 type Transaction = {
   id: string;
@@ -552,7 +552,13 @@ export default function TransactionsPage() {
             const dayNet = dayIncome - dayExpense;
 
             return (
-              <div key={dateLabel} className="mb-5">
+              <div
+                key={dateLabel}
+                className={cn(
+                  "mb-5",
+                  transactions.length > 30 && "content-visibility-auto",
+                )}
+              >
                 {/* Date header with net total */}
                 <div className="flex items-center justify-between mb-2 px-1">
                   <h3 className="text-sm font-semibold text-gray-500">
