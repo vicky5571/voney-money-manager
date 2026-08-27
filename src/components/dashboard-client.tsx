@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppStore } from '@/lib/store/use-app-store';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { formatCurrency, formatDate, cn, getGreeting } from '@/lib/utils';
 import dynamic from 'next/dynamic';
@@ -171,13 +171,17 @@ export function DashboardClient({
   const nearBudgets = categoryBudgets.filter((b) => b.isNear);
   const totalAlerts = overBudgets.length + nearBudgets.length + (spendingInsight?.type === 'warning' ? 1 : 0);
 
-  // Group recent transactions by date
-  const groupedTransactions = recentTransactions.reduce<Record<string, RecentTxItem[]>>((acc, tx) => {
-    const key = formatTxDateGroup(tx.transaction_date);
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(tx);
-    return acc;
-  }, {});
+  // Group recent transactions by date — memoized to avoid recompute on every render (perf: INP)
+  const groupedTransactions = useMemo(
+    () =>
+      recentTransactions.reduce<Record<string, RecentTxItem[]>>((acc, tx) => {
+        const key = formatTxDateGroup(tx.transaction_date);
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(tx);
+        return acc;
+      }, {}),
+    [recentTransactions]
+  );
 
   return (
     <div className="flex flex-col gap-6 px-4 pt-6 pb-24 max-w-md mx-auto">
@@ -367,7 +371,11 @@ export function DashboardClient({
         )}
       </div>
 
-      {recentTransactions.length > 0 && <SpendingTrendChart data={spendingTrend} />}
+      {recentTransactions.length > 0 && (
+        <Suspense fallback={<div className="h-36 animate-pulse rounded-2xl bg-gray-50" aria-hidden />}>
+          <SpendingTrendChart data={spendingTrend} />
+        </Suspense>
+      )}
 
       {/* Financial Health Score & Forecast Engine */}
       {financialHealth && (
@@ -379,11 +387,13 @@ export function DashboardClient({
 
       {/* Visual Analytics: Category Spending Breakdown */}
       {categorySpendingBreakdown.length > 0 && (
-        <CategoryBreakdownChart
-          data={categorySpendingBreakdown}
-          totalExpense={expense}
-          momComparison={momComparison}
-        />
+        <Suspense fallback={<div className="h-44 animate-pulse rounded-2xl bg-gray-50" aria-hidden />}>
+          <CategoryBreakdownChart
+            data={categorySpendingBreakdown}
+            totalExpense={expense}
+            momComparison={momComparison}
+          />
+        </Suspense>
       )}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">

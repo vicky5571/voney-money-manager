@@ -10,7 +10,7 @@ import { NextResponse, type NextRequest } from 'next/server';
  * @param request - Incoming Next.js HTTP request.
  * @returns Next.js HTTP response with refreshed cookies or route redirection.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });

@@ -31,51 +31,46 @@ export interface SpendingInsight {
   } | null;
 }
 
-export async function getDashboardData() {
+export async function getDashboardData(userIdOverride?: string) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) throw new Error('Not authenticated');
+  let userId = userIdOverride;
+  if (!userId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    userId = user.id;
+  }
 
-  // Get all accounts for total balance and wallet preview
-  const { data: accounts } = await supabase
-    .from('accounts')
-    .select('id, name, type, icon, balance')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: true });
-
-  const totalBalance = accounts?.reduce((sum, acc) => sum + Number(acc.balance), 0) ?? 0;
-
-  // Get current month transactions for income/expense summary
+  // Date ranges computed once for parallel queries
   const now = new Date();
   const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   const lastOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`;
-
-  const { data: monthlyTransactions } = await supabase
-    .from('transactions')
-    .select(`
-      id,
-      type,
-      amount,
-      category_id,
-      transaction_date,
-      categories ( id, name, icon, color )
-    `)
-    .eq('user_id', user.id)
-    .gte('transaction_date', firstOfMonth)
-    .lte('transaction_date', lastOfMonth);
-
   const trendStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
   const trendStartDate = `${trendStart.getFullYear()}-${String(trendStart.getMonth() + 1).padStart(2, '0')}-${String(trendStart.getDate()).padStart(2, '0')}`;
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  
-  const { data: trendTransactions } = await supabase
-    .from('transactions')
-    .select('amount, transaction_date')
-    .eq('user_id', user.id)
-    .eq('type', 'expense')
-    .gte('transaction_date', trendStartDate)
-    .lte('transaction_date', today);
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const firstOfPrevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
+  const lastOfPrevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}-${new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0).getDate()}`;
+
+  // Parallelize all independent Supabase reads (was 7 sequential awaits -> now 1 batch)
+  const [
+    { data: accounts },
+    { data: monthlyTransactions },
+    { data: trendTransactions },
+    { data: budgets },
+    { data: prevMonthTransactions },
+    { data: upcomingBillsRaw },
+    { data: recentTransactions },
+  ] = await Promise.all([
+    supabase.from('accounts').select('id, name, type, icon, balance').eq('user_id', userId).order('created_at', { ascending: true }),
+    supabase.from('transactions').select(`id, type, amount, category_id, transaction_date, categories ( id, name, icon, color )`).eq('user_id', userId).gte('transaction_date', firstOfMonth).lte('transaction_date', lastOfMonth),
+    supabase.from('transactions').select('amount, transaction_date').eq('user_id', userId).eq('type', 'expense').gte('transaction_date', trendStartDate).lte('transaction_date', today),
+    supabase.from('budgets').select(`id, amount, category_id, start_date, end_date, categories ( id, name, icon, color )`).eq('user_id', userId).lte('start_date', lastOfMonth).gte('end_date', firstOfMonth),
+    supabase.from('transactions').select('amount').eq('user_id', userId).eq('type', 'expense').gte('transaction_date', firstOfPrevMonth).lte('transaction_date', lastOfPrevMonth),
+    supabase.from('recurring_bills').select(`id, name, amount, frequency, next_due_date, categories:categories!category_id ( id, name, icon, color ), accounts:accounts!account_id ( id, name )`).eq('user_id', userId).eq('is_active', true).order('next_due_date', { ascending: true }).limit(3),
+    supabase.from('transactions').select(`id, type, amount, note, transaction_date, categories ( id, name, icon, color ), accounts ( id, name )`).eq('user_id', userId).order('transaction_date', { ascending: false }).order('created_at', { ascending: false }).limit(5),
+  ]);
+
+  const totalBalance = accounts?.reduce((sum, acc) => sum + Number(acc.balance), 0) ?? 0;
 
   const spendingByDate = (trendTransactions ?? []).reduce<Record<string, number>>((totals, transaction) => {
     totals[transaction.transaction_date] = (totals[transaction.transaction_date] ?? 0) + Number(transaction.amount);
@@ -100,21 +95,6 @@ export async function getDashboardData() {
   const expense = (monthlyTransactions ?? [])
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + Number(t.amount), 0);
-
-  // Get active budgets for this month with category details
-  const { data: budgets } = await supabase
-    .from('budgets')
-    .select(`
-      id,
-      amount,
-      category_id,
-      start_date,
-      end_date,
-      categories ( id, name, icon, color )
-    `)
-    .eq('user_id', user.id)
-    .lte('start_date', lastOfMonth)
-    .gte('end_date', firstOfMonth);
 
   let totalBudget = 0;
   let totalBudgetSpent = 0;
@@ -221,19 +201,6 @@ export async function getDashboardData() {
     };
   }
 
-  // Month-over-Month Comparison
-  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const firstOfPrevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
-  const lastOfPrevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}-${new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0).getDate()}`;
-
-  const { data: prevMonthTransactions } = await supabase
-    .from('transactions')
-    .select('amount')
-    .eq('user_id', user.id)
-    .eq('type', 'expense')
-    .gte('transaction_date', firstOfPrevMonth)
-    .lte('transaction_date', lastOfPrevMonth);
-
   const prevMonthExpense = (prevMonthTransactions ?? []).reduce((sum, t) => sum + Number(t.amount), 0);
 
   let momComparison = null;
@@ -254,24 +221,15 @@ export async function getDashboardData() {
     icon: cat.icon,
   }));
 
-  // Get active upcoming recurring bills
-  const { data: upcomingBillsRaw } = await supabase
-    .from('recurring_bills')
-    .select(`
-      id,
-      name,
-      amount,
-      frequency,
-      next_due_date,
-      categories:categories!category_id ( id, name, icon, color ),
-      accounts:accounts!account_id ( id, name )
-    `)
-    .eq('user_id', user.id)
-    .eq('is_active', true)
-    .order('next_due_date', { ascending: true })
-    .limit(3);
-
-  const upcomingBills = (upcomingBillsRaw ?? []).map((bill) => ({
+  const upcomingBills = (upcomingBillsRaw as unknown as Array<{
+    id: string;
+    name: string;
+    amount: number | string;
+    frequency: string;
+    next_due_date: string;
+    categories: { id?: string; name: string; icon: string; color: string } | { id?: string; name: string; icon: string; color: string }[] | null;
+    accounts: { id?: string; name: string } | { id?: string; name: string }[] | null;
+  }> ?? []).map((bill) => ({
     id: bill.id,
     name: bill.name,
     amount: Number(bill.amount),
@@ -280,23 +238,6 @@ export async function getDashboardData() {
     categories: Array.isArray(bill.categories) ? bill.categories[0] ?? null : bill.categories,
     accounts: Array.isArray(bill.accounts) ? bill.accounts[0] ?? null : bill.accounts,
   }));
-
-  // Get recent 5 transactions with category info
-  const { data: recentTransactions } = await supabase
-    .from('transactions')
-    .select(`
-      id,
-      type,
-      amount,
-      note,
-      transaction_date,
-      categories ( id, name, icon, color ),
-      accounts ( id, name )
-    `)
-    .eq('user_id', user.id)
-    .order('transaction_date', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(5);
 
   // Check for overdue bills
   const hasOverdueBills = upcomingBills.some((bill) => {

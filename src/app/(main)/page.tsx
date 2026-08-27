@@ -3,13 +3,15 @@ import { getGreeting } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/server';
 import { DashboardClient } from '@/components/dashboard-client';
 
+export const revalidate = 60;
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
   const displayName = user?.user_metadata?.display_name || 'User';
   const greeting = getGreeting(new Date(), 'Asia/Jakarta');
-  const data = await getDashboardData();
+  const data = await getDashboardData(user?.id);
 
   const recentTransactions = (data.recentTransactions as unknown as Array<{
     id: string;
