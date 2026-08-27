@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { createBudgetSchema } from '@/lib/validations/budget';
 
 export interface BudgetCategory {
   id: string;
@@ -300,20 +301,26 @@ export async function createBudget(formData: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  if (new Date(formData.endDate) < new Date(formData.startDate)) {
-    throw new Error('End date must be on or after start date');
-  }
+  const parsed = createBudgetSchema.safeParse(formData);
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Invalid budget input');
+  const valid = parsed.data;
 
-  const startD = new Date(formData.startDate);
+  // IDOR: verify category belongs to user or is default
+  const { data: cat, error: catErr } = await supabase.from('categories').select('id, user_id, is_default').eq('id', valid.category_id).single();
+  if (catErr || !cat) throw new Error('Category not found');
+  const catRow = cat as unknown as { user_id: string | null; is_default: boolean };
+  if (catRow.user_id !== null && catRow.user_id !== user.id && !catRow.is_default) throw new Error('Category access denied');
+
+  const startD = new Date(valid.startDate);
   const month = startD.getMonth() + 1;
   const year = startD.getFullYear();
 
   const { error } = await supabase.from('budgets').insert({
     user_id: user.id,
-    category_id: formData.category_id,
-    amount: formData.amount,
-    start_date: formData.startDate,
-    end_date: formData.endDate,
+    category_id: valid.category_id,
+    amount: valid.amount,
+    start_date: valid.startDate,
+    end_date: valid.endDate,
     month,
     year,
   });
@@ -333,21 +340,26 @@ export async function updateBudget(id: string, formData: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  if (new Date(formData.endDate) < new Date(formData.startDate)) {
-    throw new Error('End date must be on or after start date');
-  }
+  const parsed = createBudgetSchema.safeParse(formData);
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Invalid budget input');
+  const valid = parsed.data;
 
-  const startD = new Date(formData.startDate);
+  const { data: cat, error: catErr } = await supabase.from('categories').select('id, user_id, is_default').eq('id', valid.category_id).single();
+  if (catErr || !cat) throw new Error('Category not found');
+  const catRow = cat as unknown as { user_id: string | null; is_default: boolean };
+  if (catRow.user_id !== null && catRow.user_id !== user.id && !catRow.is_default) throw new Error('Category access denied');
+
+  const startD = new Date(valid.startDate);
   const month = startD.getMonth() + 1;
   const year = startD.getFullYear();
 
   const { error } = await supabase
     .from('budgets')
     .update({
-      category_id: formData.category_id,
-      amount: formData.amount,
-      start_date: formData.startDate,
-      end_date: formData.endDate,
+      category_id: valid.category_id,
+      amount: valid.amount,
+      start_date: valid.startDate,
+      end_date: valid.endDate,
       month,
       year,
     })

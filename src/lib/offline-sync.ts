@@ -23,12 +23,60 @@ export interface OfflineTransferItem {
 
 const TX_QUEUE_KEY = 'voney_offline_transactions_queue';
 const TRANSFER_QUEUE_KEY = 'voney_offline_transfers_queue';
+const MAX_QUEUE_SIZE = 50;
+const MAX_NOTE_LEN = 200;
+
+function isValidUuid(v: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+}
+
+function isValidOfflineTx(item: unknown): item is OfflineTransactionItem {
+  if (!item || typeof item !== 'object') return false;
+  const o = item as Record<string, unknown>;
+  return (
+    typeof o.id === 'string' &&
+    (o.type === 'income' || o.type === 'expense') &&
+    typeof o.amount === 'number' &&
+    Number.isFinite(o.amount) &&
+    o.amount > 0 &&
+    o.amount <= 1e12 &&
+    typeof o.category_id === 'string' &&
+    isValidUuid(o.category_id) &&
+    typeof o.account_id === 'string' &&
+    isValidUuid(o.account_id) &&
+    typeof o.transaction_date === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(o.transaction_date) &&
+    (o.note === undefined || (typeof o.note === 'string' && o.note.length <= MAX_NOTE_LEN))
+  );
+}
+
+function isValidOfflineTransfer(item: unknown): item is OfflineTransferItem {
+  if (!item || typeof item !== 'object') return false;
+  const o = item as Record<string, unknown>;
+  return (
+    typeof o.id === 'string' &&
+    typeof o.from_account_id === 'string' &&
+    isValidUuid(o.from_account_id) &&
+    typeof o.to_account_id === 'string' &&
+    isValidUuid(o.to_account_id) &&
+    o.from_account_id !== o.to_account_id &&
+    typeof o.amount === 'number' &&
+    Number.isFinite(o.amount) &&
+    o.amount > 0 &&
+    o.amount <= 1e12 &&
+    typeof o.transaction_date === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(o.transaction_date) &&
+    (o.note === undefined || (typeof o.note === 'string' && o.note.length <= MAX_NOTE_LEN))
+  );
+}
 
 export function getOfflineTxQueue(): OfflineTransactionItem[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(TX_QUEUE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isValidOfflineTx).slice(0, MAX_QUEUE_SIZE);
   } catch {
     return [];
   }
@@ -38,7 +86,9 @@ export function getOfflineTransferQueue(): OfflineTransferItem[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(TRANSFER_QUEUE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isValidOfflineTransfer).slice(0, MAX_QUEUE_SIZE);
   } catch {
     return [];
   }
@@ -51,13 +101,21 @@ export function getOfflineQueueCount(): number {
 export function saveOfflineTransaction(
   item: Omit<OfflineTransactionItem, 'id' | 'created_at_local'>
 ): OfflineTransactionItem {
+  // validate before queueing
+  if (!isValidUuid(item.category_id) || !isValidUuid(item.account_id)) throw new Error('Invalid ID format');
+  if (!Number.isFinite(item.amount) || item.amount <= 0 || item.amount > 1e12) throw new Error('Invalid amount');
+  if (item.note && item.note.length > MAX_NOTE_LEN) throw new Error('Note too long');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(item.transaction_date)) throw new Error('Invalid date');
+
   const newItem: OfflineTransactionItem = {
     ...item,
+    note: item.note?.slice(0, MAX_NOTE_LEN),
     id: `offline_tx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     created_at_local: new Date().toISOString(),
   };
 
   const queue = getOfflineTxQueue();
+  if (queue.length >= MAX_QUEUE_SIZE) throw new Error('Offline queue full (50 max) - sync or clear first');
   queue.push(newItem);
   localStorage.setItem(TX_QUEUE_KEY, JSON.stringify(queue));
   window.dispatchEvent(new CustomEvent('voney:offline-queue-updated'));
@@ -67,13 +125,21 @@ export function saveOfflineTransaction(
 export function saveOfflineTransfer(
   item: Omit<OfflineTransferItem, 'id' | 'created_at_local'>
 ): OfflineTransferItem {
+  if (!isValidUuid(item.from_account_id) || !isValidUuid(item.to_account_id)) throw new Error('Invalid ID format');
+  if (item.from_account_id === item.to_account_id) throw new Error('Source/dest must differ');
+  if (!Number.isFinite(item.amount) || item.amount <= 0 || item.amount > 1e12) throw new Error('Invalid amount');
+  if (item.note && item.note.length > MAX_NOTE_LEN) throw new Error('Note too long');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(item.transaction_date)) throw new Error('Invalid date');
+
   const newItem: OfflineTransferItem = {
     ...item,
+    note: item.note?.slice(0, MAX_NOTE_LEN),
     id: `offline_tr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     created_at_local: new Date().toISOString(),
   };
 
   const queue = getOfflineTransferQueue();
+  if (queue.length >= MAX_QUEUE_SIZE) throw new Error('Offline queue full (50 max)');
   queue.push(newItem);
   localStorage.setItem(TRANSFER_QUEUE_KEY, JSON.stringify(queue));
   window.dispatchEvent(new CustomEvent('voney:offline-queue-updated'));

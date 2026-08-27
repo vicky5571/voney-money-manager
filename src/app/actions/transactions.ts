@@ -3,8 +3,33 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { calculateFinancialHealth, type FinancialHealthResult } from '@/lib/financial-health';
+import { createTransactionSchema } from '@/lib/validations/transaction';
 
 export type { FinancialHealthResult };
+
+/** Sanitize user search for PostgREST ilike: escape % _ \ and limit length to prevent DoS */
+function sanitizeSearch(raw?: string): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim().slice(0, 50);
+  if (!trimmed) return null;
+  return trimmed.replace(/[%_\\]/g, '\\$&');
+}
+
+/** Verify account belongs to user (IDOR prevention) */
+async function assertAccountOwnership(supabase: Awaited<ReturnType<typeof createClient>>, accountId: string, userId: string) {
+  const { data, error } = await supabase.from('accounts').select('id').eq('id', accountId).eq('user_id', userId).single();
+  if (error || !data) throw new Error('Account not found or access denied');
+}
+
+/** Verify category is default or owned by user */
+async function assertCategoryOwnership(supabase: Awaited<ReturnType<typeof createClient>>, categoryId: string, userId: string) {
+  const { data, error } = await supabase.from('categories').select('id, user_id, is_default').eq('id', categoryId).single();
+  if (error || !data) throw new Error('Category not found');
+  const row = data as unknown as { user_id: string | null; is_default: boolean };
+  if (row.user_id !== null && row.user_id !== userId && !row.is_default) {
+    throw new Error('Category not found or access denied');
+  }
+}
 
 export async function getTransactions({
   page = 1,
@@ -39,7 +64,8 @@ export async function getTransactions({
     .range((page - 1) * limit, page * limit - 1);
 
   if (type) query = query.eq('type', type);
-  if (search) query = query.ilike('note', `%${search}%`);
+  const safeSearch = sanitizeSearch(search);
+  if (safeSearch) query = query.ilike('note', `%${safeSearch}%`);
   if (month && year) {
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
     const lastDay = new Date(year, month, 0).getDate();
@@ -150,7 +176,8 @@ export async function getTransactionCounts(search?: string, month?: number, year
       .eq('user_id', user.id)
       .is('deleted_at', null)
       .eq('type', type);
-    if (search) q = q.ilike('note', `%${search}%`);
+    const safeSearch = sanitizeSearch(search);
+    if (safeSearch) q = q.ilike('note', `%${safeSearch}%`);
     if (month && year) {
       const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
       const lastDay = new Date(year, month, 0).getDate();
@@ -200,7 +227,8 @@ export async function getTransactionsForExport({
     .order('created_at', { ascending: false });
 
   if (type) query = query.eq('type', type);
-  if (search) query = query.ilike('note', `%${search}%`);
+  const safeSearch2 = sanitizeSearch(search);
+  if (safeSearch2) query = query.ilike('note', `%${safeSearch2}%`);
   if (month && year) {
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
     const lastDay = new Date(year, month, 0).getDate();
@@ -225,34 +253,45 @@ export async function createTransaction(formData: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  // Zod validation (strict - prevents negative/Huge/overflow)
+  const parsed = createTransactionSchema.safeParse(formData);
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Invalid input');
+  const valid = parsed.data;
+
+  // IDOR: verify FK ownership
+  await assertAccountOwnership(supabase, valid.account_id, user.id);
+  await assertCategoryOwnership(supabase, valid.category_id, user.id);
+
   const { error } = await supabase.from('transactions').insert({
     user_id: user.id,
-    type: formData.type,
-    amount: formData.amount,
-    category_id: formData.category_id,
-    account_id: formData.account_id,
-    transaction_date: formData.transaction_date,
-    note: formData.note || null,
+    type: valid.type,
+    amount: valid.amount,
+    category_id: valid.category_id,
+    account_id: valid.account_id,
+    transaction_date: valid.transaction_date,
+    note: valid.note || null,
   });
 
   if (error) throw error;
 
-  // Update account balance
+  // Update account balance (already verified ownership, now with user_id guard)
   const { data: account } = await supabase
     .from('accounts')
     .select('balance')
-    .eq('id', formData.account_id)
+    .eq('id', valid.account_id)
+    .eq('user_id', user.id)
     .single();
 
   if (account) {
-    const newBalance = formData.type === 'income'
-      ? Number(account.balance) + formData.amount
-      : Number(account.balance) - formData.amount;
+    const newBalance = valid.type === 'income'
+      ? Number(account.balance) + valid.amount
+      : Number(account.balance) - valid.amount;
 
     await supabase
       .from('accounts')
       .update({ balance: newBalance })
-      .eq('id', formData.account_id);
+      .eq('id', valid.account_id)
+      .eq('user_id', user.id);
   }
 
   revalidatePath('/');
@@ -275,6 +314,14 @@ export async function updateTransaction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  const parsed = createTransactionSchema.safeParse(formData);
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Invalid input');
+  const valid = parsed.data;
+
+  // IDOR check new FKs
+  await assertAccountOwnership(supabase, valid.account_id, user.id);
+  await assertCategoryOwnership(supabase, valid.category_id, user.id);
+
   // Get old transaction to reverse its effect on balance
   const { data: oldTransaction } = await supabase
     .from('transactions')
@@ -285,30 +332,31 @@ export async function updateTransaction(
 
   if (!oldTransaction) throw new Error('Transaction not found');
 
-  // Reverse old transaction effect
+  // Reverse old transaction effect (with user_id guard)
   const { data: oldAccount } = await supabase
     .from('accounts')
     .select('balance')
     .eq('id', oldTransaction.account_id)
+    .eq('user_id', user.id)
     .single();
 
   if (oldAccount) {
     const reversedBalance = oldTransaction.type === 'income'
       ? Number(oldAccount.balance) - Number(oldTransaction.amount)
       : Number(oldAccount.balance) + Number(oldTransaction.amount);
-    await supabase.from('accounts').update({ balance: reversedBalance }).eq('id', oldTransaction.account_id);
+    await supabase.from('accounts').update({ balance: reversedBalance }).eq('id', oldTransaction.account_id).eq('user_id', user.id);
   }
 
   // Update transaction
   const { error } = await supabase
     .from('transactions')
     .update({
-      type: formData.type,
-      amount: formData.amount,
-      category_id: formData.category_id,
-      account_id: formData.account_id,
-      transaction_date: formData.transaction_date,
-      note: formData.note || null,
+      type: valid.type,
+      amount: valid.amount,
+      category_id: valid.category_id,
+      account_id: valid.account_id,
+      transaction_date: valid.transaction_date,
+      note: valid.note || null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
@@ -320,14 +368,15 @@ export async function updateTransaction(
   const { data: newAccount } = await supabase
     .from('accounts')
     .select('balance')
-    .eq('id', formData.account_id)
+    .eq('id', valid.account_id)
+    .eq('user_id', user.id)
     .single();
 
   if (newAccount) {
-    const newBalance = formData.type === 'income'
-      ? Number(newAccount.balance) + formData.amount
-      : Number(newAccount.balance) - formData.amount;
-    await supabase.from('accounts').update({ balance: newBalance }).eq('id', formData.account_id);
+    const newBalance = valid.type === 'income'
+      ? Number(newAccount.balance) + valid.amount
+      : Number(newAccount.balance) - valid.amount;
+    await supabase.from('accounts').update({ balance: newBalance }).eq('id', valid.account_id).eq('user_id', user.id);
   }
 
   revalidatePath('/');
@@ -360,18 +409,19 @@ export async function deleteTransaction(id: string) {
 
   if (error) throw error;
 
-  // Reverse balance
+  // Reverse balance (IDOR guard with user_id)
   const { data: account } = await supabase
     .from('accounts')
     .select('balance')
     .eq('id', transaction.account_id)
+    .eq('user_id', user.id)
     .single();
 
   if (account) {
     const newBalance = transaction.type === 'income'
       ? Number(account.balance) - Number(transaction.amount)
       : Number(account.balance) + Number(transaction.amount);
-    await supabase.from('accounts').update({ balance: newBalance }).eq('id', transaction.account_id);
+    await supabase.from('accounts').update({ balance: newBalance }).eq('id', transaction.account_id).eq('user_id', user.id);
   }
 
   revalidatePath('/');
@@ -406,24 +456,27 @@ export async function createTransfer(formData: {
 
   if (!fromAccount || !toAccount) throw new Error('Account not found');
 
-  // Find or use a category for transfer logging
+  // Find or use a category for transfer logging (only default to avoid leaking other users)
   const { data: catData } = await supabase
     .from('categories')
     .select('id')
+    .eq('is_default', true)
     .limit(1);
   const fallbackCategoryId = catData?.[0]?.id;
 
-  // Deduct from source account
+  // Deduct from source account (with user_id guard)
   await supabase
     .from('accounts')
     .update({ balance: Number(fromAccount.balance) - formData.amount })
-    .eq('id', fromAccount.id);
+    .eq('id', fromAccount.id)
+    .eq('user_id', user.id);
 
   // Add to destination account
   await supabase
     .from('accounts')
     .update({ balance: Number(toAccount.balance) + formData.amount })
-    .eq('id', toAccount.id);
+    .eq('id', toAccount.id)
+    .eq('user_id', user.id);
 
   if (fallbackCategoryId) {
     // Log outbound transfer record

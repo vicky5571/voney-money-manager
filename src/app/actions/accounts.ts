@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { createAccountSchema, updateAccountSchema } from '@/lib/validations/account';
 
 export async function getAccounts() {
   const supabase = await createClient();
@@ -28,11 +29,17 @@ export async function createAccount(formData: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  const parsed = createAccountSchema.safeParse({ name: formData.name, type: formData.type, icon: formData.icon });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Invalid account input');
+  if (formData.balance !== undefined && (!Number.isFinite(formData.balance) || formData.balance < 0 || formData.balance > 1e12)) {
+    throw new Error('Invalid balance');
+  }
+
   const { error } = await supabase.from('accounts').insert({
     user_id: user.id,
-    name: formData.name,
-    type: formData.type,
-    icon: formData.icon || 'wallet',
+    name: parsed.data.name,
+    type: parsed.data.type,
+    icon: parsed.data.icon || 'wallet',
     balance: formData.balance ?? 0,
   });
 
@@ -49,9 +56,12 @@ export async function updateAccount(id: string, formData: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  const parsed = updateAccountSchema.safeParse(formData);
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Invalid account input');
+
   const { error } = await supabase
     .from('accounts')
-    .update({ name: formData.name, type: formData.type })
+    .update({ name: parsed.data.name, type: parsed.data.type })
     .eq('id', id)
     .eq('user_id', user.id);
 
