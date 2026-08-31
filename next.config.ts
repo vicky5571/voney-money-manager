@@ -1,15 +1,23 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Performance: reduce serverless bundle via tracing + tree-shake heavy libs
-  output: "standalone",
+  // Standalone is for self-hosted Docker only; Vercel manages serverless bundling natively
+  output: process.env.BUILD_STANDALONE === "true" ? "standalone" : undefined,
   compress: true,
   poweredByHeader: false,
   experimental: {
-    optimizePackageImports: ["lucide-react", "recharts", "zustand", "@supabase/supabase-js"],
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "zustand",
+      "@supabase/supabase-js",
+    ],
   },
   compiler: {
-    removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? { exclude: ["error", "warn"] }
+        : false,
   },
   async headers() {
     return [
@@ -19,7 +27,10 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
           {
             key: "Content-Security-Policy",
             value: [
@@ -31,7 +42,10 @@ const nextConfig: NextConfig = {
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://voney-money-manager.vercel.app",
             ].join("; "),
           },
-          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
         ],
       },
     ];
