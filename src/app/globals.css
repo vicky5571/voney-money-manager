@@ -3,14 +3,14 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --primary: #4F46E5;
-  --primary-light: #6366F1;
-  --primary-dark: #3730A3;
-  --success: #22C55E;
-  --danger: #EF4444;
-  --warning: #F59E0B;
-  --muted: #6B7280;
-  --border: #E5E7EB;
+  --primary: #4f46e5;
+  --primary-light: #6366f1;
+  --primary-dark: #3730a3;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --muted: #6b7280;
+  --border: #e5e7eb;
   --card: #ffffff;
   --card-foreground: #171717;
 }
@@ -35,7 +35,11 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-family:
+    var(--font-sans),
+    system-ui,
+    -apple-system,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -88,3 +92,15 @@ input[type="number"] {
   contain-intrinsic-size: auto none auto 72px;
 }
 
+@keyframes gold-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@utility animate-gold-spin {
+  animation: gold-spin 3s linear infinite;
+}
