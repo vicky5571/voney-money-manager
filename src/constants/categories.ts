@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   UtensilsCrossed,
   Car,
@@ -35,87 +35,99 @@ import {
   CreditCard,
   Tag,
   HelpCircle,
+  SlidersHorizontal,
   type LucideIcon,
-} from 'lucide-react';
+} from "lucide-react";
 
 export interface CategoryDefinition {
   name: string;
   icon: string; // Lucide icon name
   color: string; // hex color
-  type: 'income' | 'expense';
+  type: "income" | "expense";
 }
 
 export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
   // Expense categories
-  { name: 'Food', icon: 'UtensilsCrossed', color: '#EF4444', type: 'expense' },
-  { name: 'Transport', icon: 'Car', color: '#3B82F6', type: 'expense' },
-  { name: 'Shopping', icon: 'ShoppingBag', color: '#EC4899', type: 'expense' },
-  { name: 'Bills', icon: 'FileText', color: '#F59E0B', type: 'expense' },
-  { name: 'Entertainment', icon: 'Gamepad2', color: '#8B5CF6', type: 'expense' },
-  { name: 'Health', icon: 'Heart', color: '#10B981', type: 'expense' },
-  { name: 'Education', icon: 'BookOpen', color: '#6366F1', type: 'expense' },
-  { name: 'Other', icon: 'Package', color: '#6B7280', type: 'expense' },
+  { name: "Food", icon: "UtensilsCrossed", color: "#EF4444", type: "expense" },
+  { name: "Transport", icon: "Car", color: "#3B82F6", type: "expense" },
+  { name: "Shopping", icon: "ShoppingBag", color: "#EC4899", type: "expense" },
+  { name: "Bills", icon: "FileText", color: "#F59E0B", type: "expense" },
+  {
+    name: "Entertainment",
+    icon: "Gamepad2",
+    color: "#8B5CF6",
+    type: "expense",
+  },
+  { name: "Health", icon: "Heart", color: "#10B981", type: "expense" },
+  { name: "Education", icon: "BookOpen", color: "#6366F1", type: "expense" },
+  { name: "Other", icon: "Package", color: "#6B7280", type: "expense" },
   // Income categories
-  { name: 'Salary', icon: 'Banknote', color: '#22C55E', type: 'income' },
-  { name: 'Freelance', icon: 'Laptop', color: '#3B82F6', type: 'income' },
-  { name: 'Gift', icon: 'Gift', color: '#EC4899', type: 'income' },
-  { name: 'Other Income', icon: 'DollarSign', color: '#10B981', type: 'income' },
+  { name: "Salary", icon: "Banknote", color: "#22C55E", type: "income" },
+  { name: "Freelance", icon: "Laptop", color: "#3B82F6", type: "income" },
+  { name: "Gift", icon: "Gift", color: "#EC4899", type: "income" },
+  {
+    name: "Other Income",
+    icon: "DollarSign",
+    color: "#10B981",
+    type: "income",
+  },
 ];
 
 export const AVAILABLE_CATEGORY_ICONS = [
-  'UtensilsCrossed',
-  'Coffee',
-  'Car',
-  'Fuel',
-  'ShoppingBag',
-  'ShoppingCart',
-  'FileText',
-  'Home',
-  'Wifi',
-  'Tv',
-  'Gamepad2',
-  'Film',
-  'Music',
-  'Heart',
-  'Dumbbell',
-  'BookOpen',
-  'GraduationCap',
-  'Briefcase',
-  'Plane',
-  'Package',
-  'Banknote',
-  'DollarSign',
-  'CreditCard',
-  'Laptop',
-  'Smartphone',
-  'Gift',
-  'Sparkles',
-  'Shield',
-  'Zap',
-  'Flame',
-  'Baby',
-  'Dog',
-  'Cat',
-  'Tag',
+  "UtensilsCrossed",
+  "Coffee",
+  "Car",
+  "Fuel",
+  "ShoppingBag",
+  "ShoppingCart",
+  "FileText",
+  "Home",
+  "Wifi",
+  "Tv",
+  "Gamepad2",
+  "Film",
+  "Music",
+  "Heart",
+  "Dumbbell",
+  "BookOpen",
+  "GraduationCap",
+  "Briefcase",
+  "Plane",
+  "Package",
+  "Banknote",
+  "DollarSign",
+  "CreditCard",
+  "Laptop",
+  "Smartphone",
+  "Gift",
+  "Sparkles",
+  "Shield",
+  "Zap",
+  "Flame",
+  "Baby",
+  "Dog",
+  "Cat",
+  "Tag",
+  "SlidersHorizontal",
 ];
 
 export const AVAILABLE_CATEGORY_COLORS = [
-  '#EF4444', // Red
-  '#F97316', // Orange
-  '#F59E0B', // Amber
-  '#EAB308', // Yellow
-  '#84CC16', // Lime
-  '#10B981', // Emerald
-  '#14B8A6', // Teal
-  '#06B6D4', // Cyan
-  '#3B82F6', // Blue
-  '#6366F1', // Indigo
-  '#8B5CF6', // Violet
-  '#A855F7', // Purple
-  '#D946EF', // Fuchsia
-  '#EC4899', // Pink
-  '#F43F5E', // Rose
-  '#64748B', // Slate
+  "#EF4444", // Red
+  "#F97316", // Orange
+  "#F59E0B", // Amber
+  "#EAB308", // Yellow
+  "#84CC16", // Lime
+  "#10B981", // Emerald
+  "#14B8A6", // Teal
+  "#06B6D4", // Cyan
+  "#3B82F6", // Blue
+  "#6366F1", // Indigo
+  "#8B5CF6", // Violet
+  "#A855F7", // Purple
+  "#D946EF", // Fuchsia
+  "#EC4899", // Pink
+  "#F43F5E", // Rose
+  "#64748B", // Slate
 ];
 
 const iconMap: Record<string, LucideIcon> = {
@@ -153,6 +165,7 @@ const iconMap: Record<string, LucideIcon> = {
   Smartphone,
   CreditCard,
   Tag,
+  SlidersHorizontal,
 };
 
 export function getCategoryIcon(iconName: string): LucideIcon {

@@ -151,20 +151,18 @@ export function DashboardClient({
   const router = useRouter();
   const [selectedTx, setSelectedTx] = useState<RecentTxItem | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [currentGreeting, setCurrentGreeting] = useState(greeting);
-  const [recentTxList, setRecentTxList] = useState<RecentTxItem[]>(recentTransactions);
+  const [currentGreeting] = useState(() =>
+    typeof window !== "undefined" ? getGreeting() : greeting,
+  );
+  const [deletedTxIds, setDeletedTxIds] = useState<string[]>([]);
+  const recentTxList = useMemo(
+    () => recentTransactions.filter((tx) => !deletedTxIds.includes(tx.id)),
+    [recentTransactions, deletedTxIds],
+  );
   const [offlineCount, setOfflineCount] = useState<number>(() =>
     typeof window !== "undefined" ? getOfflineQueueCount() : 0,
   );
   const [isSyncing, setIsSyncing] = useState(false);
-
-  useEffect(() => {
-    setRecentTxList(recentTransactions);
-  }, [recentTransactions]);
-
-  useEffect(() => {
-    setCurrentGreeting(getGreeting());
-  }, []);
 
   // Listen for offline queue changes and network status
   useEffect(() => {
@@ -199,21 +197,18 @@ export function DashboardClient({
   };
 
   const handleDetailDelete = (id: string) => {
-    setRecentTxList((prev) => prev.filter((tx) => tx.id !== id));
+    setDeletedTxIds((prev) => [...prev, id]);
     setSelectedTx(null);
     router.refresh();
   };
 
   const handleSwipeDelete = async (id: string) => {
-    const snapshot = recentTxList.find((tx) => tx.id === id);
-    setRecentTxList((prev) => prev.filter((tx) => tx.id !== id));
+    setDeletedTxIds((prev) => [...prev, id]);
     try {
       await deleteTransaction(id);
       router.refresh();
     } catch {
-      if (snapshot) {
-        setRecentTxList((prev) => [snapshot, ...prev]);
-      }
+      setDeletedTxIds((prev) => prev.filter((item) => item !== id));
     }
   };
 

@@ -1,18 +1,35 @@
-'use client';
+"use client";
 
-import { useState, useTransition } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Plus, X, Trash2, Loader2, Repeat, Tags, ChevronRight } from 'lucide-react';
-import { createAccount, updateAccount, deleteAccount } from '@/app/actions/accounts';
-import { AccountCard } from '@/components/account-card';
-import { CategoryManagerSheet, type CategoryItem } from '@/components/category-manager-sheet';
-import { formatCurrency, cn } from '@/lib/utils';
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  Plus,
+  X,
+  Trash2,
+  Loader2,
+  Repeat,
+  Tags,
+  ChevronRight,
+  SlidersHorizontal,
+} from "lucide-react";
+import {
+  createAccount,
+  updateAccount,
+  deleteAccount,
+} from "@/app/actions/accounts";
+import { AccountCard } from "@/components/account-card";
+import {
+  CategoryManagerSheet,
+  type CategoryItem,
+} from "@/components/category-manager-sheet";
+import { BalanceAdjustmentModal } from "@/components/balance-adjustment-modal";
+import { formatCurrency, cn } from "@/lib/utils";
 
 export interface AccountData {
   id: string;
   name: string;
-  type: 'cash' | 'bank' | 'e-wallet';
+  type: "cash" | "bank" | "e-wallet";
   icon: string;
   balance: number;
 }
@@ -23,42 +40,58 @@ interface AccountsClientProps {
   initialEditId?: string;
 }
 
-export function AccountsClient({ accounts, categories = [], initialEditId }: AccountsClientProps) {
+export function AccountsClient({
+  accounts,
+  categories = [],
+  initialEditId,
+}: AccountsClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showCategoryManager, setShowCategoryManager] = useState(false);
-  
-  const initialAccount = initialEditId ? accounts.find(a => a.id === initialEditId) || null : null;
-  const [mode, setMode] = useState<'add' | 'edit' | null>(initialAccount ? 'edit' : null);
-  const [selectedAccount, setSelectedAccount] = useState<AccountData | null>(initialAccount);
-  const [error, setError] = useState('');
+
+  const initialAccount = initialEditId
+    ? accounts.find((a) => a.id === initialEditId) || null
+    : null;
+  const [mode, setMode] = useState<"add" | "edit" | null>(
+    initialAccount ? "edit" : null,
+  );
+  const [selectedAccount, setSelectedAccount] = useState<AccountData | null>(
+    initialAccount,
+  );
+  const [error, setError] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  
+  const [adjustingAccount, setAdjustingAccount] = useState<AccountData | null>(
+    null,
+  );
+
   const [formData, setFormData] = useState<{
     name: string;
-    type: 'cash' | 'bank' | 'e-wallet';
+    type: "cash" | "bank" | "e-wallet";
     balance: string;
   }>({
-    name: initialAccount?.name || '',
-    type: initialAccount?.type || 'cash',
-    balance: ''
+    name: initialAccount?.name || "",
+    type: initialAccount?.type || "cash",
+    balance: "",
   });
 
-  const totalBalance = accounts.reduce((sum, account) => sum + account.balance, 0);
+  const totalBalance = accounts.reduce(
+    (sum, account) => sum + account.balance,
+    0,
+  );
 
   const openAdd = () => {
-    setFormData({ name: '', type: 'cash', balance: '' });
-    setError('');
+    setFormData({ name: "", type: "cash", balance: "" });
+    setError("");
     setShowDeleteConfirm(false);
-    setMode('add');
+    setMode("add");
   };
 
   const openEdit = (account: AccountData) => {
     setSelectedAccount(account);
-    setFormData({ name: account.name, type: account.type, balance: '' });
-    setError('');
+    setFormData({ name: account.name, type: account.type, balance: "" });
+    setError("");
     setShowDeleteConfirm(false);
-    setMode('edit');
+    setMode("edit");
   };
 
   const closeSheet = () => {
@@ -68,21 +101,21 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
 
   const handleSave = () => {
     if (!formData.name.trim()) {
-      setError('Name is required');
+      setError("Name is required");
       return;
     }
-    
-    setError('');
+
+    setError("");
     startTransition(async () => {
       try {
-        if (mode === 'add') {
+        if (mode === "add") {
           await createAccount({
             name: formData.name,
             type: formData.type,
             balance: formData.balance ? Number(formData.balance) : 0,
-            icon: 'wallet'
+            icon: "wallet",
           });
-        } else if (mode === 'edit' && selectedAccount) {
+        } else if (mode === "edit" && selectedAccount) {
           await updateAccount(selectedAccount.id, {
             name: formData.name,
             type: formData.type,
@@ -91,21 +124,23 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
         closeSheet();
         router.refresh();
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to save account');
+        setError(err instanceof Error ? err.message : "Failed to save account");
       }
     });
   };
 
   const handleDelete = () => {
     if (!selectedAccount) return;
-    setError('');
+    setError("");
     startTransition(async () => {
       try {
         await deleteAccount(selectedAccount.id);
         closeSheet();
         router.refresh();
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to delete account');
+        setError(
+          err instanceof Error ? err.message : "Failed to delete account",
+        );
         setShowDeleteConfirm(false);
       }
     });
@@ -116,7 +151,9 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
       {/* Top Header Card */}
       <div className="bg-indigo-600 text-white rounded-2xl p-6 shadow-sm">
         <h2 className="text-sm font-medium opacity-80">Total Balance</h2>
-        <p className="text-3xl font-bold mt-1">{formatCurrency(totalBalance)}</p>
+        <p className="text-3xl font-bold mt-1">
+          {formatCurrency(totalBalance)}
+        </p>
       </div>
 
       {/* Quick Shortcuts */}
@@ -165,10 +202,12 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
             Add Wallet
           </button>
         </div>
-        
+
         {accounts.length === 0 ? (
           <div className="text-center py-10 bg-gray-50 rounded-2xl border border-gray-100">
-            <p className="text-gray-500 text-sm">No accounts yet. Add your first account.</p>
+            <p className="text-gray-500 text-sm">
+              No accounts yet. Add your first account.
+            </p>
           </div>
         ) : (
           <div className="grid gap-4">
@@ -180,12 +219,12 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
                 type={account.type}
                 balance={account.balance}
                 onClick={() => openEdit(account)}
+                onAdjust={() => setAdjustingAccount(account)}
               />
             ))}
           </div>
         )}
       </div>
-
 
       {mode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
@@ -193,29 +232,38 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
           <div className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">
-                {mode === 'add' ? 'Add Wallet' : 'Edit Wallet'}
+                {mode === "add" ? "Add Wallet" : "Edit Wallet"}
               </h2>
-              <button onClick={closeSheet} className="p-2 -mr-2 text-gray-400 hover:text-gray-600">
+              <button
+                onClick={closeSheet}
+                className="p-2 -mr-2 text-gray-400 hover:text-gray-600"
+              >
                 <X size={20} />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name
+                </label>
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   placeholder="e.g. Main Bank, Cash"
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type
+                </label>
                 <div className="flex gap-2">
-                  {(['cash', 'bank', 'e-wallet'] as const).map((type) => (
+                  {(["cash", "bank", "e-wallet"] as const).map((type) => (
                     <button
                       key={type}
                       onClick={() => setFormData({ ...formData, type })}
@@ -223,7 +271,7 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
                         "flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all capitalize",
                         formData.type === type
                           ? "bg-indigo-600 text-white shadow-md"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200",
                       )}
                     >
                       {type}
@@ -232,13 +280,17 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
                 </div>
               </div>
 
-              {mode === 'add' && (
+              {mode === "add" && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Initial Balance</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Initial Balance
+                  </label>
                   <input
                     type="number"
                     value={formData.balance}
-                    onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, balance: e.target.value })
+                    }
                     placeholder="0.00"
                     step="0.01"
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all"
@@ -246,19 +298,46 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
                 </div>
               )}
 
-              {error && (
-                <p className="text-red-500 text-sm">{error}</p>
+              {mode === "edit" && selectedAccount && (
+                <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block">
+                      Registered Balance
+                    </span>
+                    <span className="text-base font-bold text-gray-900">
+                      {formatCurrency(selectedAccount.balance)}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const accToAdjust = selectedAccount;
+                      closeSheet();
+                      setAdjustingAccount(accToAdjust);
+                    }}
+                    className="min-h-[44px] px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                  >
+                    <SlidersHorizontal size={14} />
+                    Adjust Balance
+                  </button>
+                </div>
               )}
+
+              {error && <p className="text-red-500 text-sm">{error}</p>}
 
               <button
                 onClick={handleSave}
                 disabled={isPending}
                 className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-medium shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-70 disabled:active:scale-100 mt-2"
               >
-                {isPending ? <Loader2 size={20} className="animate-spin" /> : 'Save Wallet'}
+                {isPending ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  "Save Wallet"
+                )}
               </button>
 
-              {mode === 'edit' && (
+              {mode === "edit" && (
                 <div className="pt-4 mt-4 border-t border-gray-100">
                   {!showDeleteConfirm ? (
                     <button
@@ -270,7 +349,9 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
                     </button>
                   ) : (
                     <div className="space-y-3">
-                      <p className="text-sm text-center text-red-600 font-medium">Are you sure? This cannot be undone.</p>
+                      <p className="text-sm text-center text-red-600 font-medium">
+                        Are you sure? This cannot be undone.
+                      </p>
                       <div className="flex gap-3">
                         <button
                           onClick={() => setShowDeleteConfirm(false)}
@@ -284,7 +365,11 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
                           disabled={isPending}
                           className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium shadow-sm flex items-center justify-center hover:bg-red-700 transition-colors"
                         >
-                          {isPending ? <Loader2 size={18} className="animate-spin" /> : 'Yes, Delete'}
+                          {isPending ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            "Yes, Delete"
+                          )}
                         </button>
                       </div>
                     </div>
@@ -304,6 +389,14 @@ export function AccountsClient({ accounts, categories = [], initialEditId }: Acc
           router.refresh();
         }}
         categories={categories}
+      />
+
+      {/* Balance Adjustment Modal */}
+      <BalanceAdjustmentModal
+        isOpen={Boolean(adjustingAccount)}
+        account={adjustingAccount}
+        onClose={() => setAdjustingAccount(null)}
+        onSuccess={() => router.refresh()}
       />
     </div>
   );
