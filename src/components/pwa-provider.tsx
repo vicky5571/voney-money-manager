@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   WifiOff,
   Download,
@@ -8,33 +8,37 @@ import {
   Share2,
   PlusSquare,
   CheckCircle2,
-  RefreshCw,
-} from 'lucide-react';
-import { syncOfflineQueue, getOfflineQueueCount } from '@/lib/offline-sync';
+} from "lucide-react";
+import { syncOfflineQueue, getOfflineQueueCount } from "@/lib/offline-sync";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
 export function PWAProvider({ children }: { children: React.ReactNode }) {
   const [isOnline, setIsOnline] = useState<boolean>(() =>
-    typeof window !== 'undefined' ? navigator.onLine : true
+    typeof window !== "undefined" ? navigator.onLine : true,
   );
-  const [offlineCount, setOfflineCount] = useState<number>(() => getOfflineQueueCount());
+  const [offlineCount, setOfflineCount] = useState<number>(() =>
+    getOfflineQueueCount(),
+  );
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [isIOS] = useState<boolean>(() =>
-    typeof window !== 'undefined'
+    typeof window !== "undefined"
       ? /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase())
-      : false
+      : false,
   );
   const [isStandalone] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
+    if (typeof window === "undefined") return false;
     return (
-      window.matchMedia('(display-mode: standalone)').matches ||
-      Boolean((window.navigator as unknown as { standalone?: boolean }).standalone)
+      window.matchMedia("(display-mode: standalone)").matches ||
+      Boolean(
+        (window.navigator as unknown as { standalone?: boolean }).standalone,
+      )
     );
   });
 
@@ -43,23 +47,27 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handleSync = useCallback(async () => {
-    if (typeof window === 'undefined' || !navigator.onLine) return;
+    if (typeof window === "undefined" || !navigator.onLine) return;
     const { syncedCount } = await syncOfflineQueue();
     checkQueue();
     if (syncedCount > 0) {
-      setSyncStatus(`Synced ${syncedCount} offline ${syncedCount === 1 ? 'transaction' : 'transactions'}!`);
+      setSyncStatus(
+        `Synced ${syncedCount} offline ${syncedCount === 1 ? "transaction" : "transactions"}!`,
+      );
       setTimeout(() => setSyncStatus(null), 4500);
     }
   }, [checkQueue]);
 
   useEffect(() => {
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       navigator.serviceWorker
-        .register('/sw.js')
-        .catch((err) => console.error('SW registration failed:', err));
+        .register("/sw.js")
+        .catch((err) => console.error("SW registration failed:", err));
     }
 
-    const hasDismissed = typeof window !== 'undefined' && localStorage.getItem('voney_pwa_dismissed');
+    const hasDismissed =
+      typeof window !== "undefined" &&
+      localStorage.getItem("voney_pwa_dismissed");
 
     // 1. Listen for BeforeInstallPrompt event
     const onBeforeInstallPrompt = (e: Event) => {
@@ -70,7 +78,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
 
     // 2. Online / Offline listeners
     const handleOnline = () => {
@@ -86,23 +94,26 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
       checkQueue();
     };
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    window.addEventListener('voney:offline-queue-updated', handleQueueUpdated);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("voney:offline-queue-updated", handleQueueUpdated);
 
     // If online on mount, attempt sync in next tick
     const syncTimer = setTimeout(() => {
-      if (typeof window !== 'undefined' && navigator.onLine) {
+      if (typeof window !== "undefined" && navigator.onLine) {
         handleSync();
       }
     }, 500);
 
     return () => {
       clearTimeout(syncTimer);
-      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('voney:offline-queue-updated', handleQueueUpdated);
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener(
+        "voney:offline-queue-updated",
+        handleQueueUpdated,
+      );
     };
   }, [checkQueue, handleSync, isStandalone]);
 
@@ -110,7 +121,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     if (installPrompt) {
       await installPrompt.prompt();
       const choice = await installPrompt.userChoice;
-      if (choice.outcome === 'accepted') {
+      if (choice.outcome === "accepted") {
         setShowInstallBanner(false);
       }
     }
@@ -119,7 +130,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
   const handleDismissBanner = () => {
     setShowInstallBanner(false);
     try {
-      localStorage.setItem('voney_pwa_dismissed', 'true');
+      localStorage.setItem("voney_pwa_dismissed", "true");
     } catch {
       // Ignore
     }
@@ -132,30 +143,16 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         <div className="sticky top-0 z-50 bg-amber-500 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-md animate-in slide-in-from-top duration-200">
           <div className="flex items-center gap-2">
             <WifiOff size={15} />
-            <span>Offline Mode — transactions save locally and sync when back online.</span>
+            <span>
+              Offline Mode — transactions save locally and sync when back
+              online.
+            </span>
           </div>
           {offlineCount > 0 && (
             <span className="bg-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold">
               {offlineCount} queued
             </span>
           )}
-        </div>
-      )}
-
-      {/* Global Syncing Banner when Online and offlineCount > 0 */}
-      {isOnline && offlineCount > 0 && (
-        <div className="sticky top-0 z-50 bg-indigo-600 text-white px-4 py-2 pt-[max(env(safe-area-inset-top,0px),0.5rem)] text-xs font-semibold flex items-center justify-between shadow-md animate-in slide-in-from-top duration-200">
-          <div className="flex items-center gap-2">
-            <RefreshCw size={14} className="animate-spin" />
-            <span>Syncing {offlineCount} offline {offlineCount === 1 ? 'item' : 'items'} with cloud...</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleSync}
-            className="bg-indigo-800 hover:bg-indigo-900 px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide uppercase transition-colors cursor-pointer"
-          >
-            Sync Now
-          </button>
         </div>
       )}
 
@@ -169,7 +166,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => setSyncStatus(null)}
-            className="p-1 text-white/80 hover:text-white cursor-pointer"
+            className="p-1 text-white/80 hover:text-white"
             aria-label="Dismiss sync banner"
           >
             <X size={14} />
@@ -189,11 +186,13 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
                 V
               </div>
               <div>
-                <h4 className="text-xs font-bold text-gray-900">Install Voney App</h4>
+                <h4 className="text-xs font-bold text-gray-900">
+                  Install Voney App
+                </h4>
                 <p className="text-[11px] text-gray-500 font-medium">
                   {isIOS
-                    ? 'Install to home screen for 1-tap offline tracking.'
-                    : 'Fast offline access & home screen shortcut.'}
+                    ? "Install to home screen for 1-tap offline tracking."
+                    : "Fast offline access & home screen shortcut."}
                 </p>
               </div>
             </div>

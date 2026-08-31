@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Loader2, Calendar } from 'lucide-react';
-import Link from 'next/link';
-import { updateTransaction } from '@/app/actions/transactions';
-import { getCategories } from '@/app/actions/categories';
-import { getAccounts } from '@/app/actions/accounts';
-import { CategoryGrid } from '@/components/category-grid';
-import { formatCurrency } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { ArrowLeft, Loader2, Calendar } from "lucide-react";
+import Link from "next/link";
+import { updateTransaction } from "@/app/actions/transactions";
+import { getCategories } from "@/app/actions/categories";
+import { getAccounts } from "@/app/actions/accounts";
+import { CategoryGrid } from "@/components/category-grid";
+import { formatCurrency } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 type Category = {
   id: string;
@@ -33,15 +33,15 @@ export default function EditTransactionPage() {
 
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   // Form state
-  const [type, setType] = useState<'income' | 'expense'>('expense');
-  const [amount, setAmount] = useState('');
+  const [type, setType] = useState<"income" | "expense">("expense");
+  const [amount, setAmount] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedAccount, setSelectedAccount] = useState<string>('');
-  const [date, setDate] = useState('');
-  const [note, setNote] = useState('');
+  const [selectedAccount, setSelectedAccount] = useState<string>("");
+  const [date, setDate] = useState("");
+  const [note, setNote] = useState("");
 
   // Data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -50,16 +50,20 @@ export default function EditTransactionPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [cats, accs] = await Promise.all([getCategories(), getAccounts()]);
+        const [cats, accs] = await Promise.all([
+          getCategories(),
+          getAccounts(),
+        ]);
         setCategories(cats as Category[]);
         setAccounts(accs as Account[]);
 
         // Fetch current transaction
         const supabase = createClient();
         const { data: transaction } = await supabase
-          .from('transactions')
-          .select('*')
-          .eq('id', transactionId)
+          .from("transactions")
+          .select("*")
+          .eq("id", transactionId)
+          .is("deleted_at", null)
           .single();
 
         if (transaction) {
@@ -68,10 +72,10 @@ export default function EditTransactionPage() {
           setSelectedCategory(transaction.category_id);
           setSelectedAccount(transaction.account_id);
           setDate(transaction.transaction_date);
-          setNote(transaction.note || '');
+          setNote(transaction.note || "");
         }
       } catch {
-        setError('Failed to load transaction');
+        setError("Failed to load transaction");
       } finally {
         setDataLoading(false);
       }
@@ -87,7 +91,7 @@ export default function EditTransactionPage() {
   const handleSubmit = async () => {
     if (!isValid) return;
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       await updateTransaction(transactionId, {
@@ -98,10 +102,12 @@ export default function EditTransactionPage() {
         transaction_date: date,
         note: note || undefined,
       });
-      router.push('/transactions');
+      router.push("/transactions");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update transaction');
+      setError(
+        err instanceof Error ? err.message : "Failed to update transaction",
+      );
     } finally {
       setLoading(false);
     }
@@ -132,26 +138,26 @@ export default function EditTransactionPage() {
       <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
         <button
           onClick={() => {
-            setType('expense');
+            setType("expense");
             setSelectedCategory(null);
           }}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            type === 'expense'
-              ? 'bg-white text-red-500 shadow-sm'
-              : 'text-gray-500'
+            type === "expense"
+              ? "bg-white text-red-500 shadow-sm"
+              : "text-gray-500"
           }`}
         >
           Expense
         </button>
         <button
           onClick={() => {
-            setType('income');
+            setType("income");
             setSelectedCategory(null);
           }}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            type === 'income'
-              ? 'bg-white text-emerald-600 shadow-sm'
-              : 'text-gray-500'
+            type === "income"
+              ? "bg-white text-emerald-600 shadow-sm"
+              : "text-gray-500"
           }`}
         >
           Income
@@ -160,7 +166,9 @@ export default function EditTransactionPage() {
 
       {/* Amount input */}
       <div className="mb-6">
-        <label className="text-sm font-medium text-gray-500 mb-2 block">Amount</label>
+        <label className="text-sm font-medium text-gray-500 mb-2 block">
+          Amount
+        </label>
         <div className="relative">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-gray-400">
             $
@@ -180,7 +188,9 @@ export default function EditTransactionPage() {
 
       {/* Category selector */}
       <div className="mb-6">
-        <label className="text-sm font-medium text-gray-500 mb-3 block">Category</label>
+        <label className="text-sm font-medium text-gray-500 mb-3 block">
+          Category
+        </label>
         <CategoryGrid
           categories={filteredCategories.map((c) => ({
             id: c.id,
@@ -195,7 +205,9 @@ export default function EditTransactionPage() {
 
       {/* Account selector */}
       <div className="mb-6">
-        <label className="text-sm font-medium text-gray-500 mb-2 block">Account</label>
+        <label className="text-sm font-medium text-gray-500 mb-2 block">
+          Account
+        </label>
         <select
           value={selectedAccount}
           onChange={(e) => setSelectedAccount(e.target.value)}
@@ -211,9 +223,14 @@ export default function EditTransactionPage() {
 
       {/* Date picker */}
       <div className="mb-6">
-        <label className="text-sm font-medium text-gray-500 mb-2 block">Date</label>
+        <label className="text-sm font-medium text-gray-500 mb-2 block">
+          Date
+        </label>
         <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Calendar
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={18}
+          />
           <input
             type="date"
             value={date}
@@ -237,13 +254,17 @@ export default function EditTransactionPage() {
           className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         {note.length > 0 && (
-          <p className="text-xs text-gray-400 mt-1 text-right">{note.length}/200</p>
+          <p className="text-xs text-gray-400 mt-1 text-right">
+            {note.length}/200
+          </p>
         )}
       </div>
 
       {/* Error */}
       {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm">{error}</div>
+        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm">
+          {error}
+        </div>
       )}
 
       {/* Save button */}
@@ -258,7 +279,7 @@ export default function EditTransactionPage() {
             Updating...
           </>
         ) : (
-          'Update Transaction'
+          "Update Transaction"
         )}
       </button>
     </div>

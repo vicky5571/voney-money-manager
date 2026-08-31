@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatDate, cn, getGreeting } from "@/lib/utils";
 import { getOfflineQueueCount, syncOfflineQueue } from "@/lib/offline-sync";
+import { deleteTransaction } from "@/app/actions/transactions";
 import dynamic from "next/dynamic";
 import { BalanceCard } from "@/components/balance-card";
 import { DashboardOnboarding } from "@/components/dashboard-onboarding";
@@ -151,10 +152,15 @@ export function DashboardClient({
   const [selectedTx, setSelectedTx] = useState<RecentTxItem | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [currentGreeting, setCurrentGreeting] = useState(greeting);
+  const [recentTxList, setRecentTxList] = useState<RecentTxItem[]>(recentTransactions);
   const [offlineCount, setOfflineCount] = useState<number>(() =>
     typeof window !== "undefined" ? getOfflineQueueCount() : 0,
   );
   const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    setRecentTxList(recentTransactions);
+  }, [recentTransactions]);
 
   useEffect(() => {
     setCurrentGreeting(getGreeting());
@@ -189,6 +195,25 @@ export function DashboardClient({
       router.refresh();
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleDetailDelete = (id: string) => {
+    setRecentTxList((prev) => prev.filter((tx) => tx.id !== id));
+    setSelectedTx(null);
+    router.refresh();
+  };
+
+  const handleSwipeDelete = async (id: string) => {
+    const snapshot = recentTxList.find((tx) => tx.id === id);
+    setRecentTxList((prev) => prev.filter((tx) => tx.id !== id));
+    try {
+      await deleteTransaction(id);
+      router.refresh();
+    } catch {
+      if (snapshot) {
+        setRecentTxList((prev) => [snapshot, ...prev]);
+      }
     }
   };
 
@@ -243,13 +268,13 @@ export function DashboardClient({
   // Group recent transactions by date — memoized to avoid recompute on every render (perf: INP)
   const groupedTransactions = useMemo(
     () =>
-      recentTransactions.reduce<Record<string, RecentTxItem[]>>((acc, tx) => {
+      recentTxList.reduce<Record<string, RecentTxItem[]>>((acc, tx) => {
         const key = formatTxDateGroup(tx.transaction_date);
         if (!acc[key]) acc[key] = [];
         acc[key].push(tx);
         return acc;
       }, {}),
-    [recentTransactions],
+    [recentTxList],
   );
 
   return (
@@ -325,7 +350,7 @@ export function DashboardClient({
 
       <DashboardOnboarding
         hasAccount={accounts.length > 0}
-        hasTransaction={recentTransactions.length > 0}
+        hasTransaction={recentTxList.length > 0}
         hasBudget={totalBudget > 0}
       />
 
@@ -484,7 +509,7 @@ export function DashboardClient({
         )}
       </div>
 
-      {recentTransactions.length > 0 && (
+      {recentTxList.length > 0 && (
         <Suspense
           fallback={
             <div
@@ -678,7 +703,7 @@ export function DashboardClient({
           </div>
         </div>
 
-        {recentTransactions.length > 0 ? (
+        {recentTxList.length > 0 ? (
           <div className="space-y-4">
             {Object.entries(groupedTransactions).map(([dateGroup, items]) => (
               <div key={dateGroup} className="space-y-1.5">
@@ -699,6 +724,7 @@ export function DashboardClient({
                       type={tx.type}
                       date={tx.transaction_date}
                       onClick={() => setSelectedTx(tx)}
+                      onSwipeDelete={() => handleSwipeDelete(tx.id)}
                     />
                   ))}
                 </div>
@@ -850,6 +876,7 @@ export function DashboardClient({
         <TransactionDetailSheet
           isOpen={!!selectedTx}
           onClose={() => setSelectedTx(null)}
+          onDelete={handleDetailDelete}
           transaction={{
             id: selectedTx.id,
             type: selectedTx.type,

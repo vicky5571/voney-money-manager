@@ -313,6 +313,7 @@ export default function TransactionsPage() {
 
   // Swipe delete — optimistic removal in store then server delete
   const handleSwipeDelete = async (id: string) => {
+    const snapshot = transactions.find((t) => t.id === id);
     setTransactions((prev) => prev.filter((t) => t.id !== id));
     optimisticDeleteTransaction(id, monthKey);
     try {
@@ -338,8 +339,42 @@ export default function TransactionsPage() {
         )
         .catch(console.error);
     } catch {
+      // Rollback optimistic removal
+      if (snapshot) {
+        setTransactions((prev) => {
+          const idx = prev.findIndex(
+            (t) => t.transaction_date <= snapshot.transaction_date,
+          );
+          if (idx === -1) return [...prev, snapshot];
+          const copy = [...prev];
+          copy.splice(idx, 0, snapshot);
+          return copy;
+        });
+      }
       console.error("Failed to delete transaction");
     }
+  };
+
+  // Detail-sheet delete: remove from local state + refresh aggregates
+  const handleDetailDelete = (id: string) => {
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
+    optimisticDeleteTransaction(id, monthKey);
+    getMonthOverview({
+      month: selectedMonth,
+      year: selectedYear,
+      search: search || undefined,
+    })
+      .then(
+        ({ summary: nextSummary, health: nextHealth, counts: nextCounts }) => {
+          setSummary(nextSummary);
+          setSummaryForMonth(monthKey, nextSummary);
+          setHealth(nextHealth);
+          setHealthForMonth(monthKey, nextHealth);
+          setCounts(nextCounts);
+        },
+      )
+      .catch(console.error);
+    setSelectedTx(null);
   };
 
   // Group by date
@@ -610,6 +645,7 @@ export default function TransactionsPage() {
         <TransactionDetailSheet
           isOpen
           onClose={() => setSelectedTx(null)}
+          onDelete={handleDetailDelete}
           transaction={{
             id: selectedTx.id,
             type: selectedTx.type,

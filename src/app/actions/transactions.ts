@@ -495,9 +495,14 @@ export async function deleteTransaction(id: string) {
     .eq("id", id)
     .eq("user_id", user.id)
     .is("deleted_at", null)
-    .single();
-
-  if (!transaction) throw new Error("Transaction not found");
+    .maybeSingle();
+  if (!transaction) {
+    // Already deleted or not found — revalidate paths and return gracefully
+    revalidatePath("/");
+    revalidatePath("/transactions");
+    revalidatePath("/accounts");
+    return;
+  }
 
   // Soft delete (audit + restore)
   const { error } = await supabase

@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Trash2, Pencil, X, Loader2 } from 'lucide-react';
-import { deleteTransaction } from '@/app/actions/transactions';
-import { useRouter } from 'next/navigation';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { CategoryIcon } from '@/constants/categories';
+import { useState } from "react";
+import { Trash2, Pencil, X, Loader2 } from "lucide-react";
+import { deleteTransaction } from "@/app/actions/transactions";
+import { useRouter } from "next/navigation";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { CategoryIcon } from "@/constants/categories";
 
 interface TransactionDetailSheetProps {
   transaction: {
     id: string;
-    type: 'income' | 'expense';
+    type: "income" | "expense";
     amount: number;
     note: string | null;
     transaction_date: string;
@@ -19,12 +19,14 @@ interface TransactionDetailSheetProps {
   };
   isOpen: boolean;
   onClose: () => void;
+  onDelete?: (id: string) => void;
 }
 
 export function TransactionDetailSheet({
   transaction,
   isOpen,
   onClose,
+  onDelete,
 }: TransactionDetailSheetProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
@@ -36,10 +38,13 @@ export function TransactionDetailSheet({
     setDeleting(true);
     try {
       await deleteTransaction(transaction.id);
+      onDelete?.(transaction.id);
       onClose();
       router.refresh();
     } catch (err) {
-      console.error('Failed to delete transaction:', err);
+      console.error("Failed to delete transaction:", err);
+      setDeleting(false);
+      setShowConfirm(false);
     } finally {
       setDeleting(false);
       setShowConfirm(false);
@@ -64,20 +69,22 @@ export function TransactionDetailSheet({
           <div className="flex items-center gap-3">
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: `${transaction.categories?.color ?? '#6B7280'}15` }}
+              style={{
+                backgroundColor: `${transaction.categories?.color ?? "#6B7280"}15`,
+              }}
             >
               <CategoryIcon
-                name={transaction.categories?.icon ?? 'Package'}
+                name={transaction.categories?.icon ?? "Package"}
                 size={24}
-                style={{ color: transaction.categories?.color ?? '#6B7280' }}
+                style={{ color: transaction.categories?.color ?? "#6B7280" }}
               />
             </div>
             <div>
               <h3 className="font-semibold text-lg">
-                {transaction.categories?.name ?? 'Unknown'}
+                {transaction.categories?.name ?? "Unknown"}
               </h3>
               <p className="text-sm text-gray-500">
-                {transaction.accounts?.name ?? 'Unknown Account'}
+                {transaction.accounts?.name ?? "Unknown Account"}
               </p>
             </div>
           </div>
@@ -93,10 +100,12 @@ export function TransactionDetailSheet({
         <div className="text-center mb-6">
           <p
             className={`text-3xl font-bold ${
-              transaction.type === 'income' ? 'text-emerald-600' : 'text-red-500'
+              transaction.type === "income"
+                ? "text-emerald-600"
+                : "text-red-500"
             }`}
           >
-            {transaction.type === 'income' ? '+' : '-'}
+            {transaction.type === "income" ? "+" : "-"}
             {formatCurrency(Number(transaction.amount))}
           </p>
           <p className="text-sm text-gray-400 mt-1">
@@ -128,7 +137,7 @@ export function TransactionDetailSheet({
               ) : (
                 <Trash2 size={18} />
               )}
-              {deleting ? 'Deleting...' : 'Yes, Delete'}
+              {deleting ? "Deleting..." : "Yes, Delete"}
             </button>
             <button
               onClick={() => setShowConfirm(false)}
