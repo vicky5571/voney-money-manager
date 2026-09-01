@@ -1,12 +1,21 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { X, Plus, Trash2, Edit2, Loader2, Check } from "lucide-react";
+import { motion, AnimatePresence, Reorder, useDragControls } from "motion/react";
+import {
+  X,
+  Plus,
+  Trash2,
+  Edit2,
+  Loader2,
+  Check,
+  GripVertical,
+} from "lucide-react";
 import {
   createCategory,
   updateCategory,
   deleteCategory,
+  reorderCategories,
 } from "@/app/actions/categories";
 import {
   CategoryIcon,
@@ -30,6 +39,98 @@ interface CategoryManagerSheetProps {
   onClose: () => void;
   categories: CategoryItem[];
   onCategoryCreated?: (newCategory: CategoryItem) => void;
+  onCategoryReordered?: (reorderedCategories: CategoryItem[]) => void;
+}
+
+function CategoryReorderRow({
+  cat,
+  onEdit,
+  onDelete,
+  isPending,
+}: {
+  cat: CategoryItem;
+  onEdit: (cat: CategoryItem) => void;
+  onDelete: (id: string) => void;
+  isPending: boolean;
+}) {
+  const dragControls = useDragControls();
+
+  return (
+    <Reorder.Item
+      value={cat}
+      id={cat.id}
+      dragListener={false}
+      dragControls={dragControls}
+      whileDrag={{
+        scale: 1.03,
+        zIndex: 999,
+        backgroundColor: "#ffffff",
+        boxShadow: "0 16px 36px rgba(0, 0, 0, 0.16)",
+      }}
+      className="relative flex items-center justify-between p-3 bg-gray-50/90 rounded-2xl border border-gray-100 select-none"
+    >
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        {/* Drag Grip Handle with touch-none for direct 1:1 pointer tracking */}
+        <div
+          onPointerDown={(e) => {
+            e.preventDefault();
+            dragControls.start(e);
+          }}
+          className="p-2 -m-1 text-gray-400 hover:text-gray-700 active:text-emerald-500 cursor-grab active:cursor-grabbing shrink-0 touch-none"
+          title="Hold and drag to reorder"
+        >
+          <GripVertical size={18} />
+        </div>
+
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `${cat.color}1A` }}
+        >
+          <CategoryIcon
+            name={cat.icon}
+            size={20}
+            style={{ color: cat.color }}
+          />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-900 truncate">
+            {cat.name}
+          </p>
+          <span className="text-[10px] text-gray-500 font-medium">
+            {cat.is_default ? "System Default" : "Custom Category"}
+          </span>
+        </div>
+      </div>
+
+      {!cat.is_default && (
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(cat);
+            }}
+            className="min-h-[44px] min-w-[44px] p-2 text-gray-400 hover:text-emerald-500 flex items-center justify-center rounded-xl hover:bg-white transition-colors cursor-pointer"
+            aria-label={`Edit ${cat.name}`}
+          >
+            <Edit2 size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(cat.id);
+            }}
+            disabled={isPending}
+            className="min-h-[44px] min-w-[44px] p-2 text-gray-400 hover:text-red-600 flex items-center justify-center rounded-xl hover:bg-white transition-colors cursor-pointer"
+            aria-label={`Delete ${cat.name}`}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )}
+    </Reorder.Item>
+  );
 }
 
 export function CategoryManagerSheet({
@@ -37,15 +138,18 @@ export function CategoryManagerSheet({
   onClose,
   categories,
   onCategoryCreated,
+  onCategoryReordered,
 }: CategoryManagerSheetProps) {
   const [isPending, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
-  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(
-    null,
-  );
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
   const [error, setError] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Local reordered/mutated list state
+  const [localCategories, setLocalCategories] = useState<CategoryItem[] | null>(null);
+  const currentCategories = localCategories ?? categories;
 
   // Form states
   const [name, setName] = useState("");
@@ -122,6 +226,7 @@ export function CategoryManagerSheet({
     startTransition(async () => {
       try {
         await deleteCategory(id);
+        setLocalCategories((prev) => (prev ?? categories).filter((c) => c.id !== id));
         setMode("list");
       } catch (err: unknown) {
         setError(
@@ -131,7 +236,29 @@ export function CategoryManagerSheet({
     });
   };
 
-  const filteredCategories = categories.filter((c) => c.type === activeTab);
+  const filteredCategories = currentCategories.filter((c) => c.type === activeTab);
+
+  const handleReorder = (newTabCategories: CategoryItem[]) => {
+    // Preserve categories of other types while replacing the active tab order
+    const otherCategories = currentCategories.filter((c) => c.type !== activeTab);
+    const updated = activeTab === "expense"
+      ? [...newTabCategories, ...otherCategories]
+      : [...otherCategories, ...newTabCategories];
+
+    setLocalCategories(updated);
+    if (onCategoryReordered) {
+      onCategoryReordered(updated);
+    }
+
+    // Persist in background
+    startTransition(async () => {
+      try {
+        await reorderCategories(newTabCategories.map((c) => c.id));
+      } catch {
+        // Non-blocking background sync
+      }
+    });
+  };
 
   return (
     <AnimatePresence>
@@ -159,13 +286,20 @@ export function CategoryManagerSheet({
             <div className="px-6 pt-3 pb-3 border-b border-gray-100 shrink-0 bg-white">
               <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-2.5 sm:hidden" />
               <div className="flex items-center justify-between">
-                <h2 className="text-base sm:text-lg font-bold text-gray-900">
-                  {mode === "list"
-                    ? "Manage Categories"
-                    : mode === "create"
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900">
+                    {mode === "list"
+                      ? "Manage Categories"
+                      : mode === "create"
                       ? "New Category"
                       : "Edit Category"}
-                </h2>
+                  </h2>
+                  {mode === "list" && (
+                    <p className="text-[11px] text-gray-400">
+                      Hold and drag <GripVertical className="inline w-3 h-3 -mt-0.5" /> to rearrange
+                    </p>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={mode === "list" ? onClose : () => setMode("list")}
@@ -194,7 +328,7 @@ export function CategoryManagerSheet({
                       )}
                     >
                       Expense (
-                      {categories.filter((c) => c.type === "expense").length})
+                      {currentCategories.filter((c) => c.type === "expense").length})
                     </button>
                     <button
                       type="button"
@@ -207,64 +341,27 @@ export function CategoryManagerSheet({
                       )}
                     >
                       Income (
-                      {categories.filter((c) => c.type === "income").length})
+                      {currentCategories.filter((c) => c.type === "income").length})
                     </button>
                   </div>
 
-                  {/* Category List */}
-                  <div className="space-y-2">
+                  {/* Hold and Drag Category Reorder List */}
+                  <Reorder.Group
+                    axis="y"
+                    values={filteredCategories}
+                    onReorder={handleReorder}
+                    className="space-y-2"
+                  >
                     {filteredCategories.map((cat) => (
-                      <div
+                      <CategoryReorderRow
                         key={cat.id}
-                        className="flex items-center justify-between p-3 bg-gray-50/80 hover:bg-gray-50 rounded-2xl border border-gray-100 transition-colors"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: `${cat.color}1A` }}
-                          >
-                            <CategoryIcon
-                              name={cat.icon}
-                              size={20}
-                              style={{ color: cat.color }}
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
-                              {cat.name}
-                            </p>
-                            <span className="text-[10px] text-gray-500 font-medium">
-                              {cat.is_default
-                                ? "System Default"
-                                : "Custom Category"}
-                            </span>
-                          </div>
-                        </div>
-
-                        {!cat.is_default && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => openEdit(cat)}
-                              className="min-h-[44px] min-w-[44px] p-2 text-gray-400 hover:text-emerald-500 flex items-center justify-center rounded-xl hover:bg-white transition-colors cursor-pointer"
-                              aria-label={`Edit ${cat.name}`}
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(cat.id)}
-                              disabled={isPending}
-                              className="min-h-[44px] min-w-[44px] p-2 text-gray-400 hover:text-red-600 flex items-center justify-center rounded-xl hover:bg-white transition-colors cursor-pointer"
-                              aria-label={`Delete ${cat.name}`}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                        cat={cat}
+                        onEdit={openEdit}
+                        onDelete={handleDelete}
+                        isPending={isPending}
+                      />
                     ))}
-                  </div>
+                  </Reorder.Group>
                 </div>
               ) : (
                 /* Form: Create or Edit Category */
