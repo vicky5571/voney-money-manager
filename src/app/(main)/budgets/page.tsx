@@ -1,6 +1,6 @@
-import { getBudgets } from '@/app/actions/budgets';
-import { getCategories } from '@/app/actions/categories';
-import { BudgetsClient, type BudgetCategory } from '@/components/budgets-client';
+import { getBudgets } from "@/app/actions/budgets";
+import { getCategories } from "@/app/actions/categories";
+import { BudgetsClient } from "@/components/budgets-client";
 
 export default async function BudgetsPage({
   searchParams,
@@ -17,19 +17,10 @@ export default async function BudgetsPage({
     getCategories(),
   ]);
 
-  const categories: BudgetCategory[] = rawCategories
-    .filter((c) => c.type === 'expense')
-    .map((c) => ({
-      id: c.id,
-      name: c.name,
-      icon: c.icon,
-      color: c.color,
-    }));
-
   return (
-    <BudgetsClient 
-      initialBudgets={budgets} 
-      categories={categories}
+    <BudgetsClient
+      initialBudgets={budgets}
+      categories={rawCategories}
       initialMonth={month}
       initialYear={year}
     />

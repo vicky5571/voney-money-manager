@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Mail,
   Calendar,
@@ -18,34 +18,49 @@ import {
   ShieldCheck,
   Smartphone,
   ArrowLeft,
-} from 'lucide-react';
-import { updateUserProfile, signOutAction, type UserProfileData } from '@/app/actions/auth';
-import { createClient } from '@/lib/supabase/client';
-import { getOfflineQueueCount } from '@/lib/offline-sync';
+  Tags,
+} from "lucide-react";
+import {
+  updateUserProfile,
+  signOutAction,
+  type UserProfileData,
+} from "@/app/actions/auth";
+import { createClient } from "@/lib/supabase/client";
+import { getOfflineQueueCount } from "@/lib/offline-sync";
+import {
+  CategoryManagerSheet,
+  type CategoryItem,
+} from "@/components/category-manager-sheet";
 
 interface ProfileClientProps {
   initialProfile: UserProfileData;
+  categories?: CategoryItem[];
 }
 
-export function ProfileClient({ initialProfile }: ProfileClientProps) {
+export function ProfileClient({
+  initialProfile,
+  categories = [],
+}: ProfileClientProps) {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfileData>(initialProfile);
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(initialProfile.displayName);
   const [savingName, setSavingName] = useState(false);
-  const [nameError, setNameError] = useState('');
+  const [nameError, setNameError] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
 
-  const offlineCount = typeof window !== 'undefined' ? getOfflineQueueCount() : 0;
+  const offlineCount =
+    typeof window !== "undefined" ? getOfflineQueueCount() : 0;
 
   const handleSaveName = async () => {
     if (!nameInput.trim()) {
-      setNameError('Name cannot be empty');
+      setNameError("Name cannot be empty");
       return;
     }
     setSavingName(true);
-    setNameError('');
+    setNameError("");
 
     try {
       const res = await updateUserProfile(nameInput.trim());
@@ -54,10 +69,10 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
         setIsEditingName(false);
         router.refresh();
       } else {
-        setNameError(res.error || 'Failed to update profile');
+        setNameError(res.error || "Failed to update profile");
       }
     } catch {
-      setNameError('Failed to update profile');
+      setNameError("Failed to update profile");
     } finally {
       setSavingName(false);
     }
@@ -72,13 +87,13 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
       // Server-side cleanup & redirect
       await signOutAction();
     } catch {
-      router.push('/login');
+      router.push("/login");
     }
   };
 
-  const joinedDate = new Date(profile.createdAt).toLocaleDateString('en-US', {
-    month: 'short',
-    year: 'numeric',
+  const joinedDate = new Date(profile.createdAt).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
   });
 
   const getInitials = (name: string) => {
@@ -86,7 +101,7 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
     if (parts.length >= 2) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
-    return (name[0] || 'U').toUpperCase();
+    return (name[0] || "U").toUpperCase();
   };
 
   return (
@@ -130,14 +145,18 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
                 className="min-h-[44px] min-w-[44px] bg-emerald-500 hover:bg-emerald-500 text-white rounded-xl flex items-center justify-center disabled:opacity-50 transition-all"
                 aria-label="Save name"
               >
-                {savingName ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                {savingName ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Check size={16} />
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setNameInput(profile.displayName);
                   setIsEditingName(false);
-                  setNameError('');
+                  setNameError("");
                 }}
                 className="min-h-[44px] min-w-[44px] bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl flex items-center justify-center transition-all"
                 aria-label="Cancel editing"
@@ -145,11 +164,15 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
                 <X size={16} />
               </button>
             </div>
-            {nameError && <p className="text-xs text-red-500 font-medium">{nameError}</p>}
+            {nameError && (
+              <p className="text-xs text-red-500 font-medium">{nameError}</p>
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-1.5 mt-1">
-            <h2 className="text-lg font-bold text-gray-900">{profile.displayName}</h2>
+            <h2 className="text-lg font-bold text-gray-900">
+              {profile.displayName}
+            </h2>
             <button
               type="button"
               onClick={() => setIsEditingName(true)}
@@ -189,8 +212,12 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
               <Wallet size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">Manage Wallets & Accounts</p>
-              <p className="text-xs text-gray-500">Add, edit, or adjust balances</p>
+              <p className="text-sm font-bold text-gray-900">
+                Manage Wallets & Accounts
+              </p>
+              <p className="text-xs text-gray-500">
+                Add, edit, or adjust balances
+              </p>
             </div>
           </div>
           <ChevronRight size={18} className="text-gray-400" />
@@ -205,8 +232,12 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
               <Repeat size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">Recurring Bills & Subscriptions</p>
-              <p className="text-xs text-gray-500">Track renewals & auto due alerts</p>
+              <p className="text-sm font-bold text-gray-900">
+                Recurring Bills & Subscriptions
+              </p>
+              <p className="text-xs text-gray-500">
+                Track renewals & auto due alerts
+              </p>
             </div>
           </div>
           <ChevronRight size={18} className="text-gray-400" />
@@ -221,12 +252,37 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
               <HeartPulse size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">Budgets & Savings Goals</p>
-              <p className="text-xs text-gray-500">Category spending limits & pacing</p>
+              <p className="text-sm font-bold text-gray-900">
+                Budgets & Savings Goals
+              </p>
+              <p className="text-xs text-gray-500">
+                Category spending limits & pacing
+              </p>
             </div>
           </div>
           <ChevronRight size={18} className="text-gray-400" />
         </Link>
+
+        <button
+          type="button"
+          onClick={() => setShowCategoryManager(true)}
+          className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-colors min-h-[48px] text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+              <Tags size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">
+                Manage Categories
+              </p>
+              <p className="text-xs text-gray-500">
+                Add, rename, or customize spending tags
+              </p>
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-gray-400" />
+        </button>
       </div>
 
       {/* App & Security Info */}
@@ -243,12 +299,14 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
             <div>
               <p className="text-sm font-bold text-gray-900">Offline Queue</p>
               <p className="text-xs text-gray-500">
-                {offlineCount > 0 ? `${offlineCount} items waiting to sync` : 'All items synchronized'}
+                {offlineCount > 0
+                  ? `${offlineCount} items waiting to sync`
+                  : "All items synchronized"}
               </p>
             </div>
           </div>
           <span className="text-xs font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-500">
-            {offlineCount > 0 ? `${offlineCount} Queued` : 'Active'}
+            {offlineCount > 0 ? `${offlineCount} Queued` : "Active"}
           </span>
         </div>
 
@@ -259,7 +317,9 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
             </div>
             <div>
               <p className="text-sm font-bold text-gray-900">Security</p>
-              <p className="text-xs text-gray-500">Supabase Row-Level-Security (RLS)</p>
+              <p className="text-xs text-gray-500">
+                Supabase Row-Level-Security (RLS)
+              </p>
             </div>
           </div>
           <span className="text-xs font-bold text-gray-400">v1.0.0</span>
@@ -285,7 +345,9 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="text-base font-bold text-gray-900">Log out of Voney?</h3>
+              <h3 className="text-base font-bold text-gray-900">
+                Log out of Voney?
+              </h3>
               <p className="text-xs text-gray-500">
                 You will need to enter your email and password to sign back in.
               </p>
@@ -309,13 +371,23 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
                 {isLoggingOut ? (
                   <Loader2 size={16} className="animate-spin" />
                 ) : (
-                  'Log Out'
+                  "Log Out"
                 )}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Category Manager Sheet */}
+      <CategoryManagerSheet
+        isOpen={showCategoryManager}
+        onClose={() => {
+          setShowCategoryManager(false);
+          router.refresh();
+        }}
+        categories={categories}
+      />
     </div>
   );
 }
