@@ -577,13 +577,42 @@ export async function createTransfer(formData: {
 
   if (!fromAccount || !toAccount) throw new Error("Account not found");
 
-  // Find or use a category for transfer logging (only default to avoid leaking other users)
-  const { data: catData } = await supabase
+  // Find or create dedicated 'Transfer' category (prevents polluting Food/Transport budgets)
+  let transferCategoryId: string | null = null;
+  const { data: transferCat } = await supabase
     .from("categories")
     .select("id")
-    .eq("is_default", true)
+    .ilike("name", "Transfer")
     .limit(1);
-  const fallbackCategoryId = catData?.[0]?.id;
+
+  if (transferCat && transferCat.length > 0) {
+    transferCategoryId = transferCat[0].id;
+  } else {
+    // Create dedicated 'Transfer' category
+    const { data: createdCat } = await supabase
+      .from("categories")
+      .insert({
+        user_id: user.id,
+        name: "Transfer",
+        icon: "ArrowRightLeft",
+        color: "#14B8A6",
+        type: "expense",
+        is_default: false,
+        sort_order: 99,
+      })
+      .select("id")
+      .single();
+    transferCategoryId = createdCat?.id ?? null;
+  }
+
+  if (!transferCategoryId) {
+    const { data: otherCat } = await supabase
+      .from("categories")
+      .select("id")
+      .ilike("name", "Other")
+      .limit(1);
+    transferCategoryId = otherCat?.[0]?.id ?? null;
+  }
 
   // Deduct from source account (with user_id guard)
   await supabase
@@ -599,12 +628,19 @@ export async function createTransfer(formData: {
     .eq("id", toAccount.id)
     .eq("user_id", user.id);
 
-  if (fallbackCategoryId) {
-    // Log outbound transfer record
+  if (transferCategoryId) {
+    // Retroactively heal any past transfer records that were miscategorized as Food
+    await supabase
+      .from("transactions")
+      .update({ category_id: transferCategoryId })
+      .eq("user_id", user.id)
+      .or("note.ilike.Transfer to %,note.ilike.Transfer from %");
+
+    // Log outbound transfer record under Transfer category
     await supabase.from("transactions").insert({
       user_id: user.id,
       account_id: fromAccount.id,
-      category_id: fallbackCategoryId,
+      category_id: transferCategoryId,
       type: "expense",
       amount: formData.amount,
       transaction_date: formData.transaction_date,
@@ -613,11 +649,11 @@ export async function createTransfer(formData: {
         : `Transfer to ${toAccount.name}`,
     });
 
-    // Log inbound transfer record
+    // Log inbound transfer record under Transfer category
     await supabase.from("transactions").insert({
       user_id: user.id,
       account_id: toAccount.id,
-      category_id: fallbackCategoryId,
+      category_id: transferCategoryId,
       type: "income",
       amount: formData.amount,
       transaction_date: formData.transaction_date,
@@ -630,4 +666,5 @@ export async function createTransfer(formData: {
   revalidatePath("/");
   revalidatePath("/transactions");
   revalidatePath("/accounts");
+  revalidatePath("/budgets");
 }

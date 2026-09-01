@@ -36,6 +36,7 @@ import {
   Tag,
   HelpCircle,
   SlidersHorizontal,
+  ArrowRightLeft,
   type LucideIcon,
 } from "lucide-react";
 
@@ -60,6 +61,12 @@ export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
   },
   { name: "Health", icon: "Heart", color: "#10B981", type: "expense" },
   { name: "Education", icon: "BookOpen", color: "#10B981", type: "expense" },
+  {
+    name: "Transfer",
+    icon: "ArrowRightLeft",
+    color: "#14B8A6",
+    type: "expense",
+  },
   { name: "Other", icon: "Package", color: "#6B7280", type: "expense" },
   // Income categories
   { name: "Salary", icon: "Banknote", color: "#22C55E", type: "income" },
@@ -109,6 +116,7 @@ export const AVAILABLE_CATEGORY_ICONS = [
   "Cat",
   "Tag",
   "SlidersHorizontal",
+  "ArrowRightLeft",
 ];
 
 export const AVAILABLE_CATEGORY_COLORS = [
@@ -166,6 +174,7 @@ const iconMap: Record<string, LucideIcon> = {
   CreditCard,
   Tag,
   SlidersHorizontal,
+  ArrowRightLeft,
 };
 
 export function getCategoryIcon(iconName: string): LucideIcon {

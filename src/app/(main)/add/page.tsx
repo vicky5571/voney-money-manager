@@ -1,18 +1,28 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Calendar, ArrowRightLeft, Keyboard, Calculator } from 'lucide-react';
-import Link from 'next/link';
-import { createTransaction, createTransfer } from '@/app/actions/transactions';
-import { getCategories } from '@/app/actions/categories';
-import { getAccounts } from '@/app/actions/accounts';
-import { CategoryGrid } from '@/components/category-grid';
-import { SpeedKeypad } from '@/components/speed-keypad';
-import { CategoryManagerSheet } from '@/components/category-manager-sheet';
-import { saveOfflineTransaction, saveOfflineTransfer } from '@/lib/offline-sync';
-import { useAppStore } from '@/lib/store/use-app-store';
-import { formatCurrency, cn } from '@/lib/utils';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Loader2,
+  Calendar,
+  ArrowRightLeft,
+  Keyboard,
+  Calculator,
+} from "lucide-react";
+import Link from "next/link";
+import { createTransaction, createTransfer } from "@/app/actions/transactions";
+import { getCategories } from "@/app/actions/categories";
+import { getAccounts } from "@/app/actions/accounts";
+import { CategoryGrid } from "@/components/category-grid";
+import { SpeedKeypad } from "@/components/speed-keypad";
+import { CategoryManagerSheet } from "@/components/category-manager-sheet";
+import {
+  saveOfflineTransaction,
+  saveOfflineTransfer,
+} from "@/lib/offline-sync";
+import { useAppStore } from "@/lib/store/use-app-store";
+import { formatCurrency, cn } from "@/lib/utils";
 
 type Category = {
   id: string;
@@ -33,18 +43,20 @@ export default function AddTransactionPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   // Form state
-  const [type, setType] = useState<'expense' | 'income' | 'transfer'>('expense');
-  const [amount, setAmount] = useState('');
+  const [type, setType] = useState<"expense" | "income" | "transfer">(
+    "expense",
+  );
+  const [amount, setAmount] = useState("");
   const [showKeypad, setShowKeypad] = useState(true);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedAccount, setSelectedAccount] = useState<string>('');
-  const [toAccount, setToAccount] = useState<string>('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [note, setNote] = useState('');
+  const [selectedAccount, setSelectedAccount] = useState<string>("");
+  const [toAccount, setToAccount] = useState<string>("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [note, setNote] = useState("");
 
   // Data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -54,7 +66,10 @@ export default function AddTransactionPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [cats, accs] = await Promise.all([getCategories(), getAccounts()]);
+        const [cats, accs] = await Promise.all([
+          getCategories(),
+          getAccounts(),
+        ]);
         setCategories(cats as Category[]);
         setAccounts(accs as Account[]);
         if (accs.length > 0) {
@@ -66,7 +81,7 @@ export default function AddTransactionPage() {
           }
         }
       } catch {
-        setError('Failed to load data');
+        setError("Failed to load data");
       } finally {
         setDataLoading(false);
       }
@@ -79,20 +94,20 @@ export default function AddTransactionPage() {
   // Parse amount evaluating any pending simple math
   const getNumericAmount = (val: string): number => {
     try {
-      const cleaned = val.replace(/[+\-\.]$/, '').trim();
+      const cleaned = val.replace(/[+\-\.]$/, "").trim();
       if (!cleaned) return 0;
       const tokens = cleaned.match(/(\d+(\.\d+)?|[+\-])/g);
       if (!tokens || tokens.length === 0) return 0;
       let total = 0;
-      let currentOp = '+';
+      let currentOp = "+";
       for (const token of tokens) {
-        if (token === '+' || token === '-') {
+        if (token === "+" || token === "-") {
           currentOp = token;
         } else {
           const num = parseFloat(token);
           if (!isNaN(num)) {
-            if (currentOp === '+') total += num;
-            else if (currentOp === '-') total -= num;
+            if (currentOp === "+") total += num;
+            else if (currentOp === "-") total -= num;
           }
         }
       }
@@ -105,19 +120,28 @@ export default function AddTransactionPage() {
   const parsedAmount = getNumericAmount(amount);
 
   const isValid =
-    type === 'transfer'
-      ? parsedAmount > 0 && selectedAccount && toAccount && selectedAccount !== toAccount && date
+    type === "transfer"
+      ? parsedAmount > 0 &&
+        selectedAccount &&
+        toAccount &&
+        selectedAccount !== toAccount &&
+        date
       : parsedAmount > 0 && selectedCategory && selectedAccount && date;
+
+  const handleSwapWallets = () => {
+    setSelectedAccount(toAccount);
+    setToAccount(selectedAccount);
+  };
 
   const handleSubmit = async () => {
     if (!isValid) return;
     setLoading(true);
-    setError('');
+    setError("");
 
     // If device is explicitly offline, save to local queue immediately
-    if (typeof window !== 'undefined' && !navigator.onLine) {
+    if (typeof window !== "undefined" && !navigator.onLine) {
       try {
-        if (type === 'transfer') {
+        if (type === "transfer") {
           saveOfflineTransfer({
             from_account_id: selectedAccount,
             to_account_id: toAccount,
@@ -135,10 +159,10 @@ export default function AddTransactionPage() {
             note: note || undefined,
           });
         }
-        router.push('/');
+        router.push("/");
         return;
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to save offline');
+        setError(err instanceof Error ? err.message : "Failed to save offline");
         setLoading(false);
         return;
       }
@@ -147,7 +171,7 @@ export default function AddTransactionPage() {
     try {
       const selCat = categories.find((c) => c.id === selectedCategory);
       const selAcc = accounts.find((a) => a.id === selectedAccount);
-      if (type !== 'transfer' && selCat && selAcc) {
+      if (type !== "transfer" && selCat && selAcc) {
         optimisticAddTransaction({
           type,
           amount: parsedAmount,
@@ -166,7 +190,7 @@ export default function AddTransactionPage() {
         });
       }
 
-      if (type === 'transfer') {
+      if (type === "transfer") {
         await createTransfer({
           from_account_id: selectedAccount,
           to_account_id: toAccount,
@@ -184,12 +208,12 @@ export default function AddTransactionPage() {
           note: note || undefined,
         });
       }
-      router.push('/');
+      router.push("/");
       router.refresh();
     } catch (err) {
       // Fallback: If network drops mid-flight, store offline
-      if (typeof window !== 'undefined' && !navigator.onLine) {
-        if (type === 'transfer') {
+      if (typeof window !== "undefined" && !navigator.onLine) {
+        if (type === "transfer") {
           saveOfflineTransfer({
             from_account_id: selectedAccount,
             to_account_id: toAccount,
@@ -207,10 +231,12 @@ export default function AddTransactionPage() {
             note: note || undefined,
           });
         }
-        router.push('/');
+        router.push("/");
         return;
       }
-      setError(err instanceof Error ? err.message : 'Failed to save transaction');
+      setError(
+        err instanceof Error ? err.message : "Failed to save transaction",
+      );
     } finally {
       setLoading(false);
     }
@@ -236,7 +262,7 @@ export default function AddTransactionPage() {
           <ArrowLeft size={20} className="text-gray-700" />
         </Link>
         <h1 className="text-xl font-bold text-gray-900">
-          {type === 'transfer' ? 'Transfer Money' : 'Add Transaction'}
+          {type === "transfer" ? "Transfer Money" : "Add Transaction"}
         </h1>
       </div>
 
@@ -245,12 +271,14 @@ export default function AddTransactionPage() {
         <button
           type="button"
           onClick={() => {
-            setType('expense');
+            setType("expense");
             setSelectedCategory(null);
           }}
           className={cn(
-            'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all',
-            type === 'expense' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            "flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all",
+            type === "expense"
+              ? "bg-white text-red-600 shadow-sm"
+              : "text-gray-600 hover:text-gray-900",
           )}
         >
           Expense
@@ -258,12 +286,14 @@ export default function AddTransactionPage() {
         <button
           type="button"
           onClick={() => {
-            setType('income');
+            setType("income");
             setSelectedCategory(null);
           }}
           className={cn(
-            'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all',
-            type === 'income' ? 'bg-white text-emerald-500 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            "flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all",
+            type === "income"
+              ? "bg-white text-emerald-500 shadow-sm"
+              : "text-gray-600 hover:text-gray-900",
           )}
         >
           Income
@@ -271,12 +301,14 @@ export default function AddTransactionPage() {
         <button
           type="button"
           onClick={() => {
-            setType('transfer');
+            setType("transfer");
             setSelectedCategory(null);
           }}
           className={cn(
-            'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1',
-            type === 'transfer' ? 'bg-white text-emerald-500 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            "flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1",
+            type === "transfer"
+              ? "bg-white text-emerald-500 shadow-sm"
+              : "text-gray-600 hover:text-gray-900",
           )}
         >
           <ArrowRightLeft size={13} /> Transfer
@@ -295,13 +327,15 @@ export default function AddTransactionPage() {
             className="min-h-[44px] px-2 text-xs font-semibold text-emerald-500 hover:text-emerald-500 flex items-center gap-1"
           >
             {showKeypad ? <Keyboard size={15} /> : <Calculator size={15} />}
-            <span>{showKeypad ? 'Use Standard Input' : 'Use Speed Keypad'}</span>
+            <span>
+              {showKeypad ? "Use Standard Input" : "Use Speed Keypad"}
+            </span>
           </button>
         </div>
 
         <div className="relative">
           <input
-            type={showKeypad ? 'text' : 'number'}
+            type={showKeypad ? "text" : "number"}
             readOnly={showKeypad}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -329,7 +363,7 @@ export default function AddTransactionPage() {
       </div>
 
       {/* Transfer: Source & Destination Wallets */}
-      {type === 'transfer' ? (
+      {type === "transfer" ? (
         <div className="mb-5 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4">
           <div>
             <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 block">
@@ -349,9 +383,15 @@ export default function AddTransactionPage() {
           </div>
 
           <div className="flex justify-center -my-1">
-            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={handleSwapWallets}
+              className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-full bg-emerald-50 hover:bg-emerald-100/80 active:bg-emerald-100 text-emerald-500 border border-emerald-100/80 flex items-center justify-center shadow-xs transition-all active:scale-90 cursor-pointer"
+              aria-label="Invert source and destination wallets"
+              title="Invert Wallets"
+            >
               <ArrowRightLeft size={16} className="rotate-90" />
-            </div>
+            </button>
           </div>
 
           <div>
@@ -404,8 +444,12 @@ export default function AddTransactionPage() {
             </label>
             {accounts.length === 0 ? (
               <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-center space-y-2">
-                <p className="text-xs font-bold text-amber-900">No Wallets Found</p>
-                <p className="text-xs text-amber-700">Please create a wallet first before adding transactions.</p>
+                <p className="text-xs font-bold text-amber-900">
+                  No Wallets Found
+                </p>
+                <p className="text-xs text-amber-700">
+                  Please create a wallet first before adding transactions.
+                </p>
                 <Link
                   href="/accounts"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-sm"
@@ -436,7 +480,10 @@ export default function AddTransactionPage() {
           Date
         </label>
         <div className="relative">
-          <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Calendar
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+            size={18}
+          />
           <input
             type="date"
             value={date}
@@ -449,13 +496,20 @@ export default function AddTransactionPage() {
       {/* Note */}
       <div className="mb-6 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-2">
         <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
-          Note <span className="text-gray-400 font-normal lowercase">(optional)</span>
+          Note{" "}
+          <span className="text-gray-400 font-normal lowercase">
+            (optional)
+          </span>
         </label>
         <input
           type="text"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder={type === 'transfer' ? 'e.g. ATM withdrawal, rent share' : 'Add a note...'}
+          placeholder={
+            type === "transfer"
+              ? "e.g. ATM withdrawal, rent share"
+              : "Add a note..."
+          }
           maxLength={200}
           className="w-full min-h-[48px] px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
@@ -485,10 +539,10 @@ export default function AddTransactionPage() {
             <Loader2 size={18} className="animate-spin" />
             Saving...
           </>
-        ) : type === 'transfer' ? (
-          'Confirm Transfer'
+        ) : type === "transfer" ? (
+          "Confirm Transfer"
         ) : (
-          'Save Transaction'
+          "Save Transaction"
         )}
       </button>
 
