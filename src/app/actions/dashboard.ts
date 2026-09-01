@@ -34,16 +34,13 @@ export interface SpendingInsight {
   } | null;
 }
 
-export async function getDashboardData(userIdOverride?: string) {
+export async function getDashboardData() {
   const supabase = await createClient();
-  let userId = userIdOverride;
-  if (!userId) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
-    userId = user.id;
-  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const userId = user.id;
 
   // Date ranges computed once for parallel queries
   const now = new Date();
