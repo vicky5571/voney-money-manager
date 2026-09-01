@@ -2,6 +2,12 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import {
+  createRecurringBillSchema,
+  updateRecurringBillSchema,
+  type CreateRecurringBillInput,
+  type UpdateRecurringBillInput,
+} from '@/lib/validations/recurring';
 
 export interface RecurringBillData {
   id: string;
@@ -15,6 +21,42 @@ export interface RecurringBillData {
   note: string | null;
   accounts: { id: string; name: string } | null;
   categories: { id: string; name: string; icon: string; color: string } | null;
+}
+
+/** Verify account belongs to user (IDOR prevention) */
+async function assertAccountOwnership(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  accountId: string,
+  userId: string,
+) {
+  const { data, error } = await supabase
+    .from('accounts')
+    .select('id')
+    .eq('id', accountId)
+    .eq('user_id', userId)
+    .single();
+  if (error || !data) throw new Error('Account not found or access denied');
+}
+
+/** Verify category is default or owned by user */
+async function assertCategoryOwnership(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  categoryId: string,
+  userId: string,
+) {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('id, user_id, is_default')
+    .eq('id', categoryId)
+    .single();
+  if (error || !data) throw new Error('Category not found');
+  const row = data as unknown as {
+    user_id: string | null;
+    is_default: boolean;
+  };
+  if (row.user_id !== null && row.user_id !== userId && !row.is_default) {
+    throw new Error('Category not found or access denied');
+  }
 }
 
 export async function getRecurringBills(): Promise<RecurringBillData[]> {
@@ -53,31 +95,32 @@ export async function getRecurringBills(): Promise<RecurringBillData[]> {
   }));
 }
 
-export async function createRecurringBill(formData: {
-  name: string;
-  amount: number;
-  account_id: string;
-  category_id: string;
-  frequency: 'monthly' | 'weekly' | 'yearly';
-  due_day: number;
-  next_due_date: string;
-  note?: string;
-}) {
+export async function createRecurringBill(formData: CreateRecurringBillInput) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  const parsed = createRecurringBillSchema.safeParse(formData);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || 'Invalid recurring bill input');
+  }
+  const valid = parsed.data;
+
+  // IDOR prevention: assert ownership of account and category
+  await assertAccountOwnership(supabase, valid.account_id, user.id);
+  await assertCategoryOwnership(supabase, valid.category_id, user.id);
+
   const { error } = await supabase.from('recurring_bills').insert({
     user_id: user.id,
-    name: formData.name.trim(),
-    amount: formData.amount,
-    account_id: formData.account_id,
-    category_id: formData.category_id,
-    frequency: formData.frequency,
-    due_day: formData.due_day,
-    next_due_date: formData.next_due_date,
+    name: valid.name.trim(),
+    amount: valid.amount,
+    account_id: valid.account_id,
+    category_id: valid.category_id,
+    frequency: valid.frequency,
+    due_day: valid.due_day,
+    next_due_date: valid.next_due_date,
     is_active: true,
-    note: formData.note || null,
+    note: valid.note || null,
   });
 
   if (error) throw error;
@@ -88,34 +131,34 @@ export async function createRecurringBill(formData: {
 
 export async function updateRecurringBill(
   id: string,
-  formData: {
-    name: string;
-    amount: number;
-    account_id: string;
-    category_id: string;
-    frequency: 'monthly' | 'weekly' | 'yearly';
-    due_day: number;
-    next_due_date: string;
-    is_active: boolean;
-    note?: string;
-  }
+  formData: UpdateRecurringBillInput
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  const parsed = updateRecurringBillSchema.safeParse(formData);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || 'Invalid recurring bill input');
+  }
+  const valid = parsed.data;
+
+  // IDOR prevention: assert ownership of account and category
+  await assertAccountOwnership(supabase, valid.account_id, user.id);
+  await assertCategoryOwnership(supabase, valid.category_id, user.id);
+
   const { error } = await supabase
     .from('recurring_bills')
     .update({
-      name: formData.name.trim(),
-      amount: formData.amount,
-      account_id: formData.account_id,
-      category_id: formData.category_id,
-      frequency: formData.frequency,
-      due_day: formData.due_day,
-      next_due_date: formData.next_due_date,
-      is_active: formData.is_active,
-      note: formData.note || null,
+      name: valid.name.trim(),
+      amount: valid.amount,
+      account_id: valid.account_id,
+      category_id: valid.category_id,
+      frequency: valid.frequency,
+      due_day: valid.due_day,
+      next_due_date: valid.next_due_date,
+      is_active: valid.is_active ?? true,
+      note: valid.note || null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
@@ -165,6 +208,10 @@ export async function payRecurringBill(id: string) {
 
   if (fetchErr || !bill) throw new Error('Recurring bill not found');
 
+  // Verify account still exists and belongs to user
+  await assertAccountOwnership(supabase, bill.account_id, user.id);
+  await assertCategoryOwnership(supabase, bill.category_id, user.id);
+
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
@@ -184,11 +231,16 @@ export async function payRecurringBill(id: string) {
     .from('accounts')
     .select('balance')
     .eq('id', bill.account_id)
+    .eq('user_id', user.id)
     .single();
 
   if (account) {
     const newBalance = Number(account.balance) - Number(bill.amount);
-    await supabase.from('accounts').update({ balance: newBalance }).eq('id', bill.account_id);
+    await supabase
+      .from('accounts')
+      .update({ balance: newBalance })
+      .eq('id', bill.account_id)
+      .eq('user_id', user.id);
   }
 
   // 3. Compute next due date based on frequency
@@ -214,7 +266,8 @@ export async function payRecurringBill(id: string) {
       next_due_date: nextDueStr,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   revalidatePath('/');
   revalidatePath('/transactions');
