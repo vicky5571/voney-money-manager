@@ -118,7 +118,7 @@ export function BudgetChart({ data, budgetLimit }: BudgetChartProps) {
               type="monotone"
               dataKey="recommended"
               name="Recommended"
-              stroke="#6366F1"
+              stroke="#10B981"
               strokeWidth={2}
               strokeDasharray="4 4"
               dot={false}

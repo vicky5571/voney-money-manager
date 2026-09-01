@@ -179,10 +179,10 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
 
       {/* PWA Install Banner */}
       {showInstallBanner && !isStandalone && (
-        <div className="fixed bottom-20 left-4 right-4 z-40 max-w-md mx-auto bg-white rounded-2xl p-4 shadow-xl border border-indigo-100 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed bottom-20 left-4 right-4 z-40 max-w-md mx-auto bg-white rounded-2xl p-4 shadow-xl border border-emerald-100 animate-in slide-in-from-bottom duration-300">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-800 text-white flex items-center justify-center font-extrabold text-base shadow-sm shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white flex items-center justify-center font-extrabold text-base shadow-sm shrink-0">
                 V
               </div>
               <div>
@@ -209,7 +209,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
           {isIOS ? (
             <div className="mt-3 p-2.5 bg-gray-50 rounded-xl text-[11px] text-gray-600 flex items-center gap-2 font-medium">
               <span>Tap</span>
-              <Share2 size={14} className="text-indigo-600 shrink-0" />
+              <Share2 size={14} className="text-emerald-600 shrink-0" />
               <span>then select</span>
               <span className="font-bold text-gray-900 flex items-center gap-1">
                 <PlusSquare size={13} /> Add to Home Screen
@@ -227,7 +227,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={handleInstallClick}
-                className="flex-1 min-h-[44px] py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                className="flex-1 min-h-[44px] py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
               >
                 <Download size={14} /> Install App
               </button>

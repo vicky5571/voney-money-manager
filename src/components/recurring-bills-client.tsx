@@ -180,9 +180,9 @@ export function RecurringBillsClient({
   return (
     <div className="px-4 pt-6 pb-28 max-w-md mx-auto space-y-6">
       {/* Header Summary Card */}
-      <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-3xl p-6 text-white shadow-md space-y-3">
+      <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-3xl p-6 text-white shadow-md space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-200">
+          <span className="text-xs font-bold uppercase tracking-wider text-emerald-200">
             Recurring Bills & Subs
           </span>
           <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/20 text-white font-bold backdrop-blur-sm">
@@ -190,7 +190,7 @@ export function RecurringBillsClient({
           </span>
         </div>
         <div>
-          <p className="text-xs text-indigo-100 font-medium">Est. Monthly Total</p>
+          <p className="text-xs text-emerald-100 font-medium">Est. Monthly Total</p>
           <p className="text-3xl font-extrabold tracking-tight mt-0.5">
             {formatCurrency(totalMonthlyCommitment)}
           </p>
@@ -206,7 +206,7 @@ export function RecurringBillsClient({
         <button
           type="button"
           onClick={openCreate}
-          className="min-h-[44px] px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+          className="min-h-[44px] px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
         >
           <Plus size={16} /> Add Subscription
         </button>
@@ -215,7 +215,7 @@ export function RecurringBillsClient({
       {/* List of Recurring Bills */}
       {bills.length === 0 ? (
         <div className="py-12 px-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+          <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
             <Repeat size={24} />
           </div>
           <h3 className="text-sm font-bold text-gray-800">No subscriptions tracked yet</h3>
@@ -225,7 +225,7 @@ export function RecurringBillsClient({
           <button
             type="button"
             onClick={openCreate}
-            className="min-h-[44px] px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-indigo-700"
+            className="min-h-[44px] px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-emerald-700"
           >
             Add First Bill
           </button>
@@ -252,13 +252,13 @@ export function RecurringBillsClient({
                     <div
                       className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
                       style={{
-                        backgroundColor: `${bill.categories?.color ?? '#6366f1'}1A`,
+                        backgroundColor: `${bill.categories?.color ?? '#10B981'}1A`,
                       }}
                     >
                       <CategoryIcon
                         name={bill.categories?.icon ?? 'Repeat'}
                         size={22}
-                        style={{ color: bill.categories?.color ?? '#6366f1' }}
+                        style={{ color: bill.categories?.color ?? '#10B981' }}
                       />
                     </div>
                     <div className="min-w-0">
@@ -319,7 +319,7 @@ export function RecurringBillsClient({
                     <button
                       type="button"
                       onClick={() => openEdit(bill)}
-                      className="min-h-[44px] min-w-[44px] p-2 text-gray-400 hover:text-indigo-600 flex items-center justify-center"
+                      className="min-h-[44px] min-w-[44px] p-2 text-gray-400 hover:text-emerald-600 flex items-center justify-center"
                       aria-label="Edit bill"
                     >
                       <Edit2 size={16} />
@@ -375,7 +375,7 @@ export function RecurringBillsClient({
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Netflix, Apartment Rent, WiFi"
                 maxLength={40}
-                className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -393,7 +393,7 @@ export function RecurringBillsClient({
                   placeholder="0.00"
                   step="0.01"
                   min="0"
-                  className="w-full min-h-[48px] pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full min-h-[48px] pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -412,7 +412,7 @@ export function RecurringBillsClient({
                     className={cn(
                       'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold capitalize transition-all',
                       frequency === freq
-                        ? 'bg-indigo-600 text-white shadow-sm'
+                        ? 'bg-emerald-600 text-white shadow-sm'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     )}
                   >
@@ -437,7 +437,7 @@ export function RecurringBillsClient({
                     const d = new Date(e.target.value);
                     if (!isNaN(d.getDate())) setDueDay(d.getDate());
                   }}
-                  className="w-full min-h-[48px] pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full min-h-[48px] pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -450,7 +450,7 @@ export function RecurringBillsClient({
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
               >
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
@@ -470,7 +470,7 @@ export function RecurringBillsClient({
                   <p className="text-xs text-amber-700 font-semibold mb-1">No wallets found</p>
                   <a
                     href="/accounts"
-                    className="inline-block text-xs font-bold text-indigo-600 underline"
+                    className="inline-block text-xs font-bold text-emerald-600 underline"
                   >
                     + Create a wallet first
                   </a>
@@ -479,7 +479,7 @@ export function RecurringBillsClient({
                 <select
                   value={accountId}
                   onChange={(e) => setAccountId(e.target.value)}
-                  className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                 >
                   {accounts.map((acc) => (
                     <option key={acc.id} value={acc.id}>
@@ -501,7 +501,7 @@ export function RecurringBillsClient({
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="e.g. Account #1234, renewal term"
                 maxLength={100}
-                className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -526,7 +526,7 @@ export function RecurringBillsClient({
                 type="button"
                 onClick={handleSave}
                 disabled={isPending || !name.trim() || !amount}
-                className="flex-1 min-h-[48px] py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="flex-1 min-h-[48px] py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {isPending ? <Loader2 size={16} className="animate-spin" /> : 'Save Subscription'}
               </button>

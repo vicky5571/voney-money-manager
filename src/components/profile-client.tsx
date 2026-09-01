@@ -107,7 +107,7 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
 
       {/* User Info Hero Card */}
       <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-800 text-white flex items-center justify-center text-2xl font-extrabold shadow-md mb-3 ring-4 ring-indigo-50">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-800 text-white flex items-center justify-center text-2xl font-extrabold shadow-md mb-3 ring-4 ring-emerald-50">
           {getInitials(profile.displayName)}
         </div>
 
@@ -120,14 +120,14 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Your display name"
-                className="flex-1 px-3 py-1.5 bg-gray-50 border border-indigo-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex-1 px-3 py-1.5 bg-gray-50 border border-emerald-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 autoFocus
               />
               <button
                 type="button"
                 onClick={handleSaveName}
                 disabled={savingName}
-                className="min-h-[44px] min-w-[44px] bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center disabled:opacity-50 transition-all"
+                className="min-h-[44px] min-w-[44px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center justify-center disabled:opacity-50 transition-all"
                 aria-label="Save name"
               >
                 {savingName ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
@@ -153,7 +153,7 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
             <button
               type="button"
               onClick={() => setIsEditingName(true)}
-              className="p-1 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
+              className="p-1 text-gray-400 hover:text-emerald-600 rounded-lg transition-colors"
               aria-label="Edit name"
             >
               <Edit2 size={14} />
@@ -185,7 +185,7 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
           className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-colors min-h-[48px]"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
               <Wallet size={18} />
             </div>
             <div>

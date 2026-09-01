@@ -35,7 +35,7 @@ export function CategoryGrid({
             className={cn(
               'flex flex-col items-center justify-center p-3 rounded-2xl transition-all min-h-[96px]',
               isSelected
-                ? 'bg-indigo-50 ring-2 ring-indigo-600'
+                ? 'bg-emerald-50 ring-2 ring-emerald-600'
                 : 'bg-gray-50 hover:bg-gray-100 active:scale-95'
             )}
           >
@@ -48,7 +48,7 @@ export function CategoryGrid({
             <span
               className={cn(
                 'text-xs font-semibold text-center truncate max-w-[80px]',
-                isSelected ? 'text-indigo-700 font-bold' : 'text-gray-700'
+                isSelected ? 'text-emerald-700 font-bold' : 'text-gray-700'
               )}
             >
               {cat.name}
@@ -62,12 +62,12 @@ export function CategoryGrid({
         <button
           type="button"
           onClick={onManageCategories}
-          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-indigo-50/50 hover:bg-indigo-100/60 border border-dashed border-indigo-200 transition-all min-h-[96px] active:scale-95 text-indigo-600"
+          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-50/50 hover:bg-emerald-100/60 border border-dashed border-emerald-200 transition-all min-h-[96px] active:scale-95 text-emerald-600"
         >
-          <div className="flex items-center justify-center w-12 h-12 rounded-full mb-2 bg-indigo-100 text-indigo-600">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full mb-2 bg-emerald-100 text-emerald-600">
             <Settings2 size={22} />
           </div>
-          <span className="text-xs font-bold text-center text-indigo-700">
+          <span className="text-xs font-bold text-center text-emerald-700">
             Manage
           </span>
         </button>

@@ -171,7 +171,7 @@ export function CategoryManagerSheet({
             <button
               type="button"
               onClick={openCreate}
-              className="w-full min-h-[44px] py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+              className="w-full min-h-[44px] py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
             >
               <Plus size={16} /> Add Custom Category
             </button>
@@ -203,7 +203,7 @@ export function CategoryManagerSheet({
                       <button
                         type="button"
                         onClick={() => openEdit(cat)}
-                        className="min-h-[44px] min-w-[44px] p-2 text-gray-500 hover:text-indigo-600 flex items-center justify-center"
+                        className="min-h-[44px] min-w-[44px] p-2 text-gray-500 hover:text-emerald-600 flex items-center justify-center"
                         aria-label="Edit category"
                       >
                         <Edit2 size={16} />
@@ -252,7 +252,7 @@ export function CategoryManagerSheet({
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Coffee, Groceries, Streaming"
                 maxLength={30}
-                className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full min-h-[48px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -303,7 +303,7 @@ export function CategoryManagerSheet({
                     className={cn(
                       'min-h-[44px] flex items-center justify-center rounded-xl transition-all',
                       icon === iconName
-                        ? 'bg-indigo-600 text-white shadow-sm scale-105'
+                        ? 'bg-emerald-600 text-white shadow-sm scale-105'
                         : 'bg-white text-gray-700 hover:bg-gray-100'
                     )}
                   >
@@ -330,7 +330,7 @@ export function CategoryManagerSheet({
                     onClick={() => setColor(c)}
                     className={cn(
                       'w-8 h-8 rounded-full flex items-center justify-center transition-all',
-                      color === c ? 'ring-3 ring-indigo-500 ring-offset-2 scale-110' : 'hover:scale-105'
+                      color === c ? 'ring-3 ring-emerald-500 ring-offset-2 scale-110' : 'hover:scale-105'
                     )}
                     style={{ backgroundColor: c }}
                   >
@@ -359,7 +359,7 @@ export function CategoryManagerSheet({
                 type="button"
                 onClick={handleSave}
                 disabled={isPending || !name.trim()}
-                className="flex-1 min-h-[48px] py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="flex-1 min-h-[48px] py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {isPending ? <Loader2 size={16} className="animate-spin" /> : 'Save Category'}
               </button>

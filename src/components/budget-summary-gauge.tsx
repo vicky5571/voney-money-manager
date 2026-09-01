@@ -117,7 +117,7 @@ export function BudgetSummaryGauge({
       {/* Create Budget Button */}
       <button
         onClick={onAddBudget}
-        className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-2xl text-sm font-semibold hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-sm"
+        className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-2xl text-sm font-semibold hover:bg-emerald-700 active:scale-[0.98] transition-all shadow-sm"
       >
         <Plus size={16} />
         Create Budget

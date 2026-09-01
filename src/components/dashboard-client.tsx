@@ -292,7 +292,7 @@ export function DashboardClient({
                 className={cn(
                   "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all active:scale-95 cursor-pointer",
                   isSyncing
-                    ? "bg-indigo-50 text-indigo-700 border border-indigo-200 animate-pulse"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200 animate-pulse"
                     : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100",
                 )}
                 aria-label={`${offlineCount} offline transactions queued. Tap to sync.`}
@@ -326,7 +326,7 @@ export function DashboardClient({
           {/* Profile Avatar Button */}
           <Link
             href="/profile"
-            className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-800 text-white shadow-sm flex items-center justify-center font-bold text-xs shrink-0 active:scale-95 transition-transform"
+            className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-800 text-white shadow-sm flex items-center justify-center font-bold text-xs shrink-0 active:scale-95 transition-transform"
             aria-label="My Profile & Settings"
           >
             {(displayName?.[0] || "U").toUpperCase()}
@@ -358,7 +358,7 @@ export function DashboardClient({
               ? "bg-amber-50/70 border-amber-200"
               : spendingInsight.type === "positive"
                 ? "bg-emerald-50/70 border-emerald-200"
-                : "bg-indigo-50/70 border-indigo-200",
+                : "bg-emerald-50/70 border-emerald-200",
           )}
         >
           <div className="flex items-start gap-3">
@@ -369,7 +369,7 @@ export function DashboardClient({
                   ? "bg-amber-100 text-amber-700"
                   : spendingInsight.type === "positive"
                     ? "bg-emerald-100 text-emerald-700"
-                    : "bg-indigo-100 text-indigo-700",
+                    : "bg-emerald-100 text-emerald-700",
               )}
             >
               {spendingInsight.type === "warning" ? (
@@ -399,7 +399,7 @@ export function DashboardClient({
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <PieChart size={15} />
             </div>
             <div>
@@ -410,7 +410,7 @@ export function DashboardClient({
           </div>
           <Link
             href="/budgets"
-            className="min-h-[44px] -mr-2 px-2.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
+            className="min-h-[44px] -mr-2 px-2.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5"
           >
             Details <ChevronRight size={14} />
           </Link>
@@ -496,7 +496,7 @@ export function DashboardClient({
             <span>No active budgets this month</span>
             <Link
               href="/budgets"
-              className="min-h-[44px] px-3 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-semibold text-xs hover:bg-indigo-100 flex items-center transition-colors"
+              className="min-h-[44px] px-3 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-semibold text-xs hover:bg-emerald-100 flex items-center transition-colors"
             >
               Set Budget
             </Link>
@@ -549,7 +549,7 @@ export function DashboardClient({
           </div>
           <Link
             href="/accounts"
-            className="min-h-[44px] px-2.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
+            className="min-h-[44px] px-2.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5"
           >
             See all ({accounts.length}) <ChevronRight size={14} />
           </Link>
@@ -592,7 +592,7 @@ export function DashboardClient({
             <p className="text-xs text-gray-600 mb-2">No wallets created yet</p>
             <Link
               href="/accounts"
-              className="min-h-[44px] inline-flex items-center gap-1 text-xs font-semibold text-indigo-600"
+              className="min-h-[44px] inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"
             >
               <Plus size={14} /> Add Wallet
             </Link>
@@ -613,7 +613,7 @@ export function DashboardClient({
           </div>
           <Link
             href="/recurring"
-            className="min-h-[44px] px-2.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
+            className="min-h-[44px] px-2.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5"
           >
             {upcomingBills.length > 0
               ? `Manage (${upcomingBills.length})`
@@ -634,13 +634,13 @@ export function DashboardClient({
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                     style={{
-                      backgroundColor: `${bill.categories?.color ?? "#6366f1"}1A`,
+                      backgroundColor: `${bill.categories?.color ?? "#10B981"}1A`,
                     }}
                   >
                     <CategoryIcon
                       name={bill.categories?.icon ?? "Repeat"}
                       size={20}
-                      style={{ color: bill.categories?.color ?? "#6366f1" }}
+                      style={{ color: bill.categories?.color ?? "#10B981" }}
                     />
                   </div>
                   <div className="min-w-0">
@@ -665,7 +665,7 @@ export function DashboardClient({
             </p>
             <Link
               href="/recurring"
-              className="min-h-[44px] inline-flex items-center gap-1 text-xs font-semibold text-indigo-600"
+              className="min-h-[44px] inline-flex items-center gap-1 text-xs font-semibold text-emerald-600"
             >
               <Plus size={14} /> Track Subscription
             </Link>
@@ -685,13 +685,13 @@ export function DashboardClient({
           <div className="flex items-center gap-2">
             <Link
               href="/add"
-              className="min-h-[44px] px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl text-xs font-semibold flex items-center gap-1 active:scale-95 transition-all"
+              className="min-h-[44px] px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl text-xs font-semibold flex items-center gap-1 active:scale-95 transition-all"
             >
               <Plus size={14} /> Add
             </Link>
             <Link
               href="/transactions"
-              className="min-h-[44px] px-2 text-xs font-semibold text-gray-600 hover:text-indigo-600 flex items-center transition-colors"
+              className="min-h-[44px] px-2 text-xs font-semibold text-gray-600 hover:text-emerald-600 flex items-center transition-colors"
             >
               See all
             </Link>
@@ -731,7 +731,7 @@ export function DashboardClient({
             <p className="text-xs text-gray-500 mb-3">No transactions yet</p>
             <Link
               href="/add"
-              className="min-h-[44px] px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 transition-colors flex items-center"
+              className="min-h-[44px] px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 transition-colors flex items-center"
             >
               Add First Transaction
             </Link>
@@ -749,7 +749,7 @@ export function DashboardClient({
           <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
                   <Bell size={16} />
                 </div>
                 <h2 className="text-lg font-bold text-gray-900">
@@ -826,9 +826,9 @@ export function DashboardClient({
               ))}
 
               {spendingInsight && (
-                <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-2xl text-xs space-y-1">
+                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-indigo-700 flex items-center gap-1.5">
+                    <span className="font-bold text-emerald-700 flex items-center gap-1.5">
                       <TrendingUp size={14} /> Monthly Insight
                     </span>
                   </div>

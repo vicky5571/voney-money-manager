@@ -195,7 +195,7 @@ export async function getDashboardData() {
         id: b.id,
         categoryName: cat?.name || "Category",
         categoryIcon: cat?.icon || "Package",
-        categoryColor: cat?.color || "#6366f1",
+        categoryColor: cat?.color || "#10B981",
         budgetAmount,
         spentAmount: spentForBudget,
         percentage,
@@ -219,7 +219,7 @@ export async function getDashboardData() {
         expenseByCategory[catId] = {
           name: cat?.name || "Other",
           icon: cat?.icon || "Package",
-          color: cat?.color || "#6366f1",
+          color: cat?.color || "#10B981",
           amount: 0,
         };
       }

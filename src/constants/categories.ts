@@ -59,7 +59,7 @@ export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
     type: "expense",
   },
   { name: "Health", icon: "Heart", color: "#10B981", type: "expense" },
-  { name: "Education", icon: "BookOpen", color: "#6366F1", type: "expense" },
+  { name: "Education", icon: "BookOpen", color: "#10B981", type: "expense" },
   { name: "Other", icon: "Package", color: "#6B7280", type: "expense" },
   // Income categories
   { name: "Salary", icon: "Banknote", color: "#22C55E", type: "income" },
@@ -121,7 +121,7 @@ export const AVAILABLE_CATEGORY_COLORS = [
   "#14B8A6", // Teal
   "#06B6D4", // Cyan
   "#3B82F6", // Blue
-  "#6366F1", // Indigo
+  "#10B981", // Indigo
   "#8B5CF6", // Violet
   "#A855F7", // Purple
   "#D946EF", // Fuchsia

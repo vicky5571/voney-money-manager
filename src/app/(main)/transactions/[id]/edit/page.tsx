@@ -116,7 +116,7 @@ export default function EditTransactionPage() {
   if (dataLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
       </div>
     );
   }
@@ -178,7 +178,7 @@ export default function EditTransactionPage() {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
-            className="w-full pl-10 pr-4 py-4 text-3xl font-bold bg-gray-50 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-4 text-3xl font-bold bg-gray-50 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             inputMode="decimal"
             min="0"
             step="0.01"
@@ -211,7 +211,7 @@ export default function EditTransactionPage() {
         <select
           value={selectedAccount}
           onChange={(e) => setSelectedAccount(e.target.value)}
-          className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer"
+          className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer"
         >
           {accounts.map((acc) => (
             <option key={acc.id} value={acc.id}>
@@ -235,7 +235,7 @@ export default function EditTransactionPage() {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
       </div>
@@ -251,7 +251,7 @@ export default function EditTransactionPage() {
           onChange={(e) => setNote(e.target.value)}
           placeholder="Add a note..."
           maxLength={200}
-          className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
         {note.length > 0 && (
           <p className="text-xs text-gray-400 mt-1 text-right">
@@ -271,7 +271,7 @@ export default function EditTransactionPage() {
       <button
         onClick={handleSubmit}
         disabled={!isValid || loading}
-        className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+        className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
       >
         {loading ? (
           <>

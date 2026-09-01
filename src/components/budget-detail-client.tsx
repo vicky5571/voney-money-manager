@@ -92,12 +92,12 @@ export function BudgetDetailClient({ budget, categories }: BudgetDetailClientPro
         <div className="flex items-center gap-2">
           <div 
             className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: `${budget.category?.color ?? '#6366F1'}1A` }}
+            style={{ backgroundColor: `${budget.category?.color ?? '#10B981'}1A` }}
           >
             <CategoryIcon
               name={budget.category?.icon ?? 'Package'}
               size={18}
-              style={{ color: budget.category?.color ?? '#6366F1' }}
+              style={{ color: budget.category?.color ?? '#10B981' }}
             />
           </div>
           <h1 className="font-bold text-lg text-gray-900">{budget.category?.name ?? 'Budget'}</h1>
@@ -105,7 +105,7 @@ export function BudgetDetailClient({ budget, categories }: BudgetDetailClientPro
         <div className="flex items-center gap-1">
           <button
             onClick={() => setShowEditModal(true)}
-            className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
+            className="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors"
             aria-label="Edit budget"
           >
             <Edit3 size={18} />
@@ -138,7 +138,7 @@ export function BudgetDetailClient({ budget, categories }: BudgetDetailClientPro
           </div>
           <div className="text-right">
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Daily Safe Spend</span>
-            <p className="text-sm font-bold text-indigo-600 mt-0.5">
+            <p className="text-sm font-bold text-emerald-600 mt-0.5">
               {formatCurrency(budget.dailySafeSpend)} <span className="text-[11px] font-normal text-gray-400">/day</span>
             </p>
           </div>
@@ -148,7 +148,7 @@ export function BudgetDetailClient({ budget, categories }: BudgetDetailClientPro
         <BudgetProgress
           categoryName={budget.category?.name ?? 'Category'}
           categoryIcon={budget.category?.icon ?? 'Package'}
-          categoryColor={budget.category?.color ?? '#6366F1'}
+          categoryColor={budget.category?.color ?? '#10B981'}
           spent={budget.spent}
           limit={budget.amount}
           startDate={budget.startDate}
@@ -261,7 +261,7 @@ export function BudgetDetailClient({ budget, categories }: BudgetDetailClientPro
                   required
                   value={editData.category_id}
                   onChange={(e) => setEditData({ ...editData, category_id: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white text-gray-900 text-sm"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white text-gray-900 text-sm"
                 >
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -279,7 +279,7 @@ export function BudgetDetailClient({ budget, categories }: BudgetDetailClientPro
                   value={editData.amount}
                   onChange={(e) => setEditData({ ...editData, amount: e.target.value })}
                   placeholder="0.00"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-600 text-gray-900 text-sm"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-gray-900 text-sm"
                 />
               </div>
 
@@ -295,7 +295,7 @@ export function BudgetDetailClient({ budget, categories }: BudgetDetailClientPro
                     required
                     value={editData.startDate}
                     onChange={(e) => setEditData({ ...editData, startDate: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600 text-gray-900"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 text-gray-900"
                   />
                 </div>
                 <div>
@@ -309,7 +309,7 @@ export function BudgetDetailClient({ budget, categories }: BudgetDetailClientPro
                     required
                     value={editData.endDate}
                     onChange={(e) => setEditData({ ...editData, endDate: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600 text-gray-900"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 text-gray-900"
                   />
                 </div>
               </div>
@@ -321,7 +321,7 @@ export function BudgetDetailClient({ budget, categories }: BudgetDetailClientPro
               <button
                 type="submit"
                 disabled={isPending || !editData.category_id || !editData.amount}
-                className="w-full bg-indigo-600 text-white font-medium py-3.5 rounded-xl mt-4 disabled:opacity-50 active:scale-[0.98] transition-all hover:bg-indigo-700 shadow-sm flex items-center justify-center"
+                className="w-full bg-emerald-600 text-white font-medium py-3.5 rounded-xl mt-4 disabled:opacity-50 active:scale-[0.98] transition-all hover:bg-emerald-700 shadow-sm flex items-center justify-center"
               >
                 {isPending ? <Loader2 size={18} className="animate-spin" /> : 'Save Changes'}
               </button>

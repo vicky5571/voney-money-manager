@@ -50,7 +50,7 @@ export default function LoginPage() {
     <div className="w-full">
       {/* Brand Header */}
       <div className="flex flex-col items-center text-center mb-8">
-        <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none mb-3">
+        <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-200 dark:shadow-none mb-3">
           <Wallet className="w-7 h-7" aria-hidden="true" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
@@ -90,7 +90,7 @@ export default function LoginPage() {
               required
               autoComplete="email"
               disabled={isLoading}
-              className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -110,14 +110,14 @@ export default function LoginPage() {
               required
               autoComplete="current-password"
               disabled={isLoading}
-              className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 mt-2 flex items-center justify-center font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full h-12 mt-2 flex items-center justify-center font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -136,7 +136,7 @@ export default function LoginPage() {
         Don&apos;t have an account?{' '}
         <Link
           href="/signup"
-          className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center min-h-[44px]"
+          className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center min-h-[44px]"
         >
           Sign up
         </Link>

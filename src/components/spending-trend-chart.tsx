@@ -51,7 +51,7 @@ export function SpendingTrendChart({ data }: SpendingTrendChartProps) {
               type="button"
               onClick={() => setDays(range)}
               className={`min-h-8 rounded-md px-2.5 text-xs font-semibold transition-colors ${
-                days === range ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'
+                days === range ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500'
               }`}
               aria-pressed={days === range}
             >
@@ -66,8 +66,8 @@ export function SpendingTrendChart({ data }: SpendingTrendChartProps) {
           <AreaChart data={chartData} margin={{ top: 6, right: 4, left: -18, bottom: 0 }}>
             <defs>
               <linearGradient id="spending-area" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.28} />
-                <stop offset="100%" stopColor="#4F46E5" stopOpacity={0.02} />
+                <stop offset="0%" stopColor="#059669" stopOpacity={0.28} />
+                <stop offset="100%" stopColor="#059669" stopOpacity={0.02} />
               </linearGradient>
             </defs>
             <XAxis
@@ -84,17 +84,17 @@ export function SpendingTrendChart({ data }: SpendingTrendChartProps) {
                 x={todayLabel}
                 stroke="#A5B4FC"
                 strokeDasharray="3 3"
-                label={{ value: 'Today', position: 'insideTopRight', fill: '#6366F1', fontSize: 10 }}
+                label={{ value: 'Today', position: 'insideTopRight', fill: '#10B981', fontSize: 10 }}
               />
             )}
             <Tooltip content={<TrendTooltip />} cursor={{ stroke: '#C7D2FE', strokeWidth: 1 }} />
             <Area
               type="monotone"
               dataKey="amount"
-              stroke="#4F46E5"
+              stroke="#059669"
               strokeWidth={2.5}
               fill="url(#spending-area)"
-              activeDot={{ r: 4, fill: '#4F46E5', stroke: '#FFFFFF', strokeWidth: 2 }}
+              activeDot={{ r: 4, fill: '#059669', stroke: '#FFFFFF', strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>

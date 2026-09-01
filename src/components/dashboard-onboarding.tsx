@@ -20,7 +20,7 @@ export function DashboardOnboarding({ hasAccount, hasTransaction, hasBudget }: D
   if (!nextStep) return null;
 
   return (
-    <section className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+    <section className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
       <h2 className="text-base font-bold text-gray-900">Get started</h2>
       <p className="mt-0.5 text-xs text-gray-500">Finish these steps to make Voney useful.</p>
       <div className="mt-4 space-y-3">
@@ -29,21 +29,21 @@ export function DashboardOnboarding({ hasAccount, hasTransaction, hasBudget }: D
           const available = index === 0 || complete[steps[index - 1].key];
           const content = (
             <>
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${done ? 'bg-emerald-100 text-emerald-600' : available ? 'bg-white text-indigo-600 shadow-sm' : 'bg-indigo-100 text-indigo-300'}`}>
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${done ? 'bg-emerald-100 text-emerald-600' : available ? 'bg-white text-emerald-600 shadow-sm' : 'bg-emerald-100 text-emerald-300'}`}>
                 {done ? <Check size={17} strokeWidth={3} /> : <Icon size={17} />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className={`block text-sm font-semibold ${done ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{title}</span>
                 <span className="block text-xs text-gray-500">{detail}</span>
               </span>
-              {!done && available && <span className="text-xs font-semibold text-indigo-600">Start</span>}
+              {!done && available && <span className="text-xs font-semibold text-emerald-600">Start</span>}
             </>
           );
 
           return done || !available ? (
             <div key={key} className="flex items-center gap-3">{content}</div>
           ) : (
-            <Link key={key} href={href} className="flex items-center gap-3 rounded-xl outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-indigo-600">
+            <Link key={key} href={href} className="flex items-center gap-3 rounded-xl outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-emerald-600">
               {content}
             </Link>
           );
