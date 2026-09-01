@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { createTransaction, createTransfer } from "@/app/actions/transactions";
-import { getCategories } from "@/app/actions/categories";
+import { getCategories, reorderCategories } from "@/app/actions/categories";
 import { getAccounts } from "@/app/actions/accounts";
 import { CategoryGrid } from "@/components/category-grid";
 import { SpeedKeypad } from "@/components/speed-keypad";
@@ -22,7 +22,12 @@ import {
   saveOfflineTransfer,
 } from "@/lib/offline-sync";
 import { useAppStore } from "@/lib/store/use-app-store";
-import { formatCurrency, cn, sortCategoriesByOrder } from "@/lib/utils";
+import {
+  formatCurrency,
+  cn,
+  sortCategoriesByOrder,
+  saveCategoryOrder,
+} from "@/lib/utils";
 
 type Category = {
   id: string;
@@ -427,6 +432,7 @@ export default function AddTransactionPage() {
               Category
             </label>
             <CategoryGrid
+              key={type}
               categories={filteredCategories.map((c) => ({
                 id: c.id,
                 name: c.name,
@@ -436,6 +442,21 @@ export default function AddTransactionPage() {
               selectedId={selectedCategory}
               onSelect={setSelectedCategory}
               onManageCategories={() => setShowCategoryManager(true)}
+              onReorder={(reorderedItems) => {
+                const otherTypeCats = categories.filter((c) => c.type !== type);
+                const reorderedFull = reorderedItems
+                  .map((item) => categories.find((c) => c.id === item.id))
+                  .filter(Boolean) as Category[];
+                const updated =
+                  type === "expense"
+                    ? [...reorderedFull, ...otherTypeCats]
+                    : [...otherTypeCats, ...reorderedFull];
+                setCategories(updated);
+                saveCategoryOrder(updated.map((c) => c.id));
+                reorderCategories(reorderedItems.map((c) => c.id)).catch(
+                  () => {},
+                );
+              }}
             />
           </div>
 
