@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   X,
@@ -13,16 +13,16 @@ import {
   Loader2,
   Repeat,
   DollarSign,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   createRecurringBill,
   updateRecurringBill,
   deleteRecurringBill,
   payRecurringBill,
   type RecurringBillData,
-} from '@/app/actions/recurring';
-import { CategoryIcon } from '@/constants/categories';
-import { formatCurrency, formatDate, cn } from '@/lib/utils';
+} from "@/app/actions/recurring";
+import { CategoryIcon } from "@/constants/categories";
+import { formatCurrency, formatDate, cn } from "@/lib/utils";
 
 export interface RecurringAccountItem {
   id: string;
@@ -52,73 +52,77 @@ export function RecurringBillsClient({
 }: RecurringBillsClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [mode, setMode] = useState<'create' | 'edit' | null>(null);
-  const [selectedBill, setSelectedBill] = useState<RecurringBillData | null>(null);
+  const [mode, setMode] = useState<"create" | "edit" | null>(null);
+  const [selectedBill, setSelectedBill] = useState<RecurringBillData | null>(
+    null,
+  );
   const [payingBillId, setPayingBillId] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   // Form states
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [accountId, setAccountId] = useState(accounts[0]?.id || '');
-  const [categoryId, setCategoryId] = useState(categories[0]?.id || '');
-  const [frequency, setFrequency] = useState<'monthly' | 'weekly' | 'yearly'>('monthly');
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [accountId, setAccountId] = useState(accounts[0]?.id || "");
+  const [categoryId, setCategoryId] = useState(categories[0]?.id || "");
+  const [frequency, setFrequency] = useState<"monthly" | "weekly" | "yearly">(
+    "monthly",
+  );
   const [dueDay, setDueDay] = useState(1);
   const [nextDueDate, setNextDueDate] = useState(
-    new Date().toISOString().split('T')[0]
+    new Date().toISOString().split("T")[0],
   );
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState("");
 
   const totalMonthlyCommitment = bills
     .filter((b) => b.is_active)
     .reduce((sum, b) => {
-      if (b.frequency === 'weekly') return sum + b.amount * 4.33;
-      if (b.frequency === 'yearly') return sum + b.amount / 12;
+      if (b.frequency === "weekly") return sum + b.amount * 4.33;
+      if (b.frequency === "yearly") return sum + b.amount / 12;
       return sum + b.amount;
     }, 0);
 
   const openCreate = () => {
-    setName('');
-    setAmount('');
+    setName("");
+    setAmount("");
     if (accounts.length > 0) setAccountId(accounts[0].id);
     if (categories.length > 0) setCategoryId(categories[0].id);
-    setFrequency('monthly');
+    setFrequency("monthly");
     setDueDay(1);
-    setNextDueDate(new Date().toISOString().split('T')[0]);
-    setNote('');
-    setError('');
-    setMode('create');
+    setNextDueDate(new Date().toISOString().split("T")[0]);
+    setNote("");
+    setError("");
+    setMode("create");
   };
 
   const openEdit = (bill: RecurringBillData) => {
     setSelectedBill(bill);
     setName(bill.name);
     setAmount(bill.amount.toString());
-    setAccountId(bill.accounts?.id || accounts[0]?.id || '');
-    setCategoryId(bill.categories?.id || categories[0]?.id || '');
+    setAccountId(bill.accounts?.id || accounts[0]?.id || "");
+    setCategoryId(bill.categories?.id || categories[0]?.id || "");
     setFrequency(bill.frequency);
     setDueDay(bill.due_day);
     setNextDueDate(bill.next_due_date);
-    setNote(bill.note || '');
-    setError('');
-    setMode('edit');
+    setNote(bill.note || "");
+    setError("");
+    setMode("edit");
   };
 
   const handleSave = () => {
     if (!name.trim()) {
-      setError('Please enter a bill/subscription name');
+      setError("Please enter a bill/subscription name");
       return;
     }
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      setError('Please enter a valid amount');
+      setError("Please enter a valid amount");
       return;
     }
 
-    setError('');
+    setError("");
     startTransition(async () => {
       try {
-        if (mode === 'create') {
+        if (mode === "create") {
           await createRecurringBill({
             name: name.trim(),
             amount: numAmount,
@@ -129,7 +133,7 @@ export function RecurringBillsClient({
             next_due_date: nextDueDate,
             note: note || undefined,
           });
-        } else if (mode === 'edit' && selectedBill) {
+        } else if (mode === "edit" && selectedBill) {
           await updateRecurringBill(selectedBill.id, {
             name: name.trim(),
             amount: numAmount,
@@ -145,20 +149,22 @@ export function RecurringBillsClient({
         setMode(null);
         router.refresh();
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to save recurring bill');
+        setError(
+          err instanceof Error ? err.message : "Failed to save recurring bill",
+        );
       }
     });
   };
 
   const handleDelete = (id: string) => {
-    setError('');
+    setError("");
     startTransition(async () => {
       try {
         await deleteRecurringBill(id);
         setMode(null);
         router.refresh();
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to delete bill');
+        setError(err instanceof Error ? err.message : "Failed to delete bill");
       }
     });
   };
@@ -170,7 +176,7 @@ export function RecurringBillsClient({
         await payRecurringBill(bill.id);
         router.refresh();
       } catch (err: unknown) {
-        console.error('Failed to mark as paid:', err);
+        console.error("Failed to mark as paid:", err);
       } finally {
         setPayingBillId(null);
       }
@@ -190,7 +196,9 @@ export function RecurringBillsClient({
           </span>
         </div>
         <div>
-          <p className="text-xs text-emerald-100 font-medium">Est. Monthly Total</p>
+          <p className="text-xs text-emerald-100 font-medium">
+            Est. Monthly Total
+          </p>
           <p className="text-3xl font-extrabold tracking-tight mt-0.5">
             {formatCurrency(totalMonthlyCommitment)}
           </p>
@@ -200,8 +208,12 @@ export function RecurringBillsClient({
       {/* Title & Add Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-bold text-gray-900">Your Subscriptions</h2>
-          <p className="text-xs text-gray-500 font-medium">Track due dates & auto-advance</p>
+          <h2 className="text-base font-bold text-gray-900">
+            Your Subscriptions
+          </h2>
+          <p className="text-xs text-gray-500 font-medium">
+            Track due dates & auto-advance
+          </p>
         </div>
         <button
           type="button"
@@ -218,7 +230,9 @@ export function RecurringBillsClient({
           <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto">
             <Repeat size={24} />
           </div>
-          <h3 className="text-sm font-bold text-gray-800">No subscriptions tracked yet</h3>
+          <h3 className="text-sm font-bold text-gray-800">
+            No subscriptions tracked yet
+          </h3>
           <p className="text-xs text-gray-500 max-w-xs mx-auto">
             Track Netflix, Spotify, gym, rent, or WiFi to never miss a due date.
           </p>
@@ -233,11 +247,11 @@ export function RecurringBillsClient({
       ) : (
         <div className="space-y-3">
           {bills.map((bill) => {
-            const dueDate = new Date(bill.next_due_date + 'T00:00:00');
+            const dueDate = new Date(bill.next_due_date + "T00:00:00");
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const diffDays = Math.ceil(
-              (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+              (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
             );
             const isDueSoon = diffDays <= 3 && diffDays >= 0;
             const isOverdue = diffDays < 0;
@@ -252,17 +266,19 @@ export function RecurringBillsClient({
                     <div
                       className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
                       style={{
-                        backgroundColor: `${bill.categories?.color ?? '#10B981'}1A`,
+                        backgroundColor: `${bill.categories?.color ?? "#10B981"}1A`,
                       }}
                     >
                       <CategoryIcon
-                        name={bill.categories?.icon ?? 'Repeat'}
+                        name={bill.categories?.icon ?? "Repeat"}
                         size={22}
-                        style={{ color: bill.categories?.color ?? '#10B981' }}
+                        style={{ color: bill.categories?.color ?? "#10B981" }}
                       />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-gray-900 truncate">{bill.name}</h3>
+                      <h3 className="text-sm font-bold text-gray-900 truncate">
+                        {bill.name}
+                      </h3>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-600">
                           {bill.frequency}
@@ -282,21 +298,21 @@ export function RecurringBillsClient({
                     </p>
                     <span
                       className={cn(
-                        'text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5',
+                        "text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5",
                         isOverdue
-                          ? 'bg-red-50 text-red-600'
+                          ? "bg-red-50 text-red-600"
                           : isDueSoon
-                          ? 'bg-amber-50 text-amber-700 font-extrabold'
-                          : 'bg-gray-50 text-gray-500'
+                            ? "bg-amber-50 text-amber-700 font-extrabold"
+                            : "bg-gray-50 text-gray-500",
                       )}
                     >
                       {isOverdue
-                        ? 'Overdue'
+                        ? "Overdue"
                         : isDueSoon
-                        ? diffDays === 0
-                          ? 'Due Today!'
-                          : `Due in ${diffDays}d`
-                        : `Due ${formatDate(bill.next_due_date)}`}
+                          ? diffDays === 0
+                            ? "Due Today!"
+                            : `Due in ${diffDays}d`
+                          : `Due ${formatDate(bill.next_due_date)}`}
                     </span>
                   </div>
                 </div>
@@ -306,7 +322,8 @@ export function RecurringBillsClient({
                   <div className="flex items-center gap-1 text-[11px] text-gray-400">
                     {bill.last_paid_date ? (
                       <span className="flex items-center gap-1 text-emerald-500 font-medium">
-                        <CheckCircle2 size={13} /> Paid on {formatDate(bill.last_paid_date)}
+                        <CheckCircle2 size={13} /> Paid on{" "}
+                        {formatDate(bill.last_paid_date)}
                       </span>
                     ) : (
                       <span className="flex items-center gap-1">
@@ -347,12 +364,12 @@ export function RecurringBillsClient({
 
       {/* Add / Edit Recurring Bill Modal */}
       {mode && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="absolute inset-0" onClick={() => setMode(null)} />
           <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 max-h-[88vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">
-                {mode === 'create' ? 'Add Subscription' : 'Edit Subscription'}
+                {mode === "create" ? "Add Subscription" : "Edit Subscription"}
               </h2>
               <button
                 type="button"
@@ -385,7 +402,10 @@ export function RecurringBillsClient({
                 Amount
               </label>
               <div className="relative">
-                <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <DollarSign
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
                 <input
                   type="number"
                   value={amount}
@@ -404,16 +424,16 @@ export function RecurringBillsClient({
                 Billing Cycle
               </label>
               <div className="flex gap-2">
-                {(['monthly', 'weekly', 'yearly'] as const).map((freq) => (
+                {(["monthly", "weekly", "yearly"] as const).map((freq) => (
                   <button
                     key={freq}
                     type="button"
                     onClick={() => setFrequency(freq)}
                     className={cn(
-                      'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold capitalize transition-all',
+                      "flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold capitalize transition-all",
                       frequency === freq
-                        ? 'bg-emerald-500 text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? "bg-emerald-500 text-white shadow-sm"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200",
                     )}
                   >
                     {freq}
@@ -428,7 +448,10 @@ export function RecurringBillsClient({
                 Next Due Date
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <Calendar
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
                 <input
                   type="date"
                   value={nextDueDate}
@@ -467,7 +490,9 @@ export function RecurringBillsClient({
               </label>
               {accounts.length === 0 ? (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-center">
-                  <p className="text-xs text-amber-700 font-semibold mb-1">No wallets found</p>
+                  <p className="text-xs text-amber-700 font-semibold mb-1">
+                    No wallets found
+                  </p>
                   <a
                     href="/accounts"
                     className="inline-block text-xs font-bold text-emerald-500 underline"
@@ -512,7 +537,7 @@ export function RecurringBillsClient({
             )}
 
             <div className="flex gap-2 pt-2">
-              {mode === 'edit' && selectedBill && (
+              {mode === "edit" && selectedBill && (
                 <button
                   type="button"
                   onClick={() => handleDelete(selectedBill.id)}
@@ -528,7 +553,11 @@ export function RecurringBillsClient({
                 disabled={isPending || !name.trim() || !amount}
                 className="flex-1 min-h-[48px] py-3 bg-emerald-500 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
-                {isPending ? <Loader2 size={16} className="animate-spin" /> : 'Save Subscription'}
+                {isPending ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  "Save Subscription"
+                )}
               </button>
             </div>
           </div>
