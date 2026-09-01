@@ -124,9 +124,20 @@ export async function getMonthSummary(month: number, year: number) {
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
+  const isTransfer = (t: { note?: string | null; categories?: unknown }) => {
+    const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+    const catName = (cat as { name?: string } | null)?.name?.toLowerCase();
+    return (
+      catName === "transfer" ||
+      (typeof t.note === "string" &&
+        (t.note.startsWith("Transfer to") ||
+          t.note.startsWith("Transfer from")))
+    );
+  };
+
   const { data, error } = await supabase
     .from("transactions")
-    .select("type, amount")
+    .select("type, amount, note, categories ( name )")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .gte("transaction_date", startDate)
@@ -135,10 +146,10 @@ export async function getMonthSummary(month: number, year: number) {
   if (error) throw error;
 
   const income = (data ?? [])
-    .filter((t) => t.type === "income")
+    .filter((t) => t.type === "income" && !isTransfer(t))
     .reduce((s, t) => s + Number(t.amount), 0);
   const expense = (data ?? [])
-    .filter((t) => t.type === "expense")
+    .filter((t) => t.type === "expense" && !isTransfer(t))
     .reduce((s, t) => s + Number(t.amount), 0);
 
   return { income, expense, net: income - expense };
@@ -155,20 +166,31 @@ export async function getMonthFinancialHealth(month: number, year: number) {
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 
-  // 1. Get transactions (exclude soft-deleted)
+  const isTransfer = (t: { note?: string | null; categories?: unknown }) => {
+    const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+    const catName = (cat as { name?: string } | null)?.name?.toLowerCase();
+    return (
+      catName === "transfer" ||
+      (typeof t.note === "string" &&
+        (t.note.startsWith("Transfer to") ||
+          t.note.startsWith("Transfer from")))
+    );
+  };
+
+  // 1. Get transactions (exclude soft-deleted and transfers)
   const { data: txs } = await supabase
     .from("transactions")
-    .select("type, amount")
+    .select("type, amount, note, categories ( name )")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .gte("transaction_date", startDate)
     .lte("transaction_date", endDate);
 
   const income = (txs ?? [])
-    .filter((t) => t.type === "income")
+    .filter((t) => t.type === "income" && !isTransfer(t))
     .reduce((s, t) => s + Number(t.amount), 0);
   const expense = (txs ?? [])
-    .filter((t) => t.type === "expense")
+    .filter((t) => t.type === "expense" && !isTransfer(t))
     .reduce((s, t) => s + Number(t.amount), 0);
 
   // 2. Total account balance

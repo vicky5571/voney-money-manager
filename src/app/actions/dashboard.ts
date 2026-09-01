@@ -75,7 +75,7 @@ export async function getDashboardData() {
     supabase
       .from("transactions")
       .select(
-        `id, type, amount, category_id, transaction_date, categories ( id, name, icon, color )`,
+        `id, type, amount, note, category_id, transaction_date, categories ( id, name, icon, color )`,
       )
       .eq("user_id", userId)
       .is("deleted_at", null)
@@ -83,7 +83,7 @@ export async function getDashboardData() {
       .lte("transaction_date", lastOfMonth),
     supabase
       .from("transactions")
-      .select("amount, transaction_date")
+      .select(`amount, transaction_date, note, categories ( name )`)
       .eq("user_id", userId)
       .is("deleted_at", null)
       .eq("type", "expense")
@@ -99,7 +99,7 @@ export async function getDashboardData() {
       .gte("end_date", firstOfMonth),
     supabase
       .from("transactions")
-      .select("amount")
+      .select(`amount, note, categories ( name )`)
       .eq("user_id", userId)
       .is("deleted_at", null)
       .eq("type", "expense")
@@ -129,13 +129,25 @@ export async function getDashboardData() {
   const totalBalance =
     accounts?.reduce((sum, acc) => sum + Number(acc.balance), 0) ?? 0;
 
-  const spendingByDate = (trendTransactions ?? []).reduce<
-    Record<string, number>
-  >((totals, transaction) => {
-    totals[transaction.transaction_date] =
-      (totals[transaction.transaction_date] ?? 0) + Number(transaction.amount);
-    return totals;
-  }, {});
+  const isTransfer = (t: { note?: string | null; categories?: unknown }) => {
+    const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+    const catName = (cat as { name?: string } | null)?.name?.toLowerCase();
+    return (
+      catName === "transfer" ||
+      (typeof t.note === "string" &&
+        (t.note.startsWith("Transfer to") ||
+          t.note.startsWith("Transfer from")))
+    );
+  };
+
+  const spendingByDate = (trendTransactions ?? [])
+    .filter((t) => !isTransfer(t))
+    .reduce<Record<string, number>>((totals, transaction) => {
+      totals[transaction.transaction_date] =
+        (totals[transaction.transaction_date] ?? 0) +
+        Number(transaction.amount);
+      return totals;
+    }, {});
 
   const spendingTrend = Array.from({ length: 30 }, (_, index) => {
     const date = new Date(trendStart);
@@ -152,11 +164,11 @@ export async function getDashboardData() {
   });
 
   const income = (monthlyTransactions ?? [])
-    .filter((t) => t.type === "income")
+    .filter((t) => t.type === "income" && !isTransfer(t))
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const expense = (monthlyTransactions ?? [])
-    .filter((t) => t.type === "expense")
+    .filter((t) => t.type === "expense" && !isTransfer(t))
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   let totalBudget = 0;
@@ -176,6 +188,7 @@ export async function getDashboardData() {
         .filter(
           (t) =>
             t.type === "expense" &&
+            !isTransfer(t) &&
             t.category_id === b.category_id &&
             t.transaction_date >= bStart &&
             t.transaction_date <= bEnd,
@@ -205,13 +218,13 @@ export async function getDashboardData() {
     });
   }
 
-  // Calculate actionable spending insights
+  // Calculate actionable spending insights (excluding internal transfers)
   const expenseByCategory: Record<
     string,
     { name: string; icon: string; color: string; amount: number }
   > = {};
   (monthlyTransactions ?? [])
-    .filter((t) => t.type === "expense")
+    .filter((t) => t.type === "expense" && !isTransfer(t))
     .forEach((t) => {
       const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
       const catId = t.category_id || "other";
@@ -283,10 +296,9 @@ export async function getDashboardData() {
     };
   }
 
-  const prevMonthExpense = (prevMonthTransactions ?? []).reduce(
-    (sum, t) => sum + Number(t.amount),
-    0,
-  );
+  const prevMonthExpense = (prevMonthTransactions ?? [])
+    .filter((t) => !isTransfer(t))
+    .reduce((sum, t) => sum + Number(t.amount), 0);
 
   let momComparison = null;
   if (prevMonthExpense > 0) {
