@@ -19,6 +19,7 @@ import {
   Smartphone,
   ArrowLeft,
   Tags,
+  KeyRound,
 } from "lucide-react";
 import {
   updateUserProfile,
@@ -31,6 +32,7 @@ import {
   CategoryManagerSheet,
   type CategoryItem,
 } from "@/components/category-manager-sheet";
+import { ChangePasswordModal } from "@/components/change-password-modal";
 
 interface ProfileClientProps {
   initialProfile: UserProfileData;
@@ -50,6 +52,7 @@ export function ProfileClient({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   const offlineCount =
     typeof window !== "undefined" ? getOfflineQueueCount() : 0;
@@ -286,38 +289,63 @@ export function ProfileClient({
       </div>
 
       {/* App & Security Info */}
-      <div className="bg-white rounded-3xl p-4 border border-gray-100 shadow-sm space-y-1">
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl p-4 border border-gray-100 dark:border-zinc-800 shadow-sm space-y-1">
         <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 px-3 py-1">
-          App & System
+          Security & App
         </h3>
+
+        <button
+          type="button"
+          onClick={() => setShowChangePassword(true)}
+          className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors min-h-[48px] text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <KeyRound size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">
+                Change Password
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Update account security credentials
+              </p>
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-gray-400" />
+        </button>
 
         <div className="flex items-center justify-between p-3 rounded-2xl">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gray-50 text-gray-600 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 flex items-center justify-center shrink-0">
               <Smartphone size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">Offline Queue</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm font-bold text-gray-900 dark:text-white">
+                Offline Queue
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 {offlineCount > 0
                   ? `${offlineCount} items waiting to sync`
                   : "All items synchronized"}
               </p>
             </div>
           </div>
-          <span className="text-xs font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-500">
+          <span className="text-xs font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-500 dark:bg-emerald-950/50 dark:text-emerald-400">
             {offlineCount > 0 ? `${offlineCount} Queued` : "Active"}
           </span>
         </div>
 
         <div className="flex items-center justify-between p-3 rounded-2xl">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gray-50 text-gray-600 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-zinc-800 text-gray-600 dark:text-gray-300 flex items-center justify-center shrink-0">
               <ShieldCheck size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">Security</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm font-bold text-gray-900 dark:text-white">
+                Security
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Supabase Row-Level-Security (RLS)
               </p>
             </div>
@@ -330,7 +358,7 @@ export function ProfileClient({
       <button
         type="button"
         onClick={() => setShowLogoutConfirm(true)}
-        className="w-full min-h-[48px] py-3.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer border border-red-100"
+        className="w-full min-h-[48px] py-3.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer border border-red-100 dark:bg-red-950/30 dark:border-red-900/50 dark:hover:bg-red-950/50"
       >
         <LogOut size={17} />
         <span>Log Out</span>
@@ -339,16 +367,16 @@ export function ProfileClient({
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl space-y-4 border border-gray-100 animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+          <div className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl p-5 shadow-2xl space-y-4 border border-gray-100 dark:border-zinc-800 animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto">
               <LogOut size={24} />
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="text-base font-bold text-gray-900">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">
                 Log out of Voney?
               </h3>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 You will need to enter your email and password to sign back in.
               </p>
             </div>
@@ -358,7 +386,7 @@ export function ProfileClient({
                 type="button"
                 onClick={() => setShowLogoutConfirm(false)}
                 disabled={isLoggingOut}
-                className="flex-1 min-h-[44px] py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-colors"
+                className="flex-1 min-h-[44px] py-2.5 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -366,7 +394,7 @@ export function ProfileClient({
                 type="button"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="flex-1 min-h-[44px] py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                className="flex-1 min-h-[44px] py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
               >
                 {isLoggingOut ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -387,6 +415,12 @@ export function ProfileClient({
           router.refresh();
         }}
         categories={categories}
+      />
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
       />
     </div>
   );

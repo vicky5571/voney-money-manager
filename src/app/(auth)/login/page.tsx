@@ -1,21 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Wallet, Loader2, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 /**
- * Login page component providing email and password authentication.
- *
- * @returns The client-rendered login form view.
+ * Login form component handling authentication input and submission.
  */
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlError = searchParams.get('error');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(urlError || null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -95,12 +96,20 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
-            >
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline py-1 inline-flex items-center min-h-[32px]"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               id="password"
               type="password"
@@ -117,7 +126,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 mt-2 flex items-center justify-center font-semibold bg-emerald-500 hover:bg-emerald-500 text-white rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full h-12 mt-2 flex items-center justify-center font-semibold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -142,5 +151,22 @@ export default function LoginPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+/**
+ * Login page component wrapped in Suspense boundary for useSearchParams.
+ */
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center p-8 space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
