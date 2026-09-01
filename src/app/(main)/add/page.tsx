@@ -22,7 +22,7 @@ import {
   saveOfflineTransfer,
 } from "@/lib/offline-sync";
 import { useAppStore } from "@/lib/store/use-app-store";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, cn, sortCategoriesByOrder } from "@/lib/utils";
 
 type Category = {
   id: string;
@@ -70,7 +70,7 @@ export default function AddTransactionPage() {
           getCategories(),
           getAccounts(),
         ]);
-        setCategories(cats as Category[]);
+        setCategories(sortCategoriesByOrder(cats as Category[]));
         setAccounts(accs as Account[]);
         if (accs.length > 0) {
           setSelectedAccount(accs[0].id);
@@ -89,7 +89,9 @@ export default function AddTransactionPage() {
     loadData();
   }, []);
 
-  const filteredCategories = categories.filter((c) => c.type === type);
+  const filteredCategories = sortCategoriesByOrder(
+    categories.filter((c) => c.type === type),
+  );
 
   // Parse amount evaluating any pending simple math
   const getNumericAmount = (val: string): number => {
@@ -551,6 +553,9 @@ export default function AddTransactionPage() {
         isOpen={showCategoryManager}
         onClose={() => setShowCategoryManager(false)}
         categories={categories}
+        onCategoryReordered={(reordered) => {
+          setCategories(reordered as Category[]);
+        }}
         onCategoryCreated={(newCat) => {
           setCategories((prev) => [...prev, newCat as Category]);
           setSelectedCategory(newCat.id);

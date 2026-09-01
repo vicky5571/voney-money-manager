@@ -18,6 +18,7 @@ import {
   CategoryManagerSheet,
   type CategoryItem,
 } from "@/components/category-manager-sheet";
+import { sortCategoriesByOrder } from "@/lib/utils";
 
 export interface BudgetCategory {
   id: string;
@@ -374,17 +375,17 @@ export function BudgetsClient({
                   <option value="" disabled>
                     Select category
                   </option>
-                  {categories
-                    .filter(
+                  {sortCategoriesByOrder(
+                    categories.filter(
                       (c) =>
                         c.type === "expense" &&
                         c.name.toLowerCase() !== "transfer",
-                    )
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
+                    ),
+                  ).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 

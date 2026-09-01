@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
-import { motion, AnimatePresence, Reorder, useDragControls } from "motion/react";
+import {
+  motion,
+  AnimatePresence,
+  Reorder,
+  useDragControls,
+} from "motion/react";
 import {
   X,
   Plus,
@@ -22,7 +27,7 @@ import {
   AVAILABLE_CATEGORY_ICONS,
   AVAILABLE_CATEGORY_COLORS,
 } from "@/constants/categories";
-import { cn } from "@/lib/utils";
+import { cn, sortCategoriesByOrder, saveCategoryOrder } from "@/lib/utils";
 
 export interface CategoryItem {
   id: string;
@@ -143,13 +148,18 @@ export function CategoryManagerSheet({
   const [isPending, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
-  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Local reordered/mutated list state
-  const [localCategories, setLocalCategories] = useState<CategoryItem[] | null>(null);
-  const currentCategories = localCategories ?? categories;
+  const [localCategories, setLocalCategories] = useState<CategoryItem[] | null>(
+    null,
+  );
+  const currentCategories =
+    localCategories ?? sortCategoriesByOrder(categories);
 
   // Form states
   const [name, setName] = useState("");
@@ -226,7 +236,11 @@ export function CategoryManagerSheet({
     startTransition(async () => {
       try {
         await deleteCategory(id);
-        setLocalCategories((prev) => (prev ?? categories).filter((c) => c.id !== id));
+        const updated = (localCategories ?? currentCategories).filter(
+          (c) => c.id !== id,
+        );
+        setLocalCategories(updated);
+        saveCategoryOrder(updated.map((c) => c.id));
         setMode("list");
       } catch (err: unknown) {
         setError(
@@ -236,16 +250,23 @@ export function CategoryManagerSheet({
     });
   };
 
-  const filteredCategories = currentCategories.filter((c) => c.type === activeTab);
+  const filteredCategories = currentCategories.filter(
+    (c) => c.type === activeTab,
+  );
 
   const handleReorder = (newTabCategories: CategoryItem[]) => {
     // Preserve categories of other types while replacing the active tab order
-    const otherCategories = currentCategories.filter((c) => c.type !== activeTab);
-    const updated = activeTab === "expense"
-      ? [...newTabCategories, ...otherCategories]
-      : [...otherCategories, ...newTabCategories];
+    const otherCategories = currentCategories.filter(
+      (c) => c.type !== activeTab,
+    );
+    const updated =
+      activeTab === "expense"
+        ? [...newTabCategories, ...otherCategories]
+        : [...otherCategories, ...newTabCategories];
 
     setLocalCategories(updated);
+    saveCategoryOrder(updated.map((c) => c.id));
+
     if (onCategoryReordered) {
       onCategoryReordered(updated);
     }
@@ -291,12 +312,14 @@ export function CategoryManagerSheet({
                     {mode === "list"
                       ? "Manage Categories"
                       : mode === "create"
-                      ? "New Category"
-                      : "Edit Category"}
+                        ? "New Category"
+                        : "Edit Category"}
                   </h2>
                   {mode === "list" && (
                     <p className="text-[11px] text-gray-400">
-                      Hold and drag <GripVertical className="inline w-3 h-3 -mt-0.5" /> to rearrange
+                      Hold and drag{" "}
+                      <GripVertical className="inline w-3 h-3 -mt-0.5" /> to
+                      rearrange
                     </p>
                   )}
                 </div>
@@ -328,7 +351,11 @@ export function CategoryManagerSheet({
                       )}
                     >
                       Expense (
-                      {currentCategories.filter((c) => c.type === "expense").length})
+                      {
+                        currentCategories.filter((c) => c.type === "expense")
+                          .length
+                      }
+                      )
                     </button>
                     <button
                       type="button"
@@ -341,7 +368,11 @@ export function CategoryManagerSheet({
                       )}
                     >
                       Income (
-                      {currentCategories.filter((c) => c.type === "income").length})
+                      {
+                        currentCategories.filter((c) => c.type === "income")
+                          .length
+                      }
+                      )
                     </button>
                   </div>
 
