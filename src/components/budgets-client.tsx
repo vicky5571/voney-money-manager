@@ -197,39 +197,27 @@ export function BudgetsClient({
 
   return (
     <div className="min-h-screen pb-24 relative p-4 space-y-6">
-      {/* Month Navigation & Category Manager Button */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 flex items-center justify-between bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100">
-          <button
-            onClick={handlePrevMonth}
-            className="p-2 hover:bg-gray-100 rounded-full cursor-pointer"
-            aria-label="Previous month"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <div className="text-center">
-            <h2 className="font-semibold text-gray-900 text-sm sm:text-base">
-              {monthName} {initialYear}
-            </h2>
-            <span className="text-[11px] text-gray-400">Active budgets</span>
-          </div>
-          <button
-            onClick={handleNextMonth}
-            className="p-2 hover:bg-gray-100 rounded-full cursor-pointer"
-            aria-label="Next month"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-
+      {/* Month Navigation */}
+      <div className="flex items-center justify-between bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100">
         <button
-          type="button"
-          onClick={() => setShowCategoryManager(true)}
-          className="min-h-[48px] px-3.5 bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl shadow-sm flex items-center gap-1.5 text-xs font-semibold text-gray-700 hover:text-emerald-500 transition-all active:scale-95 cursor-pointer shrink-0"
-          title="Manage Categories"
+          onClick={handlePrevMonth}
+          className="p-2 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+          aria-label="Previous month"
         >
-          <Tags size={16} className="text-emerald-500" />
-          <span className="hidden sm:inline">Categories</span>
+          <ChevronLeft size={20} />
+        </button>
+        <div className="text-center">
+          <h2 className="font-semibold text-gray-900 text-sm sm:text-base">
+            {monthName} {initialYear}
+          </h2>
+          <span className="text-[11px] text-gray-400">Active budgets</span>
+        </div>
+        <button
+          onClick={handleNextMonth}
+          className="p-2 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+          aria-label="Next month"
+        >
+          <ChevronRight size={20} />
         </button>
       </div>
 
@@ -240,6 +228,25 @@ export function BudgetsClient({
         daysLeft={daysLeft}
         onAddBudget={openModal}
       />
+
+      {/* Category Budgets Section Header */}
+      <div className="flex items-center justify-between pt-1">
+        <div>
+          <h3 className="text-sm font-bold text-gray-900">Category Budgets</h3>
+          <p className="text-[11px] text-gray-400">
+            {initialBudgets.length}{" "}
+            {initialBudgets.length === 1 ? "budget" : "budgets"} tracked
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowCategoryManager(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-all active:scale-95 cursor-pointer border border-emerald-100/70 shadow-2xs"
+        >
+          <Tags size={13} className="text-emerald-500" />
+          <span>Categories</span>
+        </button>
+      </div>
 
       <div className="space-y-4">
         {initialBudgets.length === 0 ? (
@@ -343,9 +350,19 @@ export function BudgetsClient({
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Category */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Category
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Category
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoryManager(true)}
+                    className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Tags size={12} />
+                    <span>+ Manage</span>
+                  </button>
+                </div>
                 <select
                   required
                   value={formData.category_id}

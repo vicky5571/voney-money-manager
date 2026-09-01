@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "motion/react";
 import { formatCurrency } from "@/lib/utils";
 import { AlertTriangle, Plus } from "lucide-react";
 
@@ -127,9 +130,9 @@ export function BudgetSummaryGauge({
             strokeLinecap="round"
           />
 
-          {/* Progress Remaining Arc */}
+          {/* Animated Progress Remaining Arc Sweep */}
           {totalBudget > 0 && (
-            <path
+            <motion.path
               d="M 8 105 A 92 92 0 0 1 192 105"
               fill="none"
               stroke={
@@ -142,15 +145,24 @@ export function BudgetSummaryGauge({
               strokeWidth="9"
               strokeLinecap="round"
               strokeDasharray={arcLength}
-              strokeDashoffset={strokeDashoffset}
+              initial={{ strokeDashoffset: arcLength }}
+              animate={{ strokeDashoffset: strokeDashoffset }}
+              transition={{
+                duration: 1.1,
+                ease: [0.16, 1, 0.3, 1],
+              }}
               filter="url(#gauge-neon-glow)"
-              className="transition-all duration-700 ease-out"
             />
           )}
         </svg>
 
-        {/* Center Text Information */}
-        <div className="absolute top-20 flex flex-col items-center text-center px-4">
+        {/* Center Text Information with Motion Entry */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.94, y: 6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+          className="absolute top-20 flex flex-col items-center text-center px-4"
+        >
           <div className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
             <span>Amount you can spend</span>
           </div>
@@ -177,11 +189,16 @@ export function BudgetSummaryGauge({
               No budget set
             </span>
           )}
-        </div>
+        </motion.div>
       </div>
 
-      {/* 3-Column Summary Stats */}
-      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100 text-center">
+      {/* 3-Column Summary Stats with Motion Entry */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.25, ease: "easeOut" }}
+        className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100 text-center"
+      >
         <div className="bg-gray-50/80 p-2.5 rounded-2xl">
           <span className="text-[10px] text-gray-400 uppercase font-semibold block">
             Total Budgets
@@ -208,12 +225,12 @@ export function BudgetSummaryGauge({
             {daysLeft} days
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Create Budget Button */}
       <button
         onClick={onAddBudget}
-        className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-500 text-white rounded-2xl text-sm font-semibold hover:bg-emerald-500 active:scale-[0.98] transition-all shadow-sm"
+        className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-500 text-white rounded-2xl text-sm font-semibold hover:bg-emerald-600 active:scale-[0.98] transition-all shadow-sm cursor-pointer"
       >
         <Plus size={16} />
         Create Budget
