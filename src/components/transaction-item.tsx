@@ -143,7 +143,7 @@ export function TransactionItem({
           </div>
         </div>
 
-        <div className={cn('font-semibold shrink-0 text-sm', isIncome ? 'text-emerald-600' : 'text-red-500')}>
+        <div className={cn('font-semibold shrink-0 text-sm', isIncome ? 'text-emerald-500' : 'text-red-500')}>
           {isIncome ? '+' : '-'}{formatCurrency(amount)}
         </div>
       </div>

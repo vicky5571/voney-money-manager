@@ -208,7 +208,7 @@ export function BudgetsClient({
             <p className="text-xs text-gray-400 mt-1">Create a budget with a custom date range to start tracking.</p>
             <button
               onClick={openModal}
-              className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 transition-colors"
+              className="mt-4 px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-semibold hover:bg-emerald-500 transition-colors"
             >
               Add Your First Budget
             </button>
@@ -291,7 +291,7 @@ export function BudgetsClient({
                   required
                   value={formData.category_id}
                   onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white text-gray-900 text-sm"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-900 text-sm"
                 >
                   <option value="" disabled>Select category</option>
                   {categories.map((c) => (
@@ -311,7 +311,7 @@ export function BudgetsClient({
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   placeholder="e.g. 1500000"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-gray-900 text-sm"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-900 text-sm"
                 />
               </div>
 
@@ -322,7 +322,7 @@ export function BudgetsClient({
                   <button
                     type="button"
                     onClick={() => setPreset('month')}
-                    className="flex-1 py-1.5 px-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-semibold transition-colors"
+                    className="flex-1 py-1.5 px-2 bg-emerald-50 text-emerald-500 hover:bg-emerald-100 rounded-lg text-xs font-semibold transition-colors"
                   >
                     This Month
                   </button>
@@ -356,7 +356,7 @@ export function BudgetsClient({
                     required
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 text-gray-900"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-900"
                   />
                 </div>
                 <div>
@@ -370,7 +370,7 @@ export function BudgetsClient({
                     required
                     value={formData.endDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-600 text-gray-900"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-900"
                   />
                 </div>
               </div>
@@ -382,7 +382,7 @@ export function BudgetsClient({
               <button
                 type="submit"
                 disabled={isPending || !formData.category_id || !formData.amount}
-                className="w-full bg-emerald-600 text-white font-medium py-3.5 rounded-xl mt-4 disabled:opacity-50 active:scale-[0.98] transition-all hover:bg-emerald-700 shadow-sm flex items-center justify-center"
+                className="w-full bg-emerald-500 text-white font-medium py-3.5 rounded-xl mt-4 disabled:opacity-50 active:scale-[0.98] transition-all hover:bg-emerald-500 shadow-sm flex items-center justify-center"
               >
                 {isPending ? <Loader2 size={18} className="animate-spin" /> : 'Save Budget'}
               </button>

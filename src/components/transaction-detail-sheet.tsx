@@ -101,7 +101,7 @@ export function TransactionDetailSheet({
           <p
             className={`text-3xl font-bold ${
               transaction.type === "income"
-                ? "text-emerald-600"
+                ? "text-emerald-500"
                 : "text-red-500"
             }`}
           >
@@ -152,7 +152,7 @@ export function TransactionDetailSheet({
               onClick={() =>
                 router.push(`/transactions/${transaction.id}/edit`)
               }
-              className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors"
+              className="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-emerald-500 transition-colors"
             >
               <Pencil size={18} />
               Edit

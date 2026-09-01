@@ -28,7 +28,7 @@ export function AccountCard({
       case "cash":
         return {
           Icon: Wallet,
-          color: "text-emerald-600",
+          color: "text-emerald-500",
           bg: "bg-emerald-100",
         };
       case "bank":
@@ -89,7 +89,7 @@ export function AccountCard({
               e.stopPropagation();
               onAdjust();
             }}
-            className="min-h-[44px] min-w-[44px] p-2 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-emerald-600 flex items-center justify-center transition-colors cursor-pointer"
+            className="min-h-[44px] min-w-[44px] p-2 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-emerald-500 flex items-center justify-center transition-colors cursor-pointer"
             aria-label={`Adjust balance for ${name}`}
             title="Adjust Balance"
           >

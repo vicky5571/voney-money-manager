@@ -107,7 +107,7 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
 
       {/* User Info Hero Card */}
       <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-600 to-emerald-800 text-white flex items-center justify-center text-2xl font-extrabold shadow-md mb-3 ring-4 ring-emerald-50">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-500 text-white flex items-center justify-center text-2xl font-extrabold shadow-md mb-3 ring-4 ring-emerald-50">
           {getInitials(profile.displayName)}
         </div>
 
@@ -127,7 +127,7 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
                 type="button"
                 onClick={handleSaveName}
                 disabled={savingName}
-                className="min-h-[44px] min-w-[44px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center justify-center disabled:opacity-50 transition-all"
+                className="min-h-[44px] min-w-[44px] bg-emerald-500 hover:bg-emerald-500 text-white rounded-xl flex items-center justify-center disabled:opacity-50 transition-all"
                 aria-label="Save name"
               >
                 {savingName ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
@@ -153,7 +153,7 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
             <button
               type="button"
               onClick={() => setIsEditingName(true)}
-              className="p-1 text-gray-400 hover:text-emerald-600 rounded-lg transition-colors"
+              className="p-1 text-gray-400 hover:text-emerald-500 rounded-lg transition-colors"
               aria-label="Edit name"
             >
               <Edit2 size={14} />
@@ -185,7 +185,7 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
           className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-colors min-h-[48px]"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
               <Wallet size={18} />
             </div>
             <div>
@@ -217,7 +217,7 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
           className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-colors min-h-[48px]"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
               <HeartPulse size={18} />
             </div>
             <div>
@@ -247,7 +247,7 @@ export function ProfileClient({ initialProfile }: ProfileClientProps) {
               </p>
             </div>
           </div>
-          <span className="text-xs font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700">
+          <span className="text-xs font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-500">
             {offlineCount > 0 ? `${offlineCount} Queued` : 'Active'}
           </span>
         </div>

@@ -44,7 +44,7 @@ export function CategoryBreakdownChart({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center">
             <PieChartIcon size={15} />
           </div>
           <div>
@@ -65,7 +65,7 @@ export function CategoryBreakdownChart({
             <div
               className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
                 momComparison.isLower
-                  ? 'bg-emerald-100 text-emerald-700'
+                  ? 'bg-emerald-100 text-emerald-500'
                   : 'bg-amber-100 text-amber-700'
               }`}
             >

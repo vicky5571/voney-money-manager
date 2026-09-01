@@ -180,7 +180,7 @@ export function RecurringBillsClient({
   return (
     <div className="px-4 pt-6 pb-28 max-w-md mx-auto space-y-6">
       {/* Header Summary Card */}
-      <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-3xl p-6 text-white shadow-md space-y-3">
+      <div className="bg-gradient-to-br from-emerald-500 to-emerald-500 rounded-3xl p-6 text-white shadow-md space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-200">
             Recurring Bills & Subs
@@ -206,7 +206,7 @@ export function RecurringBillsClient({
         <button
           type="button"
           onClick={openCreate}
-          className="min-h-[44px] px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+          className="min-h-[44px] px-3.5 py-2 bg-emerald-500 hover:bg-emerald-500 text-white rounded-2xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
         >
           <Plus size={16} /> Add Subscription
         </button>
@@ -215,7 +215,7 @@ export function RecurringBillsClient({
       {/* List of Recurring Bills */}
       {bills.length === 0 ? (
         <div className="py-12 px-4 bg-gray-50 rounded-3xl border border-dashed border-gray-200 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+          <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto">
             <Repeat size={24} />
           </div>
           <h3 className="text-sm font-bold text-gray-800">No subscriptions tracked yet</h3>
@@ -225,7 +225,7 @@ export function RecurringBillsClient({
           <button
             type="button"
             onClick={openCreate}
-            className="min-h-[44px] px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-emerald-700"
+            className="min-h-[44px] px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-emerald-500"
           >
             Add First Bill
           </button>
@@ -305,7 +305,7 @@ export function RecurringBillsClient({
                 <div className="flex items-center justify-between pt-2 border-t border-gray-50">
                   <div className="flex items-center gap-1 text-[11px] text-gray-400">
                     {bill.last_paid_date ? (
-                      <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                      <span className="flex items-center gap-1 text-emerald-500 font-medium">
                         <CheckCircle2 size={13} /> Paid on {formatDate(bill.last_paid_date)}
                       </span>
                     ) : (
@@ -319,7 +319,7 @@ export function RecurringBillsClient({
                     <button
                       type="button"
                       onClick={() => openEdit(bill)}
-                      className="min-h-[44px] min-w-[44px] p-2 text-gray-400 hover:text-emerald-600 flex items-center justify-center"
+                      className="min-h-[44px] min-w-[44px] p-2 text-gray-400 hover:text-emerald-500 flex items-center justify-center"
                       aria-label="Edit bill"
                     >
                       <Edit2 size={16} />
@@ -328,7 +328,7 @@ export function RecurringBillsClient({
                       type="button"
                       onClick={() => handlePay(bill)}
                       disabled={payingBillId === bill.id || isPending}
-                      className="min-h-[44px] px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold flex items-center gap-1 active:scale-95 transition-all disabled:opacity-50"
+                      className="min-h-[44px] px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-500 rounded-xl text-xs font-bold flex items-center gap-1 active:scale-95 transition-all disabled:opacity-50"
                     >
                       {payingBillId === bill.id ? (
                         <Loader2 size={14} className="animate-spin" />
@@ -412,7 +412,7 @@ export function RecurringBillsClient({
                     className={cn(
                       'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold capitalize transition-all',
                       frequency === freq
-                        ? 'bg-emerald-600 text-white shadow-sm'
+                        ? 'bg-emerald-500 text-white shadow-sm'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     )}
                   >
@@ -470,7 +470,7 @@ export function RecurringBillsClient({
                   <p className="text-xs text-amber-700 font-semibold mb-1">No wallets found</p>
                   <a
                     href="/accounts"
-                    className="inline-block text-xs font-bold text-emerald-600 underline"
+                    className="inline-block text-xs font-bold text-emerald-500 underline"
                   >
                     + Create a wallet first
                   </a>
@@ -526,7 +526,7 @@ export function RecurringBillsClient({
                 type="button"
                 onClick={handleSave}
                 disabled={isPending || !name.trim() || !amount}
-                className="flex-1 min-h-[48px] py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="flex-1 min-h-[48px] py-3 bg-emerald-500 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {isPending ? <Loader2 size={16} className="animate-spin" /> : 'Save Subscription'}
               </button>

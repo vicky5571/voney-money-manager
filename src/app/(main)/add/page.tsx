@@ -219,7 +219,7 @@ export default function AddTransactionPage() {
   if (dataLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     );
   }
@@ -263,7 +263,7 @@ export default function AddTransactionPage() {
           }}
           className={cn(
             'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all',
-            type === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            type === 'income' ? 'bg-white text-emerald-500 shadow-sm' : 'text-gray-600 hover:text-gray-900'
           )}
         >
           Income
@@ -276,7 +276,7 @@ export default function AddTransactionPage() {
           }}
           className={cn(
             'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1',
-            type === 'transfer' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            type === 'transfer' ? 'bg-white text-emerald-500 shadow-sm' : 'text-gray-600 hover:text-gray-900'
           )}
         >
           <ArrowRightLeft size={13} /> Transfer
@@ -292,7 +292,7 @@ export default function AddTransactionPage() {
           <button
             type="button"
             onClick={() => setShowKeypad(!showKeypad)}
-            className="min-h-[44px] px-2 text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+            className="min-h-[44px] px-2 text-xs font-semibold text-emerald-500 hover:text-emerald-500 flex items-center gap-1"
           >
             {showKeypad ? <Keyboard size={15} /> : <Calculator size={15} />}
             <span>{showKeypad ? 'Use Standard Input' : 'Use Speed Keypad'}</span>
@@ -312,7 +312,7 @@ export default function AddTransactionPage() {
             aria-live="polite"
           />
           {parsedAmount > 0 && amount !== parsedAmount.toString() && (
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg">
               = {formatCurrency(parsedAmount)}
             </span>
           )}
@@ -349,7 +349,7 @@ export default function AddTransactionPage() {
           </div>
 
           <div className="flex justify-center -my-1">
-            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
               <ArrowRightLeft size={16} className="rotate-90" />
             </div>
           </div>
@@ -408,7 +408,7 @@ export default function AddTransactionPage() {
                 <p className="text-xs text-amber-700">Please create a wallet first before adding transactions.</p>
                 <Link
                   href="/accounts"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-sm"
                 >
                   + Add Wallet
                 </Link>
@@ -478,7 +478,7 @@ export default function AddTransactionPage() {
         type="button"
         onClick={handleSubmit}
         disabled={!isValid || loading}
-        className="w-full min-h-[52px] py-4 bg-emerald-600 text-white rounded-2xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-200"
+        className="w-full min-h-[52px] py-4 bg-emerald-500 text-white rounded-2xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-200"
       >
         {loading ? (
           <>

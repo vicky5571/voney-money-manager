@@ -131,7 +131,7 @@ export function SpeedKeypad({ value, onChange, onDone }: SpeedKeypadProps) {
             key={inc}
             type="button"
             onClick={() => addQuickAmount(inc)}
-            className="min-h-[44px] px-3 py-2 bg-emerald-50/80 hover:bg-emerald-100/90 text-emerald-700 rounded-xl text-xs font-bold shrink-0 active:scale-95 transition-all border border-emerald-100/50"
+            className="min-h-[44px] px-3 py-2 bg-emerald-50/80 hover:bg-emerald-100/90 text-emerald-500 rounded-xl text-xs font-bold shrink-0 active:scale-95 transition-all border border-emerald-100/50"
           >
             +{formatCurrency(inc).replace(/\.00$/, '')}
           </button>
@@ -196,7 +196,7 @@ export function SpeedKeypad({ value, onChange, onDone }: SpeedKeypadProps) {
         <button
           type="button"
           onClick={() => handleKeyPress('+')}
-          className="min-h-[48px] bg-emerald-50 text-emerald-700 rounded-xl font-bold text-lg shadow-xs hover:bg-emerald-100 active:scale-95 transition-all flex items-center justify-center"
+          className="min-h-[48px] bg-emerald-50 text-emerald-500 rounded-xl font-bold text-lg shadow-xs hover:bg-emerald-100 active:scale-95 transition-all flex items-center justify-center"
           aria-label="Add operator"
         >
           <Plus size={18} />
@@ -227,7 +227,7 @@ export function SpeedKeypad({ value, onChange, onDone }: SpeedKeypadProps) {
         <button
           type="button"
           onClick={() => handleKeyPress('-')}
-          className="min-h-[48px] bg-emerald-50 text-emerald-700 rounded-xl font-bold text-lg shadow-xs hover:bg-emerald-100 active:scale-95 transition-all flex items-center justify-center"
+          className="min-h-[48px] bg-emerald-50 text-emerald-500 rounded-xl font-bold text-lg shadow-xs hover:bg-emerald-100 active:scale-95 transition-all flex items-center justify-center"
           aria-label="Subtract operator"
         >
           <Minus size={18} />
@@ -270,7 +270,7 @@ export function SpeedKeypad({ value, onChange, onDone }: SpeedKeypadProps) {
         <button
           type="button"
           onClick={() => handleKeyPress('=')}
-          className="w-full min-h-[44px] py-2.5 bg-emerald-600 text-white rounded-xl font-semibold text-xs shadow-sm hover:bg-emerald-700 active:scale-98 transition-all flex items-center justify-center gap-1.5"
+          className="w-full min-h-[44px] py-2.5 bg-emerald-500 text-white rounded-xl font-semibold text-xs shadow-sm hover:bg-emerald-500 active:scale-98 transition-all flex items-center justify-center gap-1.5"
         >
           <Check size={16} /> Calculate Total ({evaluateExpression(value)})
         </button>

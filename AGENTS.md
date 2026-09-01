@@ -36,7 +36,7 @@ Voney is a mobile-first personal money manager web app for tracking income, expe
 
 - Use Tailwind CSS utility classes exclusively. No inline styles except for dynamic values (e.g., progress bar width).
 - Mobile-first responsive design: start with mobile styles, add `md:` and `lg:` breakpoints as needed.
-- Primary color: emerald-600 (#059669) with Cyber-Mint / Neon Lime accents (#6FF7CC, #44EBCF, #ADFA1F).
+- Primary color: emerald-500 (#10B981) with Cyber-Mint / Neon Lime accents (#6FF7CC, #44EBCF, #ADFA1F).
 - Use CSS variables defined in globals.css for theme colors.
 - Minimum tap target size: 44px (h-11 / w-11).
 - Use rounded corners: rounded-xl for cards, rounded-2xl for main containers.

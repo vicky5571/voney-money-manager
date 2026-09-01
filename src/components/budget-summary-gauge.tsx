@@ -28,14 +28,6 @@ export function BudgetSummaryGauge({
   const arcLength = 289.027;
   const strokeDashoffset = arcLength * (1 - remainingPercentage / 100);
 
-  // Dynamic progress color based on remaining budget health
-  let strokeColor = "#22C55E"; // Green-500 (Healthy)
-  if (isOverBudget || remainingPercentage < 15) {
-    strokeColor = "#EF4444"; // Red-500 (Critical / Over)
-  } else if (remainingPercentage < 35) {
-    strokeColor = "#F59E0B"; // Amber-500 (Warning)
-  }
-
   return (
     <div className="w-full bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-4">
       {/* Half Circle Gauge Section */}
@@ -221,7 +213,7 @@ export function BudgetSummaryGauge({
       {/* Create Budget Button */}
       <button
         onClick={onAddBudget}
-        className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-2xl text-sm font-semibold hover:bg-emerald-700 active:scale-[0.98] transition-all shadow-sm"
+        className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-500 text-white rounded-2xl text-sm font-semibold hover:bg-emerald-500 active:scale-[0.98] transition-all shadow-sm"
       >
         <Plus size={16} />
         Create Budget

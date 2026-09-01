@@ -62,7 +62,7 @@ export default function SignUpPage() {
     <div className="w-full">
       {/* Brand Header */}
       <div className="flex flex-col items-center text-center mb-8">
-        <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-200 dark:shadow-none mb-3">
+        <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-200 dark:shadow-none mb-3">
           <Wallet className="w-7 h-7" aria-hidden="true" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
@@ -150,7 +150,7 @@ export default function SignUpPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 mt-2 flex items-center justify-center font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full h-12 mt-2 flex items-center justify-center font-semibold bg-emerald-500 hover:bg-emerald-500 text-white rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -169,7 +169,7 @@ export default function SignUpPage() {
         Already have an account?{' '}
         <Link
           href="/login"
-          className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center min-h-[44px]"
+          className="font-semibold text-emerald-500 dark:text-emerald-400 hover:underline inline-flex items-center min-h-[44px]"
         >
           Log in
         </Link>

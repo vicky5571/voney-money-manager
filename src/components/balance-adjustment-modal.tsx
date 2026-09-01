@@ -63,7 +63,7 @@ function BalanceAdjustmentContent({ account, onClose, onSuccess }: FormContentPr
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
             <SlidersHorizontal size={20} />
           </div>
           <div>
@@ -115,7 +115,7 @@ function BalanceAdjustmentContent({ account, onClose, onSuccess }: FormContentPr
                 setError('');
               }}
               placeholder="0.00"
-              className="w-full text-xl font-bold px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-emerald-600 focus:border-transparent outline-none transition-all"
+              className="w-full text-xl font-bold px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
               autoFocus
             />
           </div>
@@ -134,7 +134,7 @@ function BalanceAdjustmentContent({ account, onClose, onSuccess }: FormContentPr
             {isDeduction ? (
               <ArrowDownRight size={18} className="shrink-0 text-red-500 mt-0.5" />
             ) : (
-              <ArrowUpRight size={18} className="shrink-0 text-emerald-600 mt-0.5" />
+              <ArrowUpRight size={18} className="shrink-0 text-emerald-500 mt-0.5" />
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
@@ -163,7 +163,7 @@ function BalanceAdjustmentContent({ account, onClose, onSuccess }: FormContentPr
             value={noteInput}
             onChange={(e) => setNoteInput(e.target.value)}
             placeholder="e.g. Cash count discrepancy, untracked coffee"
-            className="w-full text-xs px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-600 focus:border-transparent outline-none transition-all"
+            className="w-full text-xs px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
           />
         </div>
       </div>
@@ -184,7 +184,7 @@ function BalanceAdjustmentContent({ account, onClose, onSuccess }: FormContentPr
           type="button"
           onClick={handleConfirm}
           disabled={isPending || !hasChanged}
-          className="flex-1 min-h-[44px] py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] cursor-pointer"
+          className="flex-1 min-h-[44px] py-3 bg-emerald-500 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.98] cursor-pointer"
         >
           {isPending ? <Loader2 size={16} className="animate-spin" /> : 'Confirm Adjustment'}
         </button>

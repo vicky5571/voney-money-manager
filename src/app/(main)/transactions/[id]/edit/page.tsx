@@ -116,7 +116,7 @@ export default function EditTransactionPage() {
   if (dataLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     );
   }
@@ -156,7 +156,7 @@ export default function EditTransactionPage() {
           }}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             type === "income"
-              ? "bg-white text-emerald-600 shadow-sm"
+              ? "bg-white text-emerald-500 shadow-sm"
               : "text-gray-500"
           }`}
         >
@@ -271,7 +271,7 @@ export default function EditTransactionPage() {
       <button
         onClick={handleSubmit}
         disabled={!isValid || loading}
-        className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+        className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
       >
         {loading ? (
           <>

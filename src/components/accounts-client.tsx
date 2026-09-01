@@ -149,11 +149,18 @@ export function AccountsClient({
   return (
     <div className="p-4 space-y-6 pb-24">
       {/* Top Header Card */}
-      <div className="bg-emerald-600 text-white rounded-2xl p-6 shadow-sm">
-        <h2 className="text-sm font-medium opacity-80">Total Balance</h2>
-        <p className="text-3xl font-bold mt-1">
-          {formatCurrency(totalBalance)}
-        </p>
+      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 text-white rounded-3xl p-6 shadow-md">
+        {/* Subtle Dark Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/[0.02] via-black/[0.03] to-black/[0.04] pointer-events-none" />
+
+        <div className="relative z-10">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-emerald-100">
+            Total Balance
+          </h2>
+          <p className="text-3xl font-extrabold tracking-tight mt-1">
+            {formatCurrency(totalBalance)}
+          </p>
+        </div>
       </div>
 
       {/* Quick Shortcuts */}
@@ -163,7 +170,7 @@ export function AccountsClient({
           className="min-h-[44px] p-3.5 bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl shadow-xs flex items-center justify-between transition-all active:scale-[0.98]"
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
               <Repeat size={16} />
             </div>
             <div>
@@ -196,7 +203,7 @@ export function AccountsClient({
           <h3 className="font-semibold text-gray-900">Your Wallets</h3>
           <button
             onClick={openAdd}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold hover:bg-emerald-700 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-xs font-semibold hover:bg-emerald-500 active:scale-95 transition-all"
           >
             <Plus size={14} />
             Add Wallet
@@ -254,7 +261,7 @@ export function AccountsClient({
                     setFormData({ ...formData, name: e.target.value })
                   }
                   placeholder="e.g. Main Bank, Cash"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-600 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
 
@@ -270,7 +277,7 @@ export function AccountsClient({
                       className={cn(
                         "flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all capitalize",
                         formData.type === type
-                          ? "bg-emerald-600 text-white shadow-md"
+                          ? "bg-emerald-500 text-white shadow-md"
                           : "bg-gray-100 text-gray-600 hover:bg-gray-200",
                       )}
                     >
@@ -293,7 +300,7 @@ export function AccountsClient({
                     }
                     placeholder="0.00"
                     step="0.01"
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-600 focus:border-transparent outline-none transition-all"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
                   />
                 </div>
               )}
@@ -315,7 +322,7 @@ export function AccountsClient({
                       closeSheet();
                       setAdjustingAccount(accToAdjust);
                     }}
-                    className="min-h-[44px] px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                    className="min-h-[44px] px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-500 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
                   >
                     <SlidersHorizontal size={14} />
                     Adjust Balance
@@ -328,7 +335,7 @@ export function AccountsClient({
               <button
                 onClick={handleSave}
                 disabled={isPending}
-                className="w-full py-3.5 bg-emerald-600 text-white rounded-xl font-medium shadow-sm hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-70 disabled:active:scale-100 mt-2"
+                className="w-full py-3.5 bg-emerald-500 text-white rounded-xl font-medium shadow-sm hover:bg-emerald-500 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-70 disabled:active:scale-100 mt-2"
               >
                 {isPending ? (
                   <Loader2 size={20} className="animate-spin" />

@@ -159,7 +159,7 @@ export function CategoryManagerSheet({
                 className={cn(
                   'flex-1 min-h-[40px] py-1.5 rounded-lg text-xs font-bold transition-all',
                   activeTab === 'income'
-                    ? 'bg-white text-emerald-600 shadow-sm'
+                    ? 'bg-white text-emerald-500 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 )}
               >
@@ -171,7 +171,7 @@ export function CategoryManagerSheet({
             <button
               type="button"
               onClick={openCreate}
-              className="w-full min-h-[44px] py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+              className="w-full min-h-[44px] py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-500 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
             >
               <Plus size={16} /> Add Custom Category
             </button>
@@ -203,7 +203,7 @@ export function CategoryManagerSheet({
                       <button
                         type="button"
                         onClick={() => openEdit(cat)}
-                        className="min-h-[44px] min-w-[44px] p-2 text-gray-500 hover:text-emerald-600 flex items-center justify-center"
+                        className="min-h-[44px] min-w-[44px] p-2 text-gray-500 hover:text-emerald-500 flex items-center justify-center"
                         aria-label="Edit category"
                       >
                         <Edit2 size={16} />
@@ -280,7 +280,7 @@ export function CategoryManagerSheet({
                   className={cn(
                     'flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all',
                     type === 'income'
-                      ? 'bg-emerald-600 text-white shadow-sm'
+                      ? 'bg-emerald-500 text-white shadow-sm'
                       : 'bg-gray-100 text-gray-600'
                   )}
                 >
@@ -303,7 +303,7 @@ export function CategoryManagerSheet({
                     className={cn(
                       'min-h-[44px] flex items-center justify-center rounded-xl transition-all',
                       icon === iconName
-                        ? 'bg-emerald-600 text-white shadow-sm scale-105'
+                        ? 'bg-emerald-500 text-white shadow-sm scale-105'
                         : 'bg-white text-gray-700 hover:bg-gray-100'
                     )}
                   >
@@ -359,7 +359,7 @@ export function CategoryManagerSheet({
                 type="button"
                 onClick={handleSave}
                 disabled={isPending || !name.trim()}
-                className="flex-1 min-h-[48px] py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="flex-1 min-h-[48px] py-3 bg-emerald-500 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {isPending ? <Loader2 size={16} className="animate-spin" /> : 'Save Category'}
               </button>

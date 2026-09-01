@@ -64,7 +64,7 @@ export function SpendingTrendChart({ data }: SpendingTrendChartProps) {
               onClick={() => setDays(range)}
               className={`min-h-8 rounded-md px-2.5 text-xs font-semibold transition-colors ${
                 days === range
-                  ? "bg-white text-emerald-600 shadow-sm"
+                  ? "bg-white text-emerald-500 shadow-sm"
                   : "text-gray-500"
               }`}
               aria-pressed={days === range}

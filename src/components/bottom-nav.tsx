@@ -67,7 +67,7 @@ export function BottomNav() {
               className={cn(
                 "group/nav relative flex flex-col items-center justify-center h-[62px] w-[62px] aspect-square shrink-0 rounded-[20px] transition-all duration-300 min-h-[44px] min-w-[44px] cursor-pointer",
                 isActive
-                  ? "text-emerald-600"
+                  ? "text-emerald-500"
                   : "text-gray-400 hover:text-gray-600",
               )}
               aria-label={item.name}
@@ -142,8 +142,8 @@ export function BottomNav() {
                     className={cn(
                       "flex items-center justify-center w-8 h-8 rounded-xl transition-colors",
                       isActive
-                        ? "bg-emerald-600 text-white shadow-xs"
-                        : "bg-emerald-50 text-emerald-600",
+                        ? "bg-emerald-500 text-white shadow-xs"
+                        : "bg-emerald-50 text-emerald-500",
                     )}
                   >
                     <Icon size={20} strokeWidth={2.8} />
@@ -159,7 +159,7 @@ export function BottomNav() {
                       className={cn(
                         "text-[7.5px] sm:text-[8px] mt-0.5 leading-none tracking-tight whitespace-nowrap text-center select-none",
                         isActive
-                          ? "font-bold text-emerald-600"
+                          ? "font-bold text-emerald-500"
                           : "font-medium text-gray-500",
                       )}
                     >

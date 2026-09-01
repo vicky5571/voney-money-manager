@@ -436,7 +436,7 @@ export default function TransactionsPage() {
         </p>
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <div className="flex items-center gap-1 text-emerald-600 mb-0.5">
+            <div className="flex items-center gap-1 text-emerald-500 mb-0.5">
               <TrendingUp size={13} />
               <span className="text-[10px] font-semibold uppercase tracking-wide">
                 Income
@@ -462,7 +462,7 @@ export default function TransactionsPage() {
               Net
             </span>
             <p
-              className={`text-sm font-bold truncate ${summary && summary.net >= 0 ? "text-emerald-600" : "text-red-500"}`}
+              className={`text-sm font-bold truncate ${summary && summary.net >= 0 ? "text-emerald-500" : "text-red-500"}`}
             >
               {summary
                 ? `${summary.net >= 0 ? "+" : ""}${formatCurrency(summary.net)}`
@@ -525,7 +525,7 @@ export default function TransactionsPage() {
             onClick={() => setFilter(f.value)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               filter === f.value
-                ? "bg-emerald-600 text-white"
+                ? "bg-emerald-500 text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
@@ -600,7 +600,7 @@ export default function TransactionsPage() {
                     {dateLabel}
                   </h3>
                   <span
-                    className={`text-xs font-bold ${dayNet >= 0 ? "text-emerald-600" : "text-red-500"}`}
+                    className={`text-xs font-bold ${dayNet >= 0 ? "text-emerald-500" : "text-red-500"}`}
                   >
                     {dayNet >= 0 ? "+" : ""}
                     {formatCurrency(dayNet)}
@@ -633,7 +633,7 @@ export default function TransactionsPage() {
           {hasMore && (
             <div ref={observerRef} className="flex justify-center py-4">
               {loadingMore && (
-                <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
               )}
             </div>
           )}
