@@ -129,7 +129,7 @@ export const AVAILABLE_CATEGORY_COLORS = [
   "#14B8A6", // Teal
   "#06B6D4", // Cyan
   "#3B82F6", // Blue
-  "#10B981", // Indigo
+  "#6366F1", // Indigo
   "#8B5CF6", // Violet
   "#A855F7", // Purple
   "#D946EF", // Fuchsia

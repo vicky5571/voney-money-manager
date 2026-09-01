@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Plus, Trash2, Edit2, Loader2, Check } from "lucide-react";
 import {
@@ -41,14 +41,26 @@ export function CategoryManagerSheet({
   const [isPending, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
-  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(
+    null,
+  );
   const [error, setError] = useState("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
   const [name, setName] = useState("");
   const [icon, setIcon] = useState(AVAILABLE_CATEGORY_ICONS[0]);
   const [color, setColor] = useState(AVAILABLE_CATEGORY_COLORS[0]);
   const [type, setType] = useState<"expense" | "income">("expense");
+
+  useEffect(() => {
+    if (isOpen && (mode === "create" || mode === "edit")) {
+      const timer = setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, mode]);
 
   const openCreate = () => {
     setName("");
@@ -151,8 +163,8 @@ export function CategoryManagerSheet({
                   {mode === "list"
                     ? "Manage Categories"
                     : mode === "create"
-                    ? "New Category"
-                    : "Edit Category"}
+                      ? "New Category"
+                      : "Edit Category"}
                 </h2>
                 <button
                   type="button"
@@ -278,7 +290,9 @@ export function CategoryManagerSheet({
                       Category Name
                     </label>
                     <input
+                      ref={nameInputRef}
                       type="text"
+                      autoFocus
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Coffee, Groceries, Streaming"
