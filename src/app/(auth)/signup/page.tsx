@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Wallet, Loader2, AlertCircle } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Wallet, Loader2, AlertCircle } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { GoogleAuthButton } from "@/components/google-auth-button";
 
 /**
  * Signup page component providing user registration with display name, email, and password.
@@ -13,9 +14,9 @@ import { createClient } from '@/lib/supabase/client';
  */
 export default function SignUpPage() {
   const router = useRouter();
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -24,7 +25,7 @@ export default function SignUpPage() {
     setErrorMessage(null);
 
     if (password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters.');
+      setErrorMessage("Password must be at least 6 characters.");
       return;
     }
 
@@ -48,11 +49,13 @@ export default function SignUpPage() {
         return;
       }
 
-      router.push('/');
+      router.push("/");
       router.refresh();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : 'An unexpected error occurred during signup.'
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred during signup.",
       );
       setIsLoading(false);
     }
@@ -80,10 +83,31 @@ export default function SignUpPage() {
             role="alert"
             className="flex items-start gap-2 p-3 mb-5 text-sm text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 rounded-xl"
           >
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <AlertCircle
+              className="w-5 h-5 flex-shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
             <span>{errorMessage}</span>
           </div>
         )}
+
+        {/* Google OAuth Button */}
+        <GoogleAuthButton
+          text="Sign up with Google"
+          onError={(err) => setErrorMessage(err)}
+        />
+
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200 dark:border-zinc-800" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white dark:bg-zinc-900 px-3 text-gray-400 font-medium">
+              or sign up with email
+            </span>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
@@ -158,7 +182,7 @@ export default function SignUpPage() {
                 <span>Creating Account...</span>
               </span>
             ) : (
-              'Create Account'
+              "Create Account"
             )}
           </button>
         </form>
@@ -166,7 +190,7 @@ export default function SignUpPage() {
 
       {/* Redirect link */}
       <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
-        Already have an account?{' '}
+        Already have an account?{" "}
         <Link
           href="/login"
           className="font-semibold text-emerald-500 dark:text-emerald-400 hover:underline inline-flex items-center min-h-[44px]"

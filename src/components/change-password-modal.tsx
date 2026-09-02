@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   KeyRound,
   Eye,
@@ -10,21 +10,26 @@ import {
   CheckCircle2,
   X,
   Lock,
-} from "lucide-react";
-import { changePasswordAction } from "@/app/actions/auth";
+} from 'lucide-react';
+import {
+  changePasswordAction,
+  setInitialPasswordAction,
+} from '@/app/actions/auth';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
+  isOAuthUser?: boolean;
 }
 
 export function ChangePasswordModal({
   isOpen,
   onClose,
+  isOAuthUser = false,
 }: ChangePasswordModalProps) {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -37,9 +42,9 @@ export function ChangePasswordModal({
   if (!isOpen) return null;
 
   const handleReset = () => {
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
     setErrorMessage(null);
     setIsSuccess(false);
   };
@@ -53,34 +58,39 @@ export function ChangePasswordModal({
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!currentPassword) {
-      setErrorMessage("Please enter your current password");
+    if (!isOAuthUser && !currentPassword) {
+      setErrorMessage('Please enter your current password');
       return;
     }
     if (newPassword.length < 6) {
-      setErrorMessage("New password must be at least 6 characters");
+      setErrorMessage('New password must be at least 6 characters');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setErrorMessage("New passwords do not match");
+      setErrorMessage('New passwords do not match');
       return;
     }
-    if (currentPassword === newPassword) {
-      setErrorMessage("New password must be different from current password");
+    if (!isOAuthUser && currentPassword === newPassword) {
+      setErrorMessage('New password must be different from current password');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const result = await changePasswordAction({
-        currentPassword,
-        newPassword,
-        confirmPassword,
-      });
+      const result = isOAuthUser
+        ? await setInitialPasswordAction({
+            newPassword,
+            confirmPassword,
+          })
+        : await changePasswordAction({
+            currentPassword,
+            newPassword,
+            confirmPassword,
+          });
 
       if (!result.success) {
-        setErrorMessage(result.error || "Failed to update password");
+        setErrorMessage(result.error || 'Failed to update password');
         setIsLoading(false);
         return;
       }
@@ -91,7 +101,7 @@ export function ChangePasswordModal({
       }, 1600);
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred",
+        err instanceof Error ? err.message : 'An unexpected error occurred'
       );
     } finally {
       setIsLoading(false);
@@ -119,10 +129,12 @@ export function ChangePasswordModal({
           </div>
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-              Change Password
+              {isOAuthUser ? 'Set Account Password' : 'Change Password'}
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Update your account password securely
+              {isOAuthUser
+                ? 'Create a password to enable email & password sign-in'
+                : 'Update your account password securely'}
             </p>
           </div>
         </div>
@@ -134,10 +146,12 @@ export function ChangePasswordModal({
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
-              Password Changed Successfully!
+              {isOAuthUser ? 'Password Set Successfully!' : 'Password Changed Successfully!'}
             </h3>
             <p className="text-xs text-emerald-700 dark:text-emerald-300">
-              Your password has been updated.
+              {isOAuthUser
+                ? 'You can now sign in using your email and new password.'
+                : 'Your password has been updated.'}
             </p>
           </div>
         ) : (
@@ -153,46 +167,48 @@ export function ChangePasswordModal({
               </div>
             )}
 
-            {/* Current Password Field */}
-            <div>
-              <label
-                htmlFor="current-password"
-                className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5"
-              >
-                Current Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <input
-                  id="current-password"
-                  type={showCurrentPassword ? "text" : "password"}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter current password"
-                  required
-                  disabled={isLoading}
-                  autoComplete="current-password"
-                  className="w-full h-11 pl-10 pr-11 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors disabled:opacity-60"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword((prev) => !prev)}
-                  tabIndex={-1}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                  aria-label={
-                    showCurrentPassword ? "Hide password" : "Show password"
-                  }
+            {/* Current Password Field (Only for non-OAuth users) */}
+            {!isOAuthUser && (
+              <div>
+                <label
+                  htmlFor="current-password"
+                  className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5"
                 >
-                  {showCurrentPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
+                  Current Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    id="current-password"
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    required
+                    disabled={isLoading}
+                    autoComplete="current-password"
+                    className="w-full h-11 pl-10 pr-11 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-colors disabled:opacity-60"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword((prev) => !prev)}
+                    tabIndex={-1}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    aria-label={
+                      showCurrentPassword ? 'Hide password' : 'Show password'
+                    }
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* New Password Field */}
             <div>
@@ -200,7 +216,7 @@ export function ChangePasswordModal({
                 htmlFor="new-password"
                 className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5"
               >
-                New Password
+                {isOAuthUser ? 'Password' : 'New Password'}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
@@ -208,7 +224,7 @@ export function ChangePasswordModal({
                 </div>
                 <input
                   id="new-password"
-                  type={showNewPassword ? "text" : "password"}
+                  type={showNewPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="At least 6 characters"
@@ -223,7 +239,7 @@ export function ChangePasswordModal({
                   tabIndex={-1}
                   className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                   aria-label={
-                    showNewPassword ? "Hide password" : "Show password"
+                    showNewPassword ? 'Hide password' : 'Show password'
                   }
                 >
                   {showNewPassword ? (
@@ -241,7 +257,7 @@ export function ChangePasswordModal({
                 htmlFor="confirm-new-password"
                 className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5"
               >
-                Confirm New Password
+                {isOAuthUser ? 'Confirm Password' : 'Confirm New Password'}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
@@ -249,10 +265,10 @@ export function ChangePasswordModal({
                 </div>
                 <input
                   id="confirm-new-password"
-                  type={showConfirmPassword ? "text" : "password"}
+                  type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter new password"
+                  placeholder="Re-enter password"
                   required
                   disabled={isLoading}
                   autoComplete="new-password"
@@ -264,7 +280,7 @@ export function ChangePasswordModal({
                   tabIndex={-1}
                   className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                   aria-label={
-                    showConfirmPassword ? "Hide password" : "Show password"
+                    showConfirmPassword ? 'Hide password' : 'Show password'
                   }
                 >
                   {showConfirmPassword ? (
@@ -294,10 +310,10 @@ export function ChangePasswordModal({
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Updating...</span>
+                    <span>{isOAuthUser ? 'Setting...' : 'Updating...'}</span>
                   </>
                 ) : (
-                  "Update Password"
+                  isOAuthUser ? 'Set Password' : 'Update Password'
                 )}
               </button>
             </div>

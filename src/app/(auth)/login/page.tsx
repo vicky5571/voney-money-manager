@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import React, { useState, Suspense } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Wallet, Loader2, AlertCircle } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import React, { useState, Suspense } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Wallet, Loader2, AlertCircle } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { GoogleAuthButton } from "@/components/google-auth-button";
 
 /**
  * Login form component handling authentication input and submission.
@@ -12,11 +13,13 @@ import { createClient } from '@/lib/supabase/client';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const urlError = searchParams.get('error');
+  const urlError = searchParams.get("error");
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState<string | null>(urlError || null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    urlError || null,
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -37,11 +40,13 @@ function LoginForm() {
         return;
       }
 
-      router.push('/');
+      router.push("/");
       router.refresh();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : 'An unexpected error occurred during sign in.'
+        err instanceof Error
+          ? err.message
+          : "An unexpected error occurred during sign in.",
       );
       setIsLoading(false);
     }
@@ -69,10 +74,31 @@ function LoginForm() {
             role="alert"
             className="flex items-start gap-2 p-3 mb-5 text-sm text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 rounded-xl"
           >
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <AlertCircle
+              className="w-5 h-5 flex-shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
             <span>{errorMessage}</span>
           </div>
         )}
+
+        {/* Google OAuth Button */}
+        <GoogleAuthButton
+          text="Continue with Google"
+          onError={(err) => setErrorMessage(err)}
+        />
+
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200 dark:border-zinc-800" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white dark:bg-zinc-900 px-3 text-gray-400 font-medium">
+              or continue with email
+            </span>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
@@ -134,7 +160,7 @@ function LoginForm() {
                 <span>Logging in...</span>
               </span>
             ) : (
-              'Log In'
+              "Log In"
             )}
           </button>
         </form>
@@ -142,7 +168,7 @@ function LoginForm() {
 
       {/* Redirect link */}
       <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
-        Don&apos;t have an account?{' '}
+        Don&apos;t have an account?{" "}
         <Link
           href="/signup"
           className="font-semibold text-emerald-500 dark:text-emerald-400 hover:underline inline-flex items-center min-h-[44px]"

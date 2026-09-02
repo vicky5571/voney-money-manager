@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   changePasswordSchema,
+  setInitialPasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
 } from "../validations/auth";
@@ -76,7 +77,35 @@ test("changePasswordSchema fails if new password is identical to current passwor
   }
 });
 
-// 2. Forgot Password Schema Tests
+// 2. Set Initial Password Schema Tests (OAuth)
+test("setInitialPasswordSchema succeeds with valid password and confirmation", () => {
+  const result = setInitialPasswordSchema.safeParse({
+    newPassword: "secureOAuthPass123",
+    confirmPassword: "secureOAuthPass123",
+  });
+  assert.equal(result.success, true);
+});
+
+test("setInitialPasswordSchema fails when passwords do not match", () => {
+  const result = setInitialPasswordSchema.safeParse({
+    newPassword: "secureOAuthPass123",
+    confirmPassword: "differentOAuthPass",
+  });
+  assert.equal(result.success, false);
+  if (!result.success) {
+    assert.equal(result.error.issues[0]?.message, "New passwords do not match");
+  }
+});
+
+test("setInitialPasswordSchema fails when password is less than 6 characters", () => {
+  const result = setInitialPasswordSchema.safeParse({
+    newPassword: "123",
+    confirmPassword: "123",
+  });
+  assert.equal(result.success, false);
+});
+
+// 3. Forgot Password Schema Tests
 test("forgotPasswordSchema succeeds with valid email", () => {
   const result = forgotPasswordSchema.safeParse({
     email: "user@example.com",
@@ -98,7 +127,7 @@ test("forgotPasswordSchema fails with empty email", () => {
   assert.equal(result.success, false);
 });
 
-// 3. Reset Password Schema Tests
+// 4. Reset Password Schema Tests
 test("resetPasswordSchema succeeds with matching >= 6 char passwords", () => {
   const result = resetPasswordSchema.safeParse({
     newPassword: "securePassword789",

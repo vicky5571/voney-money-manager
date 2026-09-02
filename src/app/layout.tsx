@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { PWAProvider } from "@/components/pwa-provider";
+import { KeyboardAvoidance } from "@/components/keyboard-avoidance";
 import "./globals.css";
 
 // Analytics + Sentry placeholder — install @vercel/analytics & @sentry/nextjs when ready
@@ -41,6 +42,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   viewportFit: "cover",
   themeColor: "#059669",
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -50,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        <KeyboardAvoidance />
         <PWAProvider>{children}</PWAProvider>
         {/* <Analytics /> */}
       </body>
