@@ -129,6 +129,27 @@ export async function deleteAccount(id: string) {
   revalidatePath("/transactions");
 }
 
+export async function reorderAccounts(orderedIds: string[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const updates = orderedIds.map((id, index) =>
+    supabase
+      .from("accounts")
+      .update({ sort_order: index })
+      .eq("id", id)
+      .eq("user_id", user.id),
+  );
+
+  await Promise.all(updates);
+
+  revalidatePath("/accounts");
+  revalidatePath("/");
+}
+
 export async function adjustAccountBalance(
   accountId: string,
   newBalance: number,

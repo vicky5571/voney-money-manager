@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,11 +12,19 @@ import {
   Tags,
   ChevronRight,
   SlidersHorizontal,
+  GripVertical,
 } from "lucide-react";
+import {
+  motion,
+  AnimatePresence,
+  useDragControls,
+  type DragControls,
+} from "motion/react";
 import {
   createAccount,
   updateAccount,
   deleteAccount,
+  reorderAccounts,
 } from "@/app/actions/accounts";
 import { AccountCard } from "@/components/account-card";
 import {
@@ -24,7 +32,17 @@ import {
   type CategoryItem,
 } from "@/components/category-manager-sheet";
 import { BalanceAdjustmentModal } from "@/components/balance-adjustment-modal";
-import { formatCurrency, cn } from "@/lib/utils";
+import {
+  formatCurrency,
+  cn,
+  sortAccountsByOrder,
+  saveAccountOrder,
+} from "@/lib/utils";
+import {
+  hapticLight,
+  hapticMedium,
+  hapticSelection,
+} from "@/lib/capacitor";
 
 export interface AccountData {
   id: string;
@@ -38,6 +56,15 @@ interface AccountsClientProps {
   accounts: AccountData[];
   categories?: CategoryItem[];
   initialEditId?: string;
+}
+
+interface SlotRect {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  centerX: number;
+  centerY: number;
 }
 
 export function AccountsClient({
@@ -73,6 +100,37 @@ export function AccountsClient({
     type: initialAccount?.type || "cash",
     balance: "",
   });
+
+  // --- Wallet reorder state (mirrors CategoryGrid) ---
+  const [isEditing, setIsEditing] = useState(false);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [items, setItems] = useState<AccountData[]>(() =>
+    sortAccountsByOrder(accounts),
+  );
+  const [prevAccounts, setPrevAccounts] = useState<AccountData[]>(accounts);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const slotRectsRef = useRef<SlotRect[]>([]);
+  const reorderedItemsRef = useRef<AccountData[] | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressTriggeredRef = useRef(false);
+  const wasDraggingRef = useRef(false);
+  const lastDragEndTimeRef = useRef(0);
+  const pointerStartRef = useRef<{ x: number; y: number; id: string } | null>(
+    null,
+  );
+
+  if (accounts !== prevAccounts) {
+    setPrevAccounts(accounts);
+    setItems(sortAccountsByOrder(accounts));
+    setIsEditing(false);
+    setActiveDragId(null);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
 
   const totalBalance = accounts.reduce(
     (sum, account) => sum + account.balance,
@@ -146,6 +204,220 @@ export function AccountsClient({
     });
   };
 
+  // ----- Wallet reorder helpers -----
+  const measureSlotRects = useCallback(() => {
+    if (!containerRef.current) return;
+    const children = Array.from(containerRef.current.children);
+    slotRectsRef.current = children.map((child) => {
+      const rect = child.getBoundingClientRect();
+      return {
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        centerX: rect.left + rect.width / 2,
+        centerY: rect.top + rect.height / 2,
+      };
+    });
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setIsEditing(false);
+    setActiveDragId(null);
+    wasDraggingRef.current = true;
+    lastDragEndTimeRef.current = Date.now() + 600;
+    hapticLight();
+    const finalItems = reorderedItemsRef.current ?? items;
+    if (reorderedItemsRef.current) {
+      saveAccountOrder(finalItems.map((c) => c.id));
+      reorderAccounts(finalItems.map((c) => c.id)).catch(() => {});
+      reorderedItemsRef.current = null;
+    }
+  }, [items]);
+
+  useEffect(() => {
+    if (!activeDragId && !isEditing) return;
+    const handleGlobalPointerUp = () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+      handleDragEnd();
+    };
+    window.addEventListener("pointerup", handleGlobalPointerUp);
+    window.addEventListener("pointercancel", handleGlobalPointerUp);
+    window.addEventListener("touchend", handleGlobalPointerUp);
+    return () => {
+      window.removeEventListener("pointerup", handleGlobalPointerUp);
+      window.removeEventListener("pointercancel", handleGlobalPointerUp);
+      window.removeEventListener("touchend", handleGlobalPointerUp);
+    };
+  }, [activeDragId, isEditing, handleDragEnd]);
+
+  const handleStartHold = useCallback(
+    (id: string, e: React.PointerEvent, controls: DragControls) => {
+      // Don't start drag when tapping the Adjust Balance button
+      const target = e.target as HTMLElement;
+      if (target.closest('button[aria-label^="Adjust"]')) {
+        pointerStartRef.current = { x: e.clientX, y: e.clientY, id: "__adjust__" };
+        return;
+      }
+
+      pointerStartRef.current = { x: e.clientX, y: e.clientY, id };
+      isLongPressTriggeredRef.current = false;
+      wasDraggingRef.current = false;
+
+      if (isEditing) {
+        wasDraggingRef.current = true;
+        lastDragEndTimeRef.current = Date.now() + 1000;
+        measureSlotRects();
+        controls.start(e);
+        setActiveDragId(id);
+        hapticLight();
+        return;
+      }
+
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = setTimeout(() => {
+        isLongPressTriggeredRef.current = true;
+        wasDraggingRef.current = true;
+        lastDragEndTimeRef.current = Date.now() + 1000;
+        setIsEditing(true);
+        setActiveDragId(id);
+        measureSlotRects();
+        hapticMedium();
+        controls.start(e);
+      }, 350);
+    },
+    [isEditing, measureSlotRects],
+  );
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (pointerStartRef.current) {
+      const dist = Math.hypot(
+        e.clientX - pointerStartRef.current.x,
+        e.clientY - pointerStartRef.current.y,
+      );
+      if (dist > 8 && !isLongPressTriggeredRef.current) {
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+      }
+    }
+  }, []);
+
+  const handlePointerUp = useCallback(
+    (id: string, account: AccountData, e?: React.PointerEvent) => {
+      if (pointerStartRef.current?.id === "__adjust__") {
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+        pointerStartRef.current = null;
+        return;
+      }
+      // Also guard if the release was on the Adjust button
+      if (e) {
+        const t = e.target as HTMLElement;
+        if (t.closest('button[aria-label^="Adjust"]')) {
+          if (longPressTimerRef.current) {
+            clearTimeout(longPressTimerRef.current);
+            longPressTimerRef.current = null;
+          }
+          pointerStartRef.current = null;
+          return;
+        }
+      }
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+      if (isLongPressTriggeredRef.current || activeDragId) {
+        handleDragEnd();
+        pointerStartRef.current = null;
+        return;
+      }
+      const isLockedByDrag = Date.now() < lastDragEndTimeRef.current;
+      const didDragOrLongPress = wasDraggingRef.current || isLockedByDrag;
+      if (!didDragOrLongPress && !isEditing) {
+        openEdit(account);
+        hapticLight();
+      }
+      pointerStartRef.current = null;
+    },
+    [activeDragId, handleDragEnd, isEditing],
+  );
+
+  const handlePointerCancel = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (activeDragId || isEditing) {
+      handleDragEnd();
+    }
+    pointerStartRef.current = null;
+  }, [activeDragId, isEditing, handleDragEnd]);
+
+  const handleDragStart = useCallback(
+    (id: string) => {
+      wasDraggingRef.current = true;
+      lastDragEndTimeRef.current = Date.now() + 1000;
+      setActiveDragId(id);
+      measureSlotRects();
+    },
+    [measureSlotRects],
+  );
+
+  const handleDrag = useCallback(
+    (draggedId: string, point: { x: number; y: number }) => {
+      wasDraggingRef.current = true;
+      lastDragEndTimeRef.current = Date.now() + 1000;
+      const slotRects = slotRectsRef.current;
+      if (!slotRects.length) return;
+
+      let targetIndex = -1;
+      for (let i = 0; i < slotRects.length; i++) {
+        const slot = slotRects[i];
+        if (
+          point.x >= slot.left &&
+          point.x <= slot.right &&
+          point.y >= slot.top &&
+          point.y <= slot.bottom
+        ) {
+          targetIndex = i;
+          break;
+        }
+      }
+      if (targetIndex === -1) {
+        let minDistance = Infinity;
+        for (let i = 0; i < slotRects.length; i++) {
+          const slot = slotRects[i];
+          const dist = Math.hypot(point.x - slot.centerX, point.y - slot.centerY);
+          if (dist < minDistance && dist < 140) {
+            minDistance = dist;
+            targetIndex = i;
+          }
+        }
+      }
+      if (targetIndex === -1) return;
+
+      setItems((currentList) => {
+        const draggedIndex = currentList.findIndex((c) => c.id === draggedId);
+        if (draggedIndex === -1 || draggedIndex === targetIndex)
+          return currentList;
+        const reordered = [...currentList];
+        const [moved] = reordered.splice(draggedIndex, 1);
+        reordered.splice(targetIndex, 0, moved);
+        reorderedItemsRef.current = reordered;
+        hapticSelection();
+        return reordered;
+      });
+    },
+    [],
+  );
+
   return (
     <div className="p-4 space-y-6 pb-24">
       {/* Top Header Card */}
@@ -200,7 +472,19 @@ export function AccountsClient({
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">Your Wallets</h3>
+          <div>
+            <h3 className="font-semibold text-gray-900">Your Wallets</h3>
+            {items.length > 1 && !isEditing && (
+              <p className="text-[11px] text-gray-400">
+                Hold a wallet to reorder
+              </p>
+            )}
+            {isEditing && (
+              <p className="text-[11px] text-emerald-600 font-medium">
+                Drag to reorder
+              </p>
+            )}
+          </div>
           <button
             onClick={openAdd}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-xs font-semibold hover:bg-emerald-500 active:scale-95 transition-all"
@@ -210,25 +494,36 @@ export function AccountsClient({
           </button>
         </div>
 
-        {accounts.length === 0 ? (
+        {items.length === 0 ? (
           <div className="text-center py-10 bg-gray-50 rounded-2xl border border-gray-100">
             <p className="text-gray-500 text-sm">
               No accounts yet. Add your first account.
             </p>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {accounts.map((account) => (
-              <AccountCard
-                key={account.id}
-                id={account.id}
-                name={account.name}
-                type={account.type}
-                balance={account.balance}
-                onClick={() => openEdit(account)}
-                onAdjust={() => setAdjustingAccount(account)}
-              />
-            ))}
+          <div ref={containerRef} className="grid gap-4">
+            {items.map((account, index) => {
+              const isDragging = activeDragId === account.id;
+              const dragControls = useDragControls();
+              return (
+                <WalletRow
+                  key={account.id}
+                  account={account}
+                  index={index}
+                  isEditing={isEditing}
+                  isDragging={isDragging}
+                  dragControls={dragControls}
+                  onStartHold={handleStartHold}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerCancel}
+                  onDragStart={handleDragStart}
+                  onDrag={handleDrag}
+                  onDragEnd={handleDragEnd}
+                  onAdjust={() => setAdjustingAccount(account)}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -406,5 +701,121 @@ export function AccountsClient({
         onSuccess={() => router.refresh()}
       />
     </div>
+  );
+}
+
+function WalletRow({
+  account,
+  index,
+  isEditing,
+  isDragging,
+  dragControls,
+  onStartHold,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
+  onDragStart,
+  onDrag,
+  onDragEnd,
+  onAdjust,
+}: {
+  account: AccountData;
+  index: number;
+  isEditing: boolean;
+  isDragging: boolean;
+  dragControls: DragControls;
+  onStartHold: (id: string, e: React.PointerEvent, controls: DragControls) => void;
+  onPointerMove: (e: React.PointerEvent) => void;
+  onPointerUp: (id: string, account: AccountData, e?: React.PointerEvent) => void;
+  onPointerCancel: () => void;
+  onDragStart: (id: string) => void;
+  onDrag: (id: string, point: { x: number; y: number }) => void;
+  onDragEnd: () => void;
+  onAdjust: () => void;
+}) {
+  return (
+    <motion.div
+      layout
+      transition={{ layout: { type: "spring", stiffness: 320, damping: 30 } }}
+      drag={isEditing}
+      dragControls={dragControls}
+      dragListener={isEditing}
+      dragSnapToOrigin
+      dragElastic={0.08}
+      whileDrag={{
+        scale: 1.015,
+        zIndex: 50,
+        boxShadow: "0 12px 28px rgba(0,0,0,0.14)",
+      }}
+      onDragStart={() => onDragStart(account.id)}
+      onDrag={(event, info) => {
+        let clientX = info.point.x;
+        let clientY = info.point.y;
+        if (event && "clientX" in event && typeof (event as MouseEvent).clientX === "number") {
+          clientX = (event as MouseEvent).clientX;
+          clientY = (event as MouseEvent).clientY;
+        } else if (event && "touches" in event && (event as TouchEvent).touches?.length > 0) {
+          clientX = (event as TouchEvent).touches[0].clientX;
+          clientY = (event as TouchEvent).touches[0].clientY;
+        }
+        onDrag(account.id, { x: clientX, y: clientY });
+      }}
+      onDragEnd={onDragEnd}
+      onPointerDown={(e) => onStartHold(account.id, e, dragControls)}
+      onPointerMove={onPointerMove}
+      onPointerUp={(e) => onPointerUp(account.id, account, e)}
+      onPointerCancel={onPointerCancel}
+      animate={
+        isEditing && !isDragging
+          ? {
+              rotate: [0, -0.35, 0.35, -0.35, 0],
+              transition: {
+                repeat: Infinity,
+                duration: 0.5,
+                ease: "easeInOut",
+                delay: (index % 3) * 0.03,
+              },
+            }
+          : { rotate: 0, transition: { duration: 0.2, ease: "easeOut" } }
+      }
+      className={cn(
+        "relative rounded-2xl touch-none select-none will-change-transform",
+        isEditing || isDragging
+          ? "ring-2 ring-emerald-400/50 shadow-sm"
+          : "ring-0 ring-transparent",
+      )}
+      style={{ transition: "box-shadow 0.2s ease, ring 0.2s ease" } as React.CSSProperties}
+    >
+      <div className="relative flex items-center">
+        <AnimatePresence>
+          {isEditing && (
+            <motion.div
+              key="grip"
+              initial={{ opacity: 0, x: -8, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -8, scale: 0.9 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute left-[5px] top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            >
+              <GripVertical size={16} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <motion.div
+          className="flex-1"
+          animate={{ paddingLeft: isEditing ? 24 : 0 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <AccountCard
+            id={account.id}
+            name={account.name}
+            type={account.type}
+            balance={account.balance}
+            onClick={() => {}}
+            onAdjust={onAdjust}
+          />
+        </motion.div>
+      </div>
+    </motion.div>
   );
 }

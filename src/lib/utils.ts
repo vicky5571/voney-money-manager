@@ -80,6 +80,7 @@ export function formatDate(date: Date | string): string {
 }
 
 const CATEGORY_ORDER_KEY = "voney_category_order";
+const ACCOUNT_ORDER_KEY = "voney_account_order";
 
 /** Retrieve user-customized category ID ordering from localStorage */
 export function getSavedCategoryOrder(): string[] {
@@ -120,6 +121,51 @@ export function sortCategoriesByOrder<T extends { id: string }>(
   });
 
   return [...categories].sort((a, b) => {
+    const aIndex = orderMap.has(a.id) ? orderMap.get(a.id)! : 9999;
+    const bIndex = orderMap.has(b.id) ? orderMap.get(b.id)! : 9999;
+    return aIndex - bIndex;
+  });
+}
+
+/** Retrieve user-customized account ID ordering from localStorage */
+export function getSavedAccountOrder(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(ACCOUNT_ORDER_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Save user-customized account ID ordering to localStorage */
+export function saveAccountOrder(orderedIds: string[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(ACCOUNT_ORDER_KEY, JSON.stringify(orderedIds));
+    window.dispatchEvent(
+      new CustomEvent("voney:account_order_updated", { detail: orderedIds }),
+    );
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+/** Sort an array of accounts by user-customized ID order */
+export function sortAccountsByOrder<T extends { id: string }>(
+  accounts: T[],
+  orderIds?: string[],
+): T[] {
+  const ids =
+    orderIds && orderIds.length > 0 ? orderIds : getSavedAccountOrder();
+  if (!ids.length) return accounts;
+
+  const orderMap = new Map<string, number>();
+  ids.forEach((id, index) => {
+    orderMap.set(id, index);
+  });
+
+  return [...accounts].sort((a, b) => {
     const aIndex = orderMap.has(a.id) ? orderMap.get(a.id)! : 9999;
     const bIndex = orderMap.has(b.id) ? orderMap.get(b.id)! : 9999;
     return aIndex - bIndex;
