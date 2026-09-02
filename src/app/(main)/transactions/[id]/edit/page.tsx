@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -119,8 +119,9 @@ export default function EditTransactionPage() {
     };
   }, [transactionId]);
 
-  const filteredCategories = sortCategoriesByOrder(
-    categories.filter((c) => c.type === type),
+  const filteredCategories = useMemo(
+    () => sortCategoriesByOrder(categories.filter((c) => c.type === type)),
+    [categories, type],
   );
 
   // Mirror add page's resilient amount parsing (handles trailing operators)

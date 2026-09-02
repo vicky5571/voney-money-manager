@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Sparkles,
   TrendingUp,
@@ -30,22 +30,21 @@ const PRESET_TARGETS = [10, 15, 20, 25, 30, 40, 50];
 export function FinancialHealthCard({ health, income }: FinancialHealthCardProps) {
   const [showDetail, setShowDetail] = useState(false);
   const [showTargetModal, setShowTargetModal] = useState(false);
-  const [targetPct, setTargetPct] = useState<number>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('voney_savings_target_pct');
-        if (saved) {
-          const parsed = parseInt(saved, 10);
-          if (!isNaN(parsed) && parsed >= 1 && parsed <= 95) {
-            return parsed;
-          }
+  const [targetPct, setTargetPct] = useState<number>(20);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('voney_savings_target_pct');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= 1 && parsed <= 95) {
+          setTargetPct(parsed);
+          setTempTargetPct(parsed);
         }
-      } catch {
-        // Ignore
       }
+    } catch {
+      // Ignore
     }
-    return 20;
-  });
+  }, []);
   const [tempTargetPct, setTempTargetPct] = useState<number>(targetPct);
 
   const handleSaveTarget = (pct: number) => {

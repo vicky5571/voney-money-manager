@@ -159,18 +159,15 @@ export function DashboardClient({
     () => recentTransactions.filter((tx) => !deletedTxIds.includes(tx.id)),
     [recentTransactions, deletedTxIds],
   );
-  const [offlineCount, setOfflineCount] = useState<number>(() =>
-    typeof window !== "undefined" ? getOfflineQueueCount() : 0,
-  );
+  const [offlineCount, setOfflineCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Listen for offline queue changes and network status
+  // Listen for offline queue changes and network status (deferred read)
   useEffect(() => {
     const updateQueue = () => {
-      if (typeof window !== "undefined") {
-        setOfflineCount(getOfflineQueueCount());
-      }
+      setOfflineCount(getOfflineQueueCount());
     };
+    // Initial load after mount (avoids blocking first paint)
     updateQueue();
     window.addEventListener("voney:offline-queue-updated", updateQueue);
     window.addEventListener("voney:offline-synced", updateQueue);

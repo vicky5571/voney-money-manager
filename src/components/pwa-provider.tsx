@@ -17,30 +17,14 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PWAProvider({ children }: { children: React.ReactNode }) {
-  const [isOnline, setIsOnline] = useState<boolean>(() =>
-    typeof window !== "undefined" ? navigator.onLine : true,
-  );
-  const [offlineCount, setOfflineCount] = useState<number>(() =>
-    getOfflineQueueCount(),
-  );
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [offlineCount, setOfflineCount] = useState<number>(0);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
-  const [isIOS] = useState<boolean>(() =>
-    typeof window !== "undefined"
-      ? /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase())
-      : false,
-  );
-  const [isStandalone] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      Boolean(
-        (window.navigator as unknown as { standalone?: boolean }).standalone,
-      )
-    );
-  });
+  const [isIOS, setIsIOS] = useState<boolean>(false);
+  const [isStandalone, setIsStandalone] = useState<boolean>(false);
 
   const checkQueue = useCallback(() => {
     setOfflineCount(getOfflineQueueCount());
@@ -59,15 +43,24 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
   }, [checkQueue]);
 
   useEffect(() => {
+    // Hydrate client-only values after mount to avoid blocking first paint and hydration mismatches
+    setIsOnline(navigator.onLine);
+    setIsIOS(/iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()));
+    setIsStandalone(
+      window.matchMedia("(display-mode: standalone)").matches ||
+        Boolean(
+          (window.navigator as unknown as { standalone?: boolean }).standalone,
+        ),
+    );
+    setOfflineCount(getOfflineQueueCount());
+
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       navigator.serviceWorker
         .register("/sw.js")
         .catch((err) => console.error("SW registration failed:", err));
     }
 
-    const hasDismissed =
-      typeof window !== "undefined" &&
-      localStorage.getItem("voney_pwa_dismissed");
+    const hasDismissed = localStorage.getItem("voney_pwa_dismissed");
 
     // 1. Listen for BeforeInstallPrompt event
     const onBeforeInstallPrompt = (e: Event) => {

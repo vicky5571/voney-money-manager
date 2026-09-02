@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -54,8 +54,17 @@ export function ProfileClient({
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
 
-  const offlineCount =
-    typeof window !== "undefined" ? getOfflineQueueCount() : 0;
+  const [offlineCount, setOfflineCount] = useState(0);
+  useEffect(() => {
+    setOfflineCount(getOfflineQueueCount());
+    const handler = () => setOfflineCount(getOfflineQueueCount());
+    window.addEventListener("voney:offline-queue-updated", handler);
+    window.addEventListener("voney:offline-synced", handler);
+    return () => {
+      window.removeEventListener("voney:offline-queue-updated", handler);
+      window.removeEventListener("voney:offline-synced", handler);
+    };
+  }, []);
 
   const handleSaveName = async () => {
     if (!nameInput.trim()) {

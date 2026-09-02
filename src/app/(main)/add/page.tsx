@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -94,8 +94,9 @@ export default function AddTransactionPage() {
     loadData();
   }, []);
 
-  const filteredCategories = sortCategoriesByOrder(
-    categories.filter((c) => c.type === type),
+  const filteredCategories = useMemo(
+    () => sortCategoriesByOrder(categories.filter((c) => c.type === type)),
+    [categories, type],
   );
 
   // Parse amount evaluating any pending simple math

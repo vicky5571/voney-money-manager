@@ -171,17 +171,6 @@ export function CategoryGrid({
   const pointerStartRef = useRef<{ x: number; y: number; id: string } | null>(
     null,
   );
-  const [prevCategories, setPrevCategories] =
-    useState<CategoryGridItem[]>(categories);
-
-  // Sync internal items whenever categories prop changes (React 19 render adjustment pattern)
-  if (categories !== prevCategories) {
-    setPrevCategories(categories);
-    setItems(categories);
-    setIsEditing(false);
-    setActiveDragId(null);
-  }
-
   // Cleanup long press timer on unmount
   useEffect(() => {
     return () => {
@@ -190,6 +179,13 @@ export function CategoryGrid({
       }
     };
   }, []);
+
+  // Sync internal items whenever categories prop changes (effect, not render phase)
+  useEffect(() => {
+    setItems(categories);
+    setIsEditing(false);
+    setActiveDragId(null);
+  }, [categories]);
 
   const handleDragEnd = useCallback(() => {
     setIsEditing(false);

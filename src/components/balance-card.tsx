@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -15,10 +15,13 @@ export function BalanceCard({
   income,
   expense,
 }: BalanceCardProps) {
-  const [showBalance, setShowBalance] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.localStorage.getItem("voney:show-balance") !== "false";
-  });
+  const [showBalance, setShowBalance] = useState(true);
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("voney:show-balance");
+      if (saved === "false") setShowBalance(false);
+    } catch {}
+  }, []);
 
   const toggleBalance = () => {
     setShowBalance((visible) => {

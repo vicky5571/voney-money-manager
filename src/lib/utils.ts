@@ -82,20 +82,44 @@ export function formatDate(date: Date | string): string {
 const CATEGORY_ORDER_KEY = "voney_category_order";
 const ACCOUNT_ORDER_KEY = "voney_account_order";
 
-/** Retrieve user-customized category ID ordering from localStorage */
+let cachedCategoryOrder: string[] | null = null;
+let cachedAccountOrder: string[] | null = null;
+let listenersAttached = false;
+
+function attachOrderStorageListener() {
+  if (listenersAttached || typeof window === "undefined") return;
+  listenersAttached = true;
+  window.addEventListener("storage", (e) => {
+    if (e.key === CATEGORY_ORDER_KEY) cachedCategoryOrder = null;
+    if (e.key === ACCOUNT_ORDER_KEY) cachedAccountOrder = null;
+  });
+  window.addEventListener("voney:category_order_updated", () => {
+    // keep cache in sync — save already set it, but external tab may have changed
+  });
+  window.addEventListener("voney:account_order_updated", () => {});
+}
+
+/** Retrieve user-customized category ID ordering from localStorage (cached) */
 export function getSavedCategoryOrder(): string[] {
+  if (cachedCategoryOrder !== null) return cachedCategoryOrder;
   if (typeof window === "undefined") return [];
+  attachOrderStorageListener();
   try {
     const raw = localStorage.getItem(CATEGORY_ORDER_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed: string[] = raw ? JSON.parse(raw) : [];
+    cachedCategoryOrder = Array.isArray(parsed) ? parsed : [];
+    return cachedCategoryOrder;
   } catch {
-    return [];
+    cachedCategoryOrder = [];
+    return cachedCategoryOrder;
   }
 }
 
 /** Save user-customized category ID ordering to localStorage */
 export function saveCategoryOrder(orderedIds: string[]): void {
+  cachedCategoryOrder = [...orderedIds];
   if (typeof window === "undefined") return;
+  attachOrderStorageListener();
   try {
     localStorage.setItem(CATEGORY_ORDER_KEY, JSON.stringify(orderedIds));
     window.dispatchEvent(
@@ -127,20 +151,27 @@ export function sortCategoriesByOrder<T extends { id: string }>(
   });
 }
 
-/** Retrieve user-customized account ID ordering from localStorage */
+/** Retrieve user-customized account ID ordering from localStorage (cached) */
 export function getSavedAccountOrder(): string[] {
+  if (cachedAccountOrder !== null) return cachedAccountOrder;
   if (typeof window === "undefined") return [];
+  attachOrderStorageListener();
   try {
     const raw = localStorage.getItem(ACCOUNT_ORDER_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed: string[] = raw ? JSON.parse(raw) : [];
+    cachedAccountOrder = Array.isArray(parsed) ? parsed : [];
+    return cachedAccountOrder;
   } catch {
-    return [];
+    cachedAccountOrder = [];
+    return cachedAccountOrder;
   }
 }
 
 /** Save user-customized account ID ordering to localStorage */
 export function saveAccountOrder(orderedIds: string[]): void {
+  cachedAccountOrder = [...orderedIds];
   if (typeof window === "undefined") return;
+  attachOrderStorageListener();
   try {
     localStorage.setItem(ACCOUNT_ORDER_KEY, JSON.stringify(orderedIds));
     window.dispatchEvent(

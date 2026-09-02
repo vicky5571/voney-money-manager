@@ -107,7 +107,6 @@ export function AccountsClient({
   const [items, setItems] = useState<AccountData[]>(() =>
     sortAccountsByOrder(accounts),
   );
-  const [prevAccounts, setPrevAccounts] = useState<AccountData[]>(accounts);
   const containerRef = useRef<HTMLDivElement>(null);
   const slotRectsRef = useRef<SlotRect[]>([]);
   const reorderedItemsRef = useRef<AccountData[] | null>(null);
@@ -119,12 +118,11 @@ export function AccountsClient({
     null,
   );
 
-  if (accounts !== prevAccounts) {
-    setPrevAccounts(accounts);
+  useEffect(() => {
     setItems(sortAccountsByOrder(accounts));
     setIsEditing(false);
     setActiveDragId(null);
-  }
+  }, [accounts]);
 
   useEffect(() => {
     return () => {

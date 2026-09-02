@@ -94,8 +94,43 @@ export function getOfflineTransferQueue(): OfflineTransferItem[] {
   }
 }
 
+let cachedOfflineCount: number | null = null;
+let offlineListenersAttached = false;
+
+function attachOfflineListeners() {
+  if (offlineListenersAttached || typeof window === "undefined") return;
+  offlineListenersAttached = true;
+  const invalidate = () => { cachedOfflineCount = null; };
+  window.addEventListener("voney:offline-queue-updated", invalidate);
+  window.addEventListener("voney:offline-synced", invalidate);
+  window.addEventListener("storage", (e) => {
+    if (e.key === TX_QUEUE_KEY || e.key === TRANSFER_QUEUE_KEY) cachedOfflineCount = null;
+  });
+}
+
 export function getOfflineQueueCount(): number {
-  return getOfflineTxQueue().length + getOfflineTransferQueue().length;
+  if (cachedOfflineCount !== null) return cachedOfflineCount;
+  if (typeof window === "undefined") return 0;
+  attachOfflineListeners();
+  try {
+    // Fast path: read raw lengths without full validation when possible
+    const rawTx = localStorage.getItem(TX_QUEUE_KEY);
+    const rawTr = localStorage.getItem(TRANSFER_QUEUE_KEY);
+    // If both empty, avoid JSON.parse/filter overhead
+    if (!rawTx && !rawTr) {
+      cachedOfflineCount = 0;
+      return 0;
+    }
+    const count = getOfflineTxQueue().length + getOfflineTransferQueue().length;
+    cachedOfflineCount = count;
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
+function invalidateOfflineCache() {
+  cachedOfflineCount = null;
 }
 
 export function saveOfflineTransaction(
@@ -118,6 +153,7 @@ export function saveOfflineTransaction(
   if (queue.length >= MAX_QUEUE_SIZE) throw new Error('Offline queue full (50 max) - sync or clear first');
   queue.push(newItem);
   localStorage.setItem(TX_QUEUE_KEY, JSON.stringify(queue));
+  invalidateOfflineCache();
   window.dispatchEvent(new CustomEvent('voney:offline-queue-updated'));
   return newItem;
 }
@@ -142,6 +178,7 @@ export function saveOfflineTransfer(
   if (queue.length >= MAX_QUEUE_SIZE) throw new Error('Offline queue full (50 max)');
   queue.push(newItem);
   localStorage.setItem(TRANSFER_QUEUE_KEY, JSON.stringify(queue));
+  invalidateOfflineCache();
   window.dispatchEvent(new CustomEvent('voney:offline-queue-updated'));
   return newItem;
 }
@@ -173,6 +210,7 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
     }
   }
   localStorage.setItem(TX_QUEUE_KEY, JSON.stringify(remainingTxs));
+  invalidateOfflineCache();
 
   const remainingTransfers: OfflineTransferItem[] = [];
   for (const tr of transferQueue) {
@@ -191,6 +229,7 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
     }
   }
   localStorage.setItem(TRANSFER_QUEUE_KEY, JSON.stringify(remainingTransfers));
+  invalidateOfflineCache();
 
   window.dispatchEvent(
     new CustomEvent('voney:offline-synced', {

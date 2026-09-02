@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import {
   X,
   SlidersHorizontal,
@@ -37,10 +37,12 @@ function BalanceAdjustmentContent({
   );
   const [noteInput, setNoteInput] = useState("");
   const [error, setError] = useState("");
-  const [offlineCount] = useState<number>(() =>
-    typeof window !== "undefined" ? getOfflineQueueCount() : 0,
-  );
+  const [offlineCount, setOfflineCount] = useState<number>(0);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setOfflineCount(getOfflineQueueCount());
+  }, []);
 
   const currentBalance = account.balance;
   const parsedNewBalance = parseFloat(newBalanceInput);
