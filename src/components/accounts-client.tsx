@@ -285,7 +285,7 @@ export function AccountsClient({
         measureSlotRects();
         hapticMedium();
         controls.start(e);
-      }, 350);
+      }, 400);
     },
     [isEditing, measureSlotRects],
   );
@@ -777,7 +777,8 @@ function WalletRow({
           : { rotate: 0, transition: { duration: 0.2, ease: "easeOut" } }
       }
       className={cn(
-        "relative rounded-2xl touch-none select-none will-change-transform",
+        "relative rounded-2xl select-none will-change-transform",
+        isEditing || isDragging ? "touch-none" : "touch-pan-y",
         isEditing || isDragging
           ? "ring-2 ring-emerald-400/50 shadow-sm"
           : "ring-0 ring-transparent",

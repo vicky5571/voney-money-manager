@@ -120,7 +120,8 @@ function CategoryCard({
           : { rotate: 0, y: 0 }
       }
       className={cn(
-        "relative flex flex-col items-center justify-center p-3 rounded-2xl select-none min-h-[96px] cursor-pointer touch-none transition-colors outline-none focus:outline-none focus:ring-0",
+        "relative flex flex-col items-center justify-center p-3 rounded-2xl select-none min-h-[96px] cursor-pointer transition-colors outline-none focus:outline-none focus:ring-0",
+        isEditing || isDragging ? "touch-none" : "touch-pan-y",
         isEditing ? "cursor-grab active:cursor-grabbing" : "active:scale-95",
         isEditing || isDragging
           ? "border-2 border-emerald-400/50 bg-white"
@@ -276,7 +277,7 @@ export function CategoryGrid({
         hapticMedium();
         // Immediately connect dragging to the active touch gesture
         controls.start(e);
-      }, 350);
+      }, 400);
     },
     [isEditing, measureSlotRects],
   );
