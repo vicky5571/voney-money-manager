@@ -864,30 +864,32 @@ export function DashboardClient({
       )}
 
       {/* Transaction Detail Sheet */}
-      {selectedTx && (
-        <TransactionDetailSheet
-          isOpen={!!selectedTx}
-          onClose={() => setSelectedTx(null)}
-          onDelete={handleDetailDelete}
-          transaction={{
-            id: selectedTx.id,
-            type: selectedTx.type,
-            amount: selectedTx.amount,
-            note: selectedTx.note,
-            transaction_date: selectedTx.transaction_date,
-            categories: selectedTx.categories
-              ? {
-                  name: selectedTx.categories.name,
-                  icon: selectedTx.categories.icon,
-                  color: selectedTx.categories.color,
-                }
-              : null,
-            accounts: selectedTx.accounts
-              ? { name: selectedTx.accounts.name }
-              : null,
-          }}
-        />
-      )}
+      <TransactionDetailSheet
+        isOpen={!!selectedTx}
+        onClose={() => setSelectedTx(null)}
+        onDelete={handleDetailDelete}
+        transaction={
+          selectedTx
+            ? {
+                id: selectedTx.id,
+                type: selectedTx.type,
+                amount: selectedTx.amount,
+                note: selectedTx.note,
+                transaction_date: selectedTx.transaction_date,
+                categories: selectedTx.categories
+                  ? {
+                      name: selectedTx.categories.name,
+                      icon: selectedTx.categories.icon,
+                      color: selectedTx.categories.color,
+                    }
+                  : null,
+                accounts: selectedTx.accounts
+                  ? { name: selectedTx.accounts.name }
+                  : null,
+              }
+            : null
+        }
+      />
     </div>
   );
 }

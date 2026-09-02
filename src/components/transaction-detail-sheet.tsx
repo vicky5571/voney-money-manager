@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Trash2, Pencil, X, Loader2 } from "lucide-react";
 import { deleteTransaction } from "@/app/actions/transactions";
 import { useRouter } from "next/navigation";
@@ -16,7 +17,7 @@ interface TransactionDetailSheetProps {
     transaction_date: string;
     categories: { name: string; icon: string; color: string } | null;
     accounts: { name: string } | null;
-  };
+  } | null;
   isOpen: boolean;
   onClose: () => void;
   onDelete?: (id: string) => void;
@@ -32,13 +33,19 @@ export function TransactionDetailSheet({
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  if (!isOpen) return null;
+  // Keep reference to last active transaction so exit animation renders smoothly even if parent clears transaction
+  const lastTxRef = useRef(transaction);
+  if (transaction) {
+    lastTxRef.current = transaction;
+  }
+  const currentTx = transaction || lastTxRef.current;
 
   const handleDelete = async () => {
+    if (!currentTx) return;
     setDeleting(true);
     try {
-      await deleteTransaction(transaction.id);
-      onDelete?.(transaction.id);
+      await deleteTransaction(currentTx.id);
+      onDelete?.(currentTx.id);
       onClose();
       router.refresh();
     } catch (err) {
@@ -52,121 +59,139 @@ export function TransactionDetailSheet({
   };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/40 z-40 transition-opacity"
-        onClick={onClose}
-      />
+    <AnimatePresence>
+      {isOpen && currentTx && (
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          {/* Fast Lightweight Backdrop (same as Manage Categories) */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            onClick={onClose}
+          />
 
-      {/* Sheet */}
-      <div className="fixed bottom-16 left-0 right-0 z-50 bg-white rounded-3xl mx-3 px-6 pt-6 pb-8 max-w-[430px] sm:mx-auto animate-slide-up shadow-2xl">
-        {/* Handle bar */}
-        <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-6" />
+          {/* Snappy Lightweight Sheet (same as Manage Categories) */}
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.99 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.99 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10 w-full max-w-[430px] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl px-6 pt-3 pb-[max(env(safe-area-inset-bottom,0px),1.5rem)] sm:pb-6 max-h-[85vh] overflow-y-auto"
+          >
+            {/* Handle bar */}
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4 sm:hidden" />
 
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center"
-              style={{
-                backgroundColor: `${transaction.categories?.color ?? "#6B7280"}15`,
-              }}
-            >
-              <CategoryIcon
-                name={transaction.categories?.icon ?? "Package"}
-                size={24}
-                style={{ color: transaction.categories?.color ?? "#6B7280" }}
-              />
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                  style={{
+                    backgroundColor: `${currentTx.categories?.color ?? "#6B7280"}15`,
+                  }}
+                >
+                  <CategoryIcon
+                    name={currentTx.categories?.icon ?? "Package"}
+                    size={24}
+                    style={{ color: currentTx.categories?.color ?? "#6B7280" }}
+                  />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-gray-900">
+                    {currentTx.categories?.name ?? "Unknown"}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {currentTx.accounts?.name ?? "Unknown Account"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="min-h-[44px] min-w-[44px] -mr-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
             </div>
-            <div>
-              <h3 className="font-semibold text-lg">
-                {transaction.categories?.name ?? "Unknown"}
-              </h3>
-              <p className="text-sm text-gray-500">
-                {transaction.accounts?.name ?? "Unknown Account"}
+
+            {/* Amount */}
+            <div className="text-center mb-5">
+              <p
+                className={`text-3xl font-bold ${
+                  currentTx.type === "income"
+                    ? "text-emerald-500"
+                    : "text-red-500"
+                }`}
+              >
+                {currentTx.type === "income" ? "+" : "-"}
+                {formatCurrency(Number(currentTx.amount))}
+              </p>
+              <p className="text-sm text-gray-400 mt-1">
+                {formatDate(currentTx.transaction_date)}
               </p>
             </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={20} className="text-gray-400" />
-          </button>
+
+            {/* Note */}
+            {currentTx.note && (
+              <div className="bg-gray-50 rounded-2xl p-3.5 mb-5 border border-gray-100">
+                <p className="text-xs text-gray-400 font-medium mb-1">Note</p>
+                <p className="text-sm text-gray-700 break-words">
+                  {currentTx.note}
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            {showConfirm ? (
+              <div className="space-y-3 pt-1">
+                <p className="text-center text-sm text-gray-600 mb-2 font-medium">
+                  Are you sure you want to delete this transaction?
+                </p>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="w-full min-h-[48px] py-3 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer disabled:opacity-60"
+                >
+                  {deleting ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={18} />
+                  )}
+                  <span>{deleting ? "Deleting..." : "Yes, Delete"}</span>
+                </button>
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  disabled={deleting}
+                  className="w-full min-h-[44px] py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() =>
+                    router.push(`/transactions/${currentTx.id}/edit`)
+                  }
+                  className="flex-1 min-h-[48px] py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                >
+                  <Pencil size={18} />
+                  <span>Edit</span>
+                </button>
+                <button
+                  onClick={() => setShowConfirm(true)}
+                  className="flex-1 min-h-[48px] py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 border border-red-100 transition-colors cursor-pointer"
+                >
+                  <Trash2 size={18} />
+                  <span>Delete</span>
+                </button>
+              </div>
+            )}
+          </motion.div>
         </div>
-
-        {/* Amount */}
-        <div className="text-center mb-6">
-          <p
-            className={`text-3xl font-bold ${
-              transaction.type === "income"
-                ? "text-emerald-500"
-                : "text-red-500"
-            }`}
-          >
-            {transaction.type === "income" ? "+" : "-"}
-            {formatCurrency(Number(transaction.amount))}
-          </p>
-          <p className="text-sm text-gray-400 mt-1">
-            {formatDate(transaction.transaction_date)}
-          </p>
-        </div>
-
-        {/* Note */}
-        {transaction.note && (
-          <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <p className="text-xs text-gray-400 mb-1">Note</p>
-            <p className="text-sm text-gray-700">{transaction.note}</p>
-          </div>
-        )}
-
-        {/* Actions */}
-        {showConfirm ? (
-          <div className="space-y-3">
-            <p className="text-center text-sm text-gray-600 mb-2">
-              Are you sure you want to delete this transaction?
-            </p>
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="w-full py-3 bg-red-500 text-white rounded-xl font-medium flex items-center justify-center gap-2"
-            >
-              {deleting ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Trash2 size={18} />
-              )}
-              {deleting ? "Deleting..." : "Yes, Delete"}
-            </button>
-            <button
-              onClick={() => setShowConfirm(false)}
-              className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-3">
-            <button
-              onClick={() =>
-                router.push(`/transactions/${transaction.id}/edit`)
-              }
-              className="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-emerald-500 transition-colors"
-            >
-              <Pencil size={18} />
-              Edit
-            </button>
-            <button
-              onClick={() => setShowConfirm(true)}
-              className="flex-1 py-3 bg-red-50 text-red-600 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
-            >
-              <Trash2 size={18} />
-              Delete
-            </button>
-          </div>
-        )}
-      </div>
-    </>
+      )}
+    </AnimatePresence>
   );
 }
