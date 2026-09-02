@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   experimental: {
+    staleTimes: {
+      dynamic: 300, // Cache dynamic routes in client router for 5 minutes (300s)
+      static: 300, // Cache static routes in client router for 5 minutes (300s)
+    },
     optimizePackageImports: [
       "lucide-react",
       "recharts",
