@@ -503,6 +503,25 @@ export async function updateTransaction(
   revalidatePath("/accounts");
 }
 
+export async function getTransactionById(id: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("id, type, amount, note, transaction_date, category_id, account_id")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteTransaction(id: string) {
   const supabase = await createClient();
   const {
