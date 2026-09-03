@@ -92,7 +92,7 @@ export async function getDashboardData() {
       .lte("transaction_date", lastOfMonth),
     supabase
       .from("transactions")
-      .select(`amount, transaction_date, note, categories ( name )`)
+      .select(`amount, transaction_date, note, categories ( * )`)
       .eq("user_id", userId)
       .is("deleted_at", null)
       .eq("type", "expense")
@@ -108,7 +108,7 @@ export async function getDashboardData() {
       .gte("end_date", firstOfMonth),
     supabase
       .from("transactions")
-      .select(`amount, note, categories ( name )`)
+      .select(`amount, note, categories ( * )`)
       .eq("user_id", userId)
       .is("deleted_at", null)
       .eq("type", "expense")
@@ -149,8 +149,14 @@ export async function getDashboardData() {
     );
   };
 
+  const getCatScope = (t: { categories?: unknown }): string => {
+    const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+    return (cat as { scope?: string } | null)?.scope || "personal";
+  };
+
+  // Personal 30-day spending trend (excludes business transactions)
   const spendingByDate = (trendTransactions ?? [])
-    .filter((t) => !isTransfer(t))
+    .filter((t) => !isTransfer(t) && getCatScope(t) !== "business")
     .reduce<Record<string, number>>((totals, transaction) => {
       totals[transaction.transaction_date] =
         (totals[transaction.transaction_date] ?? 0) +
@@ -172,23 +178,23 @@ export async function getDashboardData() {
     };
   });
 
-  const income = (monthlyTransactions ?? [])
-    .filter((t) => t.type === "income" && !isTransfer(t))
+  // Personal Monthly Transactions (scope !== 'business')
+  const personalMonthlyTxs = (monthlyTransactions ?? []).filter(
+    (t) => !isTransfer(t) && getCatScope(t) !== "business",
+  );
+
+  const personalIncome = personalMonthlyTxs
+    .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  const expense = (monthlyTransactions ?? [])
-    .filter((t) => t.type === "expense" && !isTransfer(t))
+  const expense = personalMonthlyTxs
+    .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   // Business Transactions Summary (scope === 'business')
-  const getCat = (t: { categories?: unknown }) => {
-    return Array.isArray(t.categories) ? t.categories[0] : t.categories;
-  };
-
   const businessMonthlyTxs = (monthlyTransactions ?? []).filter((t) => {
     if (isTransfer(t)) return false;
-    const cat = getCat(t);
-    return (cat as { scope?: string } | null)?.scope === "business";
+    return getCatScope(t) === "business";
   });
 
   const businessRevenue = businessMonthlyTxs
@@ -204,6 +210,10 @@ export async function getDashboardData() {
     businessRevenue > 0
       ? Math.round(((businessRevenue - businessExpenses) / businessRevenue) * 100)
       : 0;
+
+  // Flow positive business net profit into total personal income for cash flow, insight, and health
+  const effectiveBusinessProfit = businessNetProfit > 0 ? businessNetProfit : 0;
+  const income = personalIncome + effectiveBusinessProfit;
 
   const businessSummary: BusinessSummary = {
     revenue: businessRevenue,
@@ -264,21 +274,21 @@ export async function getDashboardData() {
     });
   }
 
-  // Calculate actionable spending insights (excluding internal transfers)
+  // Calculate actionable spending insights for personal spending (excluding business & transfers)
   const expenseByCategory: Record<
     string,
     { name: string; icon: string; color: string; amount: number }
   > = {};
-  (monthlyTransactions ?? [])
-    .filter((t) => t.type === "expense" && !isTransfer(t))
+  personalMonthlyTxs
+    .filter((t) => t.type === "expense")
     .forEach((t) => {
       const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
       const catId = t.category_id || "other";
       if (!expenseByCategory[catId]) {
         expenseByCategory[catId] = {
-          name: cat?.name || "Other",
-          icon: cat?.icon || "Package",
-          color: cat?.color || "#10B981",
+          name: (cat as { name?: string } | null)?.name || "Other",
+          icon: (cat as { icon?: string } | null)?.icon || "Package",
+          color: (cat as { color?: string } | null)?.color || "#10B981",
           amount: 0,
         };
       }
@@ -343,7 +353,7 @@ export async function getDashboardData() {
   }
 
   const prevMonthExpense = (prevMonthTransactions ?? [])
-    .filter((t) => !isTransfer(t))
+    .filter((t) => !isTransfer(t) && getCatScope(t) !== "business")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   let momComparison = null;

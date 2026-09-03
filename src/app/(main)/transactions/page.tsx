@@ -31,7 +31,13 @@ type Transaction = {
   note: string | null;
   transaction_date: string;
   created_at: string;
-  categories: { id: string; name: string; icon: string; color: string } | null;
+  categories: {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+    scope?: string;
+  } | null;
   accounts: { id: string; name: string } | null;
 };
 
@@ -55,6 +61,9 @@ function mapRaw(t: Record<string, unknown>): Transaction {
           name: String(cat.name),
           icon: String(cat.icon),
           color: String(cat.color),
+          scope: (cat as { scope?: string }).scope
+            ? String((cat as { scope?: string }).scope)
+            : undefined,
         }
       : null,
     accounts: acc ? { id: String(acc.id), name: String(acc.name) } : null,
@@ -623,6 +632,8 @@ export default function TransactionsPage() {
                       categoryName={t.categories?.name ?? "Unknown"}
                       categoryIcon={t.categories?.icon ?? "Package"}
                       categoryColor={t.categories?.color ?? "#6B7280"}
+                      categoryScope={t.categories?.scope}
+                      accountName={t.accounts?.name}
                       note={t.note}
                       amount={t.amount}
                       type={t.type}
@@ -665,6 +676,7 @@ export default function TransactionsPage() {
                       name: selectedTx.categories.name,
                       icon: selectedTx.categories.icon,
                       color: selectedTx.categories.color,
+                      scope: selectedTx.categories.scope,
                     }
                   : null,
                 accounts: selectedTx.accounts

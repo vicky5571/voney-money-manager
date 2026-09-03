@@ -80,7 +80,7 @@ export async function getTransactions({
     .select(
       `
       id, type, amount, note, transaction_date, created_at,
-      categories ( id, name, icon, color ),
+      categories ( id, name, icon, color, scope ),
       accounts ( id, name )
     `,
       { count: "exact" },
@@ -135,9 +135,14 @@ export async function getMonthSummary(month: number, year: number) {
     );
   };
 
+  const getCatScope = (t: { categories?: unknown }): string => {
+    const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+    return (cat as { scope?: string } | null)?.scope || "personal";
+  };
+
   const { data, error } = await supabase
     .from("transactions")
-    .select("type, amount, note, categories ( name )")
+    .select("type, amount, note, categories ( * )")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .gte("transaction_date", startDate)
@@ -145,12 +150,29 @@ export async function getMonthSummary(month: number, year: number) {
 
   if (error) throw error;
 
-  const income = (data ?? [])
-    .filter((t) => t.type === "income" && !isTransfer(t))
+  const personalData = (data ?? []).filter(
+    (t) => !isTransfer(t) && getCatScope(t) !== "business",
+  );
+  const businessData = (data ?? []).filter(
+    (t) => !isTransfer(t) && getCatScope(t) === "business",
+  );
+
+  const personalIncome = personalData
+    .filter((t) => t.type === "income")
     .reduce((s, t) => s + Number(t.amount), 0);
-  const expense = (data ?? [])
-    .filter((t) => t.type === "expense" && !isTransfer(t))
+  const expense = personalData
+    .filter((t) => t.type === "expense")
     .reduce((s, t) => s + Number(t.amount), 0);
+
+  const businessRev = businessData
+    .filter((t) => t.type === "income")
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const businessExp = businessData
+    .filter((t) => t.type === "expense")
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const businessNetProfit = businessRev - businessExp;
+
+  const income = personalIncome + (businessNetProfit > 0 ? businessNetProfit : 0);
 
   return { income, expense, net: income - expense };
 }
@@ -177,21 +199,43 @@ export async function getMonthFinancialHealth(month: number, year: number) {
     );
   };
 
-  // 1. Get transactions (exclude soft-deleted and transfers)
+  const getCatScope = (t: { categories?: unknown }): string => {
+    const cat = Array.isArray(t.categories) ? t.categories[0] : t.categories;
+    return (cat as { scope?: string } | null)?.scope || "personal";
+  };
+
+  // 1. Get transactions
   const { data: txs } = await supabase
     .from("transactions")
-    .select("type, amount, note, categories ( name )")
+    .select("type, amount, note, categories ( * )")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .gte("transaction_date", startDate)
     .lte("transaction_date", endDate);
 
-  const income = (txs ?? [])
-    .filter((t) => t.type === "income" && !isTransfer(t))
+  const personalTxs = (txs ?? []).filter(
+    (t) => !isTransfer(t) && getCatScope(t) !== "business",
+  );
+  const businessTxs = (txs ?? []).filter(
+    (t) => !isTransfer(t) && getCatScope(t) === "business",
+  );
+
+  const personalIncome = personalTxs
+    .filter((t) => t.type === "income")
     .reduce((s, t) => s + Number(t.amount), 0);
-  const expense = (txs ?? [])
-    .filter((t) => t.type === "expense" && !isTransfer(t))
+  const expense = personalTxs
+    .filter((t) => t.type === "expense")
     .reduce((s, t) => s + Number(t.amount), 0);
+
+  const businessRev = businessTxs
+    .filter((t) => t.type === "income")
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const businessExp = businessTxs
+    .filter((t) => t.type === "expense")
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const businessNetProfit = businessRev - businessExp;
+
+  const income = personalIncome + (businessNetProfit > 0 ? businessNetProfit : 0);
 
   // 2. Total account balance
   const { data: accounts } = await supabase
