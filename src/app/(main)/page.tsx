@@ -27,6 +27,7 @@ export default async function DashboardPage() {
         name: string;
         icon: string;
         color: string;
+        scope?: string;
       } | null;
       accounts: { id?: string; name: string } | null;
     }>
@@ -59,6 +60,7 @@ export default async function DashboardPage() {
       momComparison={data.momComparison}
       upcomingBills={data.upcomingBills}
       financialHealth={data.financialHealth}
+      businessSummary={data.businessSummary}
       recentTransactions={recentTransactions}
     />
   );

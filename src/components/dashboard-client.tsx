@@ -49,6 +49,7 @@ import { CategoryIcon } from "@/constants/categories";
 import type {
   CategoryBudgetStatus,
   SpendingInsight,
+  BusinessSummary,
 } from "@/app/actions/dashboard";
 import {
   Wallet,
@@ -65,6 +66,7 @@ import {
   CheckCircle2,
   Sparkles,
   RefreshCw,
+  Briefcase,
 } from "lucide-react";
 
 interface AccountItem {
@@ -91,7 +93,7 @@ interface RecentTxItem {
   amount: number;
   note: string | null;
   transaction_date: string;
-  categories: { id?: string; name: string; icon: string; color: string } | null;
+  categories: { id?: string; name: string; icon: string; color: string; scope?: string } | null;
   accounts: { id?: string; name: string } | null;
 }
 
@@ -114,21 +116,37 @@ interface DashboardClientProps {
   momComparison?: MonthOverMonthComparison | null;
   upcomingBills?: UpcomingBillItem[];
   financialHealth?: FinancialHealthResult;
+  businessSummary?: BusinessSummary;
   recentTransactions: RecentTxItem[];
   spendingTrend: SpendingTrendPoint[];
 }
 
-function formatTxDateGroup(dateStr: string): string {
-  const today = new Date();
-  const txDate = new Date(dateStr + "T00:00:00");
+function getLocalDateString(d: Date, timeZone = "Asia/Jakarta"): string {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    return formatter.format(d);
+  } catch {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+}
 
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+function formatTxDateGroup(dateStr: string): string {
+  const now = new Date();
+  const timeZone = "Asia/Jakarta";
+  const todayStr = getLocalDateString(now, timeZone);
+
+  const yesterdayDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const yesterdayStr = getLocalDateString(yesterdayDate, timeZone);
 
   if (dateStr === todayStr) return "Today";
   if (dateStr === yesterdayStr) return "Yesterday";
+
+  const txDate = new Date(dateStr + "T00:00:00");
   return txDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -146,15 +164,17 @@ export function DashboardClient({
   momComparison = null,
   upcomingBills = [],
   financialHealth,
+  businessSummary,
   recentTransactions,
   spendingTrend,
 }: DashboardClientProps) {
   const router = useRouter();
   const [selectedTx, setSelectedTx] = useState<RecentTxItem | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [currentGreeting] = useState(() =>
-    typeof window !== "undefined" ? getGreeting() : greeting,
-  );
+  const [currentGreeting, setCurrentGreeting] = useState(greeting);
+  useEffect(() => {
+    setCurrentGreeting(getGreeting());
+  }, []);
   const [deletedTxIds, setDeletedTxIds] = useState<string[]>([]);
   const recentTxList = useMemo(
     () => recentTransactions.filter((tx) => !deletedTxIds.includes(tx.id)),
@@ -390,6 +410,112 @@ export function DashboardClient({
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Business Performance & Net Profit Card */}
+      {businessSummary && (
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-indigo-100/80 space-y-3">
+          <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <Briefcase size={15} />
+                </div>
+                <div>
+                  <h2 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+                    Business Performance
+                  </h2>
+                  {businessSummary.transactionCount > 0 && (
+                    <span className="text-[10px] text-gray-400 font-medium mt-0.5 block">
+                      {businessSummary.transactionCount}{" "}
+                      {businessSummary.transactionCount === 1
+                        ? "transaction"
+                        : "transactions"} this month
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60 shrink-0">
+                Monthly P&L
+              </span>
+            </div>
+
+          {/* Main Net Profit Highlight */}
+          <div className="p-3.5 rounded-xl bg-gradient-to-br from-indigo-50/60 via-indigo-50/20 to-white border border-indigo-100/60">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-medium text-gray-500 block">
+                  Net Profit (Revenue − Costs)
+                </span>
+                <span
+                  className={cn(
+                    "text-2xl font-black tracking-tight",
+                    businessSummary.netProfit > 0
+                      ? "text-emerald-600"
+                      : businessSummary.netProfit < 0
+                        ? "text-rose-600"
+                        : "text-gray-800",
+                  )}
+                >
+                  {businessSummary.netProfit > 0 ? "+" : ""}
+                  {formatCurrency(businessSummary.netProfit)}
+                </span>
+              </div>
+              {businessSummary.revenue > 0 ? (
+                <div className="text-right">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                    Profit Margin
+                  </span>
+                  <span
+                    className={cn(
+                      "text-xs font-bold px-2 py-0.5 rounded-md inline-block mt-0.5",
+                      businessSummary.profitMargin >= 20
+                        ? "bg-emerald-100/80 text-emerald-800"
+                        : businessSummary.profitMargin >= 0
+                          ? "bg-amber-100/80 text-amber-800"
+                          : "bg-rose-100/80 text-rose-800",
+                    )}
+                  >
+                    {businessSummary.profitMargin}%
+                  </span>
+                </div>
+              ) : (
+                <span className="text-[11px] text-gray-400 font-medium">
+                  {businessSummary.transactionCount}{" "}
+                  {businessSummary.transactionCount === 1 ? "tx" : "txs"}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Revenue vs Expenses Metrics */}
+          <div className="grid grid-cols-2 gap-2 pt-0.5">
+            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
+                Gross Revenue
+              </span>
+              <span className="text-sm font-bold text-gray-900 mt-0.5 block truncate">
+                {formatCurrency(businessSummary.revenue)}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
+                Business Expenses
+              </span>
+              <span className="text-sm font-bold text-gray-900 mt-0.5 block truncate">
+                {formatCurrency(businessSummary.expenses)}
+              </span>
+            </div>
+          </div>
+
+          {!businessSummary.hasBusinessActivity && (
+            <div className="p-2.5 rounded-xl bg-indigo-50/40 border border-indigo-100/60">
+              <p className="text-[11px] text-gray-600 leading-snug">
+                Track your business in one unified stream. Set category scope to{" "}
+                <strong className="text-indigo-700 font-semibold">Business</strong> in Category Manager to calculate your net profit here.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -700,7 +826,10 @@ export function DashboardClient({
           <div className="space-y-4">
             {Object.entries(groupedTransactions).map(([dateGroup, items]) => (
               <div key={dateGroup} className="space-y-1.5">
-                <span className="text-xs font-semibold text-gray-500 px-1 block">
+                <span
+                  className="text-xs font-semibold text-gray-500 px-1 block"
+                  suppressHydrationWarning
+                >
                   {dateGroup}
                 </span>
                 <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50 shadow-sm overflow-hidden">
@@ -711,6 +840,7 @@ export function DashboardClient({
                       categoryName={tx.categories?.name || "Unknown"}
                       categoryIcon={tx.categories?.icon || "help-circle"}
                       categoryColor={tx.categories?.color || "#94a3b8"}
+                      categoryScope={tx.categories?.scope}
                       accountName={tx.accounts?.name}
                       note={tx.note}
                       amount={Number(tx.amount)}
@@ -897,6 +1027,7 @@ export function DashboardClient({
                       name: selectedTx.categories.name,
                       icon: selectedTx.categories.icon,
                       color: selectedTx.categories.color,
+                      scope: selectedTx.categories.scope,
                     }
                   : null,
                 accounts: selectedTx.accounts

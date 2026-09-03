@@ -25,6 +25,7 @@ export async function createCategory(formData: {
   icon: string;
   color: string;
   type: 'income' | 'expense';
+  scope?: 'personal' | 'business';
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -34,17 +35,20 @@ export async function createCategory(formData: {
     throw new Error('Category name is required');
   }
 
+  const insertPayload: Record<string, unknown> = {
+    user_id: user.id,
+    name: formData.name.trim(),
+    icon: formData.icon,
+    color: formData.color,
+    type: formData.type,
+    is_default: false,
+    sort_order: 100,
+    scope: formData.scope ?? 'personal',
+  };
+
   const { data, error } = await supabase
     .from('categories')
-    .insert({
-      user_id: user.id,
-      name: formData.name.trim(),
-      icon: formData.icon,
-      color: formData.color,
-      type: formData.type,
-      is_default: false,
-      sort_order: 100,
-    })
+    .insert(insertPayload)
     .select()
     .single();
 
@@ -63,6 +67,7 @@ export async function updateCategory(
     icon: string;
     color: string;
     type: 'income' | 'expense';
+    scope?: 'personal' | 'business';
   }
 ) {
   const supabase = await createClient();
@@ -73,14 +78,19 @@ export async function updateCategory(
     throw new Error('Category name is required');
   }
 
+  const updatePayload: Record<string, unknown> = {
+    name: formData.name.trim(),
+    icon: formData.icon,
+    color: formData.color,
+    type: formData.type,
+  };
+  if (formData.scope) {
+    updatePayload.scope = formData.scope;
+  }
+
   const { error } = await supabase
     .from('categories')
-    .update({
-      name: formData.name.trim(),
-      icon: formData.icon,
-      color: formData.color,
-      type: formData.type,
-    })
+    .update(updatePayload)
     .eq('id', id)
     .eq('user_id', user.id);
 

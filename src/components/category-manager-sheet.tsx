@@ -35,6 +35,7 @@ export interface CategoryItem {
   icon: string;
   color: string;
   type: string;
+  scope?: "personal" | "business";
   is_default?: boolean;
   user_id?: string | null;
 }
@@ -98,9 +99,16 @@ function CategoryReorderRow({
           />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">
-            {cat.name}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {cat.name}
+            </p>
+            {cat.scope === "business" && (
+              <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                Business
+              </span>
+            )}
+          </div>
           <span className="text-[10px] text-gray-500 font-medium">
             {cat.is_default ? "System Default" : "Custom Category"}
           </span>
@@ -166,6 +174,7 @@ export function CategoryManagerSheet({
   const [icon, setIcon] = useState(AVAILABLE_CATEGORY_ICONS[0]);
   const [color, setColor] = useState(AVAILABLE_CATEGORY_COLORS[0]);
   const [type, setType] = useState<"expense" | "income">("expense");
+  const [scope, setScope] = useState<"personal" | "business">("personal");
 
   useEffect(() => {
     if (isOpen && (mode === "create" || mode === "edit")) {
@@ -181,6 +190,7 @@ export function CategoryManagerSheet({
     setIcon(AVAILABLE_CATEGORY_ICONS[0]);
     setColor(AVAILABLE_CATEGORY_COLORS[0]);
     setType(activeTab);
+    setScope("personal");
     setError("");
     setMode("create");
   };
@@ -191,6 +201,7 @@ export function CategoryManagerSheet({
     setIcon(cat.icon);
     setColor(cat.color);
     setType(cat.type as "expense" | "income");
+    setScope(cat.scope === "business" ? "business" : "personal");
     setError("");
     setMode("edit");
   };
@@ -210,6 +221,7 @@ export function CategoryManagerSheet({
             icon,
             color,
             type,
+            scope,
           });
           if (created && onCategoryCreated) {
             onCategoryCreated(created as CategoryItem);
@@ -220,6 +232,7 @@ export function CategoryManagerSheet({
             icon,
             color,
             type,
+            scope,
           });
         }
         setMode("list");
@@ -460,6 +473,44 @@ export function CategoryManagerSheet({
                         Income
                       </button>
                     </div>
+                  </div>
+
+                  {/* Scope Selector: Personal vs Business */}
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5 block">
+                      Scope
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setScope("personal")}
+                        className={cn(
+                          "flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                          scope === "personal"
+                            ? "bg-emerald-500 text-white shadow-xs"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200",
+                        )}
+                      >
+                        Personal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScope("business")}
+                        className={cn(
+                          "flex-1 min-h-[44px] py-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                          scope === "business"
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200",
+                        )}
+                      >
+                        Business
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-1.5 leading-snug">
+                      {scope === "business"
+                        ? "Calculates towards your monthly Business Revenue, Expenses & Net Profit."
+                        : "Counts as regular personal living income or expense."}
+                    </p>
                   </div>
 
                   {/* Icon Picker */}

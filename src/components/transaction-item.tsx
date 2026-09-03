@@ -10,6 +10,7 @@ interface TransactionItemProps {
   categoryName: string;
   categoryIcon: string;
   categoryColor: string;
+  categoryScope?: string;
   accountName?: string | null;
   note: string | null;
   amount: number;
@@ -26,6 +27,7 @@ export function TransactionItem({
   categoryName,
   categoryIcon,
   categoryColor,
+  categoryScope,
   accountName,
   note,
   amount,
@@ -131,6 +133,11 @@ export function TransactionItem({
           <div className="flex flex-col min-w-0">
             <span className="font-semibold text-gray-900 text-sm truncate">{categoryName}</span>
             <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+              {categoryScope === 'business' && (
+                <span className="text-[9px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 px-1 py-0.5 rounded border border-indigo-200/50 shrink-0">
+                  Biz
+                </span>
+              )}
               {accountName && (
                 <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded shrink-0">
                   {accountName}

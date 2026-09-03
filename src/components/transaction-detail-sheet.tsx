@@ -15,7 +15,7 @@ interface TransactionDetailSheetProps {
     amount: number;
     note: string | null;
     transaction_date: string;
-    categories: { name: string; icon: string; color: string } | null;
+    categories: { name: string; icon: string; color: string; scope?: string } | null;
     accounts: { name: string } | null;
   } | null;
   isOpen: boolean;
@@ -99,9 +99,16 @@ export function TransactionDetailSheet({
                   />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg text-gray-900">
-                    {currentTx.categories?.name ?? "Unknown"}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-lg text-gray-900">
+                      {currentTx.categories?.name ?? "Unknown"}
+                    </h3>
+                    {currentTx.categories?.scope === "business" && (
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                        Business
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-500">
                     {currentTx.accounts?.name ?? "Unknown Account"}
                   </p>

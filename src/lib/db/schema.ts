@@ -41,6 +41,7 @@ export const categories = pgTable('categories', {
   icon: text('icon').notNull(),
   color: text('color').notNull(),
   type: text('type').notNull(), // 'income' | 'expense'
+  scope: text('scope').notNull().default('personal'), // 'personal' | 'business'
   isDefault: boolean('is_default').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
 });

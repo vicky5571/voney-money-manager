@@ -20,6 +20,15 @@ export interface CategoryBudgetStatus {
   isNear: boolean;
 }
 
+export interface BusinessSummary {
+  revenue: number;
+  expenses: number;
+  netProfit: number;
+  profitMargin: number;
+  transactionCount: number;
+  hasBusinessActivity: boolean;
+}
+
 export interface SpendingInsight {
   type: "warning" | "info" | "positive";
   headline: string;
@@ -75,7 +84,7 @@ export async function getDashboardData() {
     supabase
       .from("transactions")
       .select(
-        `id, type, amount, note, category_id, transaction_date, categories ( id, name, icon, color )`,
+        `id, type, amount, note, category_id, transaction_date, categories ( * )`,
       )
       .eq("user_id", userId)
       .is("deleted_at", null)
@@ -117,7 +126,7 @@ export async function getDashboardData() {
     supabase
       .from("transactions")
       .select(
-        `id, type, amount, note, transaction_date, categories ( id, name, icon, color ), accounts ( id, name )`,
+        `id, type, amount, note, transaction_date, categories ( * ), accounts ( id, name )`,
       )
       .eq("user_id", userId)
       .is("deleted_at", null)
@@ -170,6 +179,43 @@ export async function getDashboardData() {
   const expense = (monthlyTransactions ?? [])
     .filter((t) => t.type === "expense" && !isTransfer(t))
     .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  // Business Transactions Summary (scope === 'business')
+  const getCat = (t: { categories?: unknown }) => {
+    return Array.isArray(t.categories) ? t.categories[0] : t.categories;
+  };
+
+  const businessMonthlyTxs = (monthlyTransactions ?? []).filter((t) => {
+    if (isTransfer(t)) return false;
+    const cat = getCat(t);
+    return (cat as { scope?: string } | null)?.scope === "business";
+  });
+
+  const businessRevenue = businessMonthlyTxs
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const businessExpenses = businessMonthlyTxs
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const businessNetProfit = businessRevenue - businessExpenses;
+  const businessProfitMargin =
+    businessRevenue > 0
+      ? Math.round(((businessRevenue - businessExpenses) / businessRevenue) * 100)
+      : 0;
+
+  const businessSummary: BusinessSummary = {
+    revenue: businessRevenue,
+    expenses: businessExpenses,
+    netProfit: businessNetProfit,
+    profitMargin: businessProfitMargin,
+    transactionCount: businessMonthlyTxs.length,
+    hasBusinessActivity:
+      businessMonthlyTxs.length > 0 ||
+      businessRevenue > 0 ||
+      businessExpenses > 0,
+  };
 
   let totalBudget = 0;
   let totalBudgetSpent = 0;
@@ -381,6 +427,7 @@ export async function getDashboardData() {
     momComparison,
     upcomingBills,
     financialHealth,
+    businessSummary,
     recentTransactions: recentTransactions ?? [],
   };
 }
