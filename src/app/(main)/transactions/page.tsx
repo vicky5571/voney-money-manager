@@ -141,12 +141,17 @@ export default function TransactionsPage() {
   ]);
 
   // Initial load + background refresh on filter / search / month change
+  const hasCacheRef = useRef(!!cachedTxs);
+  useEffect(() => {
+    hasCacheRef.current = !!txCache[monthKey];
+  }, [txCache, monthKey]);
+
   useEffect(() => {
     let ignore = false;
 
     async function loadInitial() {
       // Only show full loading spinner if we don't have cached data
-      if (!txCache[monthKey] || search || filter !== "all") {
+      if (!hasCacheRef.current || search || filter !== "all") {
         setLoading(true);
       }
 
@@ -166,6 +171,7 @@ export default function TransactionsPage() {
         setTransactions(mapped);
         setHasMore(result.hasMore);
         setPage(1);
+        pageRef.current = 1;
 
         if (!search && filter === "all") {
           setTransactionsForMonth(monthKey, mapped as CachedTransaction[]);
@@ -188,9 +194,9 @@ export default function TransactionsPage() {
     selectedYear,
     monthKey,
     setTransactionsForMonth,
-    txCache,
   ]);
 
+  const pageRef = useRef(page);
   const loadMoreTransactions = useCallback(
     async (pageNum: number) => {
       try {
@@ -225,7 +231,8 @@ export default function TransactionsPage() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          const nextPage = page + 1;
+          const nextPage = pageRef.current + 1;
+          pageRef.current = nextPage;
           setPage(nextPage);
           loadMoreTransactions(nextPage);
         }
@@ -234,7 +241,7 @@ export default function TransactionsPage() {
     );
     observer.observe(observerRef.current);
     return () => observer.disconnect();
-  }, [hasMore, loadingMore, page, loadMoreTransactions]);
+  }, [hasMore, loadingMore, loadMoreTransactions]);
 
   // Month navigation
   const goToPrevMonth = () => {
