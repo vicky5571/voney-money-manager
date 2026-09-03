@@ -33,9 +33,6 @@ interface CategoryCardProps {
     e: React.PointerEvent,
     controls: DragControls,
   ) => void;
-  onPointerMove: (e: React.PointerEvent) => void;
-  onPointerUp: (id: string) => void;
-  onPointerCancel: () => void;
   onDragStart: (id: string) => void;
   onDrag: (id: string, point: { x: number; y: number }) => void;
   onDragEnd: () => void;
@@ -57,9 +54,6 @@ function CategoryCard({
   isEditing,
   isDragging,
   onStartHold,
-  onPointerMove,
-  onPointerUp,
-  onPointerCancel,
   onDragStart,
   onDrag,
   onDragEnd,
@@ -103,9 +97,6 @@ function CategoryCard({
       }}
       onDragEnd={onDragEnd}
       onPointerDown={(e) => onStartHold(cat.id, e, dragControls)}
-      onPointerMove={onPointerMove}
-      onPointerUp={() => onPointerUp(cat.id)}
-      onPointerCancel={onPointerCancel}
       animate={
         isEditing && !isDragging
           ? {
@@ -121,13 +112,13 @@ function CategoryCard({
       }
       className={cn(
         "relative flex flex-col items-center justify-center p-3 rounded-2xl select-none min-h-[96px] cursor-pointer transition-colors outline-none focus:outline-none focus:ring-0",
-        isEditing || isDragging ? "touch-none" : "touch-pan-y",
-        isEditing ? "cursor-grab active:cursor-grabbing" : "active:scale-95",
         isEditing || isDragging
-          ? "border-2 border-emerald-400/50 bg-white"
-          : isSelected
+          ? "touch-none cursor-grab active:cursor-grabbing border-2 border-emerald-400/50 bg-white"
+          : "touch-manipulation active:scale-95",
+        !isEditing && !isDragging &&
+          (isSelected
             ? "bg-emerald-50 border-2 border-emerald-500"
-            : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent",
+            : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent"),
       )}
     >
       <div
@@ -248,10 +239,7 @@ export function CategoryGrid({
 
   const handleStartHold = useCallback(
     (id: string, e: React.PointerEvent, controls: DragControls) => {
-      pointerStartRef.current = { x: e.clientX, y: e.clientY, id };
-      isLongPressTriggeredRef.current = false;
-      wasDraggingRef.current = false;
-
+      // If already in edit mode, immediately start dragging
       if (isEditing) {
         wasDraggingRef.current = true;
         lastDragEndTimeRef.current = Date.now() + 1000;
@@ -262,12 +250,76 @@ export function CategoryGrid({
         return;
       }
 
-      // Start long press timer for hold-and-drag in a single touch
+      if (e.button !== 0) return;
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+      pointerStartRef.current = { x: startX, y: startY, id };
+      isLongPressTriggeredRef.current = false;
+      wasDraggingRef.current = false;
+
       if (longPressTimerRef.current) {
         clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
       }
 
+      const cancelHold = () => {
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+        cleanupListeners();
+      };
+
+      const handleWindowPointerMove = (moveEvt: PointerEvent) => {
+        const dist = Math.hypot(moveEvt.clientX - startX, moveEvt.clientY - startY);
+        // If moved more than 6px, user is scrolling or dragging thumb — cancel hold immediately
+        if (dist > 6) {
+          cancelHold();
+        }
+      };
+
+      const handleWindowTouchMove = (touchEvt: TouchEvent) => {
+        if (touchEvt.touches.length > 0) {
+          const t = touchEvt.touches[0];
+          const dist = Math.hypot(t.clientX - startX, t.clientY - startY);
+          if (dist > 6) {
+            cancelHold();
+          }
+        }
+      };
+
+      const handleWindowPointerUp = () => {
+        const wasTriggered = isLongPressTriggeredRef.current;
+        const didDrag = wasDraggingRef.current;
+        const isLocked = Date.now() < lastDragEndTimeRef.current;
+        cancelHold();
+
+        if (!wasTriggered && !didDrag && !isLocked && !isEditing) {
+          onSelect(id);
+          hapticLight();
+        }
+      };
+
+      const cleanupListeners = () => {
+        window.removeEventListener("pointermove", handleWindowPointerMove);
+        window.removeEventListener("pointerup", handleWindowPointerUp);
+        window.removeEventListener("pointercancel", cancelHold);
+        window.removeEventListener("touchmove", handleWindowTouchMove);
+        window.removeEventListener("touchend", handleWindowPointerUp);
+        window.removeEventListener("touchcancel", cancelHold);
+      };
+
+      window.addEventListener("pointermove", handleWindowPointerMove, { passive: true });
+      window.addEventListener("pointerup", handleWindowPointerUp, { passive: true, once: true });
+      window.addEventListener("pointercancel", cancelHold, { passive: true, once: true });
+      window.addEventListener("touchmove", handleWindowTouchMove, { passive: true });
+      window.addEventListener("touchend", handleWindowPointerUp, { passive: true, once: true });
+      window.addEventListener("touchcancel", cancelHold, { passive: true, once: true });
+
+      // Start long press timer (500ms). If user holds still for 500ms without scrolling:
       longPressTimerRef.current = setTimeout(() => {
+        cleanupListeners();
         isLongPressTriggeredRef.current = true;
         wasDraggingRef.current = true;
         lastDragEndTimeRef.current = Date.now() + 1000;
@@ -275,65 +327,11 @@ export function CategoryGrid({
         setActiveDragId(id);
         measureSlotRects();
         hapticMedium();
-        // Immediately connect dragging to the active touch gesture
         controls.start(e);
-      }, 400);
+      }, 500);
     },
-    [isEditing, measureSlotRects],
+    [isEditing, measureSlotRects, onSelect],
   );
-
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (pointerStartRef.current) {
-      const dist = Math.hypot(
-        e.clientX - pointerStartRef.current.x,
-        e.clientY - pointerStartRef.current.y,
-      );
-      // If user moved more than 8px before 350ms, they are scrolling — cancel long press
-      if (dist > 8 && !isLongPressTriggeredRef.current) {
-        if (longPressTimerRef.current) {
-          clearTimeout(longPressTimerRef.current);
-          longPressTimerRef.current = null;
-        }
-      }
-    }
-  }, []);
-
-  const handlePointerUp = useCallback(
-    (id: string) => {
-      if (longPressTimerRef.current) {
-        clearTimeout(longPressTimerRef.current);
-        longPressTimerRef.current = null;
-      }
-
-      if (isLongPressTriggeredRef.current || activeDragId) {
-        handleDragEnd();
-        pointerStartRef.current = null;
-        return;
-      }
-
-      const isLockedByDrag = Date.now() < lastDragEndTimeRef.current;
-      const didDragOrLongPress = wasDraggingRef.current || isLockedByDrag;
-
-      if (!didDragOrLongPress && !isEditing) {
-        onSelect(id);
-        hapticLight();
-      }
-
-      pointerStartRef.current = null;
-    },
-    [activeDragId, handleDragEnd, isEditing, onSelect],
-  );
-
-  const handlePointerCancel = useCallback(() => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-    if (activeDragId || isEditing) {
-      handleDragEnd();
-    }
-    pointerStartRef.current = null;
-  }, [activeDragId, isEditing, handleDragEnd]);
 
   const handleDragStart = useCallback(
     (id: string) => {
@@ -420,9 +418,6 @@ export function CategoryGrid({
               isEditing={isEditing}
               isDragging={isDragging}
               onStartHold={handleStartHold}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerCancel}
               onDragStart={handleDragStart}
               onDrag={handleDrag}
               onDragEnd={handleDragEnd}

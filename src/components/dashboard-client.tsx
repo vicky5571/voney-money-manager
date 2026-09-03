@@ -2,6 +2,7 @@
 
 import { useAppStore } from "@/lib/store/use-app-store";
 import { useEffect, useState, useMemo, Suspense } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatDate, cn, getGreeting } from "@/lib/utils";
@@ -737,131 +738,146 @@ export function DashboardClient({
       </div>
 
       {/* Notifications Modal Sheet */}
-      {showNotifications && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div
-            className="absolute inset-0"
-            onClick={() => setShowNotifications(false)}
-          />
-          <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
-                  <Bell size={16} />
+      <AnimatePresence>
+        {showNotifications && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            {/* Smooth Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowNotifications(false)}
+            />
+
+            {/* Fluid Modal Sheet */}
+            <motion.div
+              initial={{ opacity: 0, y: 28, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.98 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="relative z-10 w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
+                    <Bell size={16} />
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    Notifications & Alerts
+                  </h2>
                 </div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  Notifications & Alerts
-                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowNotifications(false)}
+                  className="min-w-[44px] min-h-[44px] -mr-2 text-gray-500 hover:text-gray-700 flex items-center justify-center"
+                  aria-label="Close notifications"
+                >
+                  <X size={20} />
+                </button>
               </div>
+
+              <div className="space-y-3">
+                {overBudgets.map((b) => (
+                  <div
+                    key={b.id}
+                    className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-red-700 flex items-center gap-1.5">
+                        <AlertTriangle size={14} /> Over Budget Alert
+                      </span>
+                      <span className="text-[11px] font-bold text-red-600">
+                        {b.percentage}%
+                      </span>
+                    </div>
+                    <p className="text-gray-700">
+                      <span className="font-semibold">{b.categoryName}</span>{" "}
+                      exceeded its monthly limit by{" "}
+                      <span className="font-bold">
+                        {formatCurrency(b.spentAmount - b.budgetAmount)}
+                      </span>
+                      .
+                    </p>
+                    <Link
+                      href={`/budgets/${b.id}`}
+                      onClick={() => setShowNotifications(false)}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 hover:underline pt-1"
+                    >
+                      Adjust Budget <ChevronRight size={12} />
+                    </Link>
+                  </div>
+                ))}
+
+                {nearBudgets.map((b) => (
+                  <div
+                    key={b.id}
+                    className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-amber-800 flex items-center gap-1.5">
+                        <AlertTriangle size={14} /> Approaching Limit
+                      </span>
+                      <span className="text-[11px] font-bold text-amber-700">
+                        {b.percentage}%
+                      </span>
+                    </div>
+                    <p className="text-gray-700">
+                      <span className="font-semibold">{b.categoryName}</span> has
+                      used {b.percentage}% of its allocated budget.
+                    </p>
+                    <Link
+                      href={`/budgets/${b.id}`}
+                      onClick={() => setShowNotifications(false)}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-amber-800 hover:underline pt-1"
+                    >
+                      View Category <ChevronRight size={12} />
+                    </Link>
+                  </div>
+                ))}
+
+                {spendingInsight && (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-500 flex items-center gap-1.5">
+                        <TrendingUp size={14} /> Monthly Insight
+                      </span>
+                    </div>
+                    <p className="font-semibold text-gray-900">
+                      {spendingInsight.headline}
+                    </p>
+                    <p className="text-gray-600">{spendingInsight.subtext}</p>
+                  </div>
+                )}
+
+                {overBudgets.length === 0 && nearBudgets.length === 0 && (
+                  <div className="py-8 text-center space-y-2">
+                    <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto">
+                      <CheckCircle2 size={24} />
+                    </div>
+                    <h3 className="font-bold text-gray-900 text-sm">
+                      All Caught Up!
+                    </h3>
+                    <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                      Your budgets and accounts are in great shape. No urgent
+                      alerts this month.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={() => setShowNotifications(false)}
-                className="min-w-[44px] min-h-[44px] -mr-2 text-gray-500 hover:text-gray-700 flex items-center justify-center"
-                aria-label="Close notifications"
+                className="min-h-[44px] w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-semibold transition-colors mt-5"
               >
-                <X size={20} />
+                Done
               </button>
-            </div>
-
-            <div className="space-y-3">
-              {overBudgets.map((b) => (
-                <div
-                  key={b.id}
-                  className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-red-700 flex items-center gap-1.5">
-                      <AlertTriangle size={14} /> Over Budget Alert
-                    </span>
-                    <span className="text-[11px] font-bold text-red-600">
-                      {b.percentage}%
-                    </span>
-                  </div>
-                  <p className="text-gray-700">
-                    <span className="font-semibold">{b.categoryName}</span>{" "}
-                    exceeded its monthly limit by{" "}
-                    <span className="font-bold">
-                      {formatCurrency(b.spentAmount - b.budgetAmount)}
-                    </span>
-                    .
-                  </p>
-                  <Link
-                    href={`/budgets/${b.id}`}
-                    onClick={() => setShowNotifications(false)}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 hover:underline pt-1"
-                  >
-                    Adjust Budget <ChevronRight size={12} />
-                  </Link>
-                </div>
-              ))}
-
-              {nearBudgets.map((b) => (
-                <div
-                  key={b.id}
-                  className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-amber-800 flex items-center gap-1.5">
-                      <AlertTriangle size={14} /> Approaching Limit
-                    </span>
-                    <span className="text-[11px] font-bold text-amber-700">
-                      {b.percentage}%
-                    </span>
-                  </div>
-                  <p className="text-gray-700">
-                    <span className="font-semibold">{b.categoryName}</span> has
-                    used {b.percentage}% of its allocated budget.
-                  </p>
-                  <Link
-                    href={`/budgets/${b.id}`}
-                    onClick={() => setShowNotifications(false)}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-amber-800 hover:underline pt-1"
-                  >
-                    View Category <ChevronRight size={12} />
-                  </Link>
-                </div>
-              ))}
-
-              {spendingInsight && (
-                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-500 flex items-center gap-1.5">
-                      <TrendingUp size={14} /> Monthly Insight
-                    </span>
-                  </div>
-                  <p className="font-semibold text-gray-900">
-                    {spendingInsight.headline}
-                  </p>
-                  <p className="text-gray-600">{spendingInsight.subtext}</p>
-                </div>
-              )}
-
-              {overBudgets.length === 0 && nearBudgets.length === 0 && (
-                <div className="py-8 text-center space-y-2">
-                  <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto">
-                    <CheckCircle2 size={24} />
-                  </div>
-                  <h3 className="font-bold text-gray-900 text-sm">
-                    All Caught Up!
-                  </h3>
-                  <p className="text-xs text-gray-500 max-w-xs mx-auto">
-                    Your budgets and accounts are in great shape. No urgent
-                    alerts this month.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowNotifications(false)}
-              className="min-h-[44px] w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-semibold transition-colors mt-5"
-            >
-              Done
-            </button>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Transaction Detail Sheet */}
       <TransactionDetailSheet

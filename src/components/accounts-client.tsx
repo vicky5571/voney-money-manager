@@ -261,7 +261,11 @@ export function AccountsClient({
         return;
       }
 
-      pointerStartRef.current = { x: e.clientX, y: e.clientY, id };
+      if (e.button !== 0) return;
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+      pointerStartRef.current = { x: startX, y: startY, id };
       isLongPressTriggeredRef.current = false;
       wasDraggingRef.current = false;
 
@@ -276,7 +280,46 @@ export function AccountsClient({
       }
 
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+
+      const cancelHold = () => {
+        if (longPressTimerRef.current) {
+          clearTimeout(longPressTimerRef.current);
+          longPressTimerRef.current = null;
+        }
+        cleanupListeners();
+      };
+
+      const handleWindowPointerMove = (moveEvt: PointerEvent) => {
+        const dist = Math.hypot(moveEvt.clientX - startX, moveEvt.clientY - startY);
+        if (dist > 6) {
+          cancelHold();
+        }
+      };
+
+      const handleWindowTouchMove = (touchEvt: TouchEvent) => {
+        if (touchEvt.touches.length > 0) {
+          const t = touchEvt.touches[0];
+          const dist = Math.hypot(t.clientX - startX, t.clientY - startY);
+          if (dist > 6) {
+            cancelHold();
+          }
+        }
+      };
+
+      const cleanupListeners = () => {
+        window.removeEventListener("pointermove", handleWindowPointerMove);
+        window.removeEventListener("pointercancel", cancelHold);
+        window.removeEventListener("touchmove", handleWindowTouchMove);
+        window.removeEventListener("touchcancel", cancelHold);
+      };
+
+      window.addEventListener("pointermove", handleWindowPointerMove, { passive: true });
+      window.addEventListener("pointercancel", cancelHold, { passive: true, once: true });
+      window.addEventListener("touchmove", handleWindowTouchMove, { passive: true });
+      window.addEventListener("touchcancel", cancelHold, { passive: true, once: true });
+
       longPressTimerRef.current = setTimeout(() => {
+        cleanupListeners();
         isLongPressTriggeredRef.current = true;
         wasDraggingRef.current = true;
         lastDragEndTimeRef.current = Date.now() + 1000;
@@ -285,7 +328,7 @@ export function AccountsClient({
         measureSlotRects();
         hapticMedium();
         controls.start(e);
-      }, 400);
+      }, 500);
     },
     [isEditing, measureSlotRects],
   );
@@ -296,7 +339,7 @@ export function AccountsClient({
         e.clientX - pointerStartRef.current.x,
         e.clientY - pointerStartRef.current.y,
       );
-      if (dist > 8 && !isLongPressTriggeredRef.current) {
+      if (dist > 6 && !isLongPressTriggeredRef.current) {
         if (longPressTimerRef.current) {
           clearTimeout(longPressTimerRef.current);
           longPressTimerRef.current = null;
@@ -778,10 +821,9 @@ function WalletRow({
       }
       className={cn(
         "relative rounded-2xl select-none will-change-transform",
-        isEditing || isDragging ? "touch-none" : "touch-pan-y",
         isEditing || isDragging
-          ? "ring-2 ring-emerald-400/50 shadow-sm"
-          : "ring-0 ring-transparent",
+          ? "touch-none ring-2 ring-emerald-400/50 shadow-sm"
+          : "touch-manipulation ring-0 ring-transparent",
       )}
       style={{ transition: "box-shadow 0.2s ease, ring 0.2s ease" } as React.CSSProperties}
     >
