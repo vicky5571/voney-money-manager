@@ -40,6 +40,19 @@ export function BalanceCard({
       {/* Subtle Dark Gradient Overlay covering entire card */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/[0.02] via-black/[0.03] to-black/[0.04] pointer-events-none" />
 
+      {/* Idle Parallelogram Flash Animation */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 z-0 animate-parallelogram-flash"
+      >
+        <div className="relative flex items-center justify-center">
+          {/* Main Parallelogram */}
+          <div className="w-12 sm:w-14 h-48 sm:h-56 bg-gradient-to-r from-white/10 via-white/25 to-white/10 border-x border-white/25 shadow-[0_0_20px_rgba(255,255,255,0.2)] backdrop-blur-[1px]" />
+          {/* Inner Highlight Line */}
+          <div className="absolute w-2 h-48 sm:h-56 bg-white/35" />
+        </div>
+      </div>
+
       {/* Content wrapper with z-index above overlay */}
       <div className="relative z-10 space-y-4">
         {/* Top Total Balance Row */}

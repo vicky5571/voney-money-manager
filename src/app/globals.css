@@ -104,3 +104,36 @@ input[type="number"] {
 @utility animate-gold-spin {
   animation: gold-spin 3s linear infinite;
 }
+
+@keyframes parallelogram-flash {
+  0% {
+    transform: translateY(-50%) translateX(-140%) skewX(-20deg);
+    opacity: 0;
+  }
+  6% {
+    opacity: 0.75;
+  }
+  30% {
+    opacity: 0.75;
+  }
+  40% {
+    transform: translateY(-50%) translateX(1100%) skewX(-20deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(-50%) translateX(1100%) skewX(-20deg);
+    opacity: 0;
+  }
+}
+
+@utility animate-parallelogram-flash {
+  animation: parallelogram-flash 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-parallelogram-flash {
+    animation: none;
+    display: none;
+  }
+}
+
