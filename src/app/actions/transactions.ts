@@ -411,15 +411,19 @@ export async function createTransaction(formData: {
   await assertAccountOwnership(supabase, valid.account_id, user.id);
   await assertCategoryOwnership(supabase, valid.category_id, user.id);
 
-  const { error } = await supabase.from("transactions").insert({
-    user_id: user.id,
-    type: valid.type,
-    amount: valid.amount,
-    category_id: valid.category_id,
-    account_id: valid.account_id,
-    transaction_date: valid.transaction_date,
-    note: valid.note || null,
-  });
+  const { data: inserted, error } = await supabase
+    .from("transactions")
+    .insert({
+      user_id: user.id,
+      type: valid.type,
+      amount: valid.amount,
+      category_id: valid.category_id,
+      account_id: valid.account_id,
+      transaction_date: valid.transaction_date,
+      note: valid.note || null,
+    })
+    .select("id")
+    .single();
 
   if (error) throw error;
 
@@ -447,6 +451,8 @@ export async function createTransaction(formData: {
   revalidatePath("/");
   revalidatePath("/transactions");
   revalidatePath("/accounts");
+
+  return { success: true, id: inserted?.id as string };
 }
 
 export async function updateTransaction(

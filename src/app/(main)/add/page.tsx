@@ -9,6 +9,8 @@ import {
   ArrowRightLeft,
   Keyboard,
   Calculator,
+  Check,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { createTransaction, createTransfer } from "@/app/actions/transactions";
@@ -20,6 +22,7 @@ import { CategoryManagerSheet } from "@/components/category-manager-sheet";
 import {
   saveOfflineTransaction,
   saveOfflineTransfer,
+  triggerBackgroundSync,
 } from "@/lib/offline-sync";
 import { useAppStore } from "@/lib/store/use-app-store";
 import {
@@ -46,7 +49,6 @@ type Account = {
 
 export default function AddTransactionPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -141,50 +143,29 @@ export default function AddTransactionPage() {
     setToAccount(selectedAccount);
   };
 
-  const handleSubmit = async () => {
+  const [showSuccessBadge, setShowSuccessBadge] = useState(false);
+
+  const handleSave = (keepAdding = false) => {
     if (!isValid) return;
-    setLoading(true);
     setError("");
 
-    // If device is explicitly offline, save to local queue immediately
-    if (typeof window !== "undefined" && !navigator.onLine) {
-      try {
-        if (type === "transfer") {
-          saveOfflineTransfer({
-            from_account_id: selectedAccount,
-            to_account_id: toAccount,
-            amount: parsedAmount,
-            transaction_date: date,
-            note: note || undefined,
-          });
-        } else {
-          saveOfflineTransaction({
-            type,
-            amount: parsedAmount,
-            category_id: selectedCategory!,
-            account_id: selectedAccount,
-            transaction_date: date,
-            note: note || undefined,
-          });
-        }
-        router.push("/");
-        return;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to save offline");
-        setLoading(false);
-        return;
-      }
-    }
-
     try {
+      const tempId =
+        type === "transfer"
+          ? `offline_tr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+          : `offline_tx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
       const selCat = categories.find((c) => c.id === selectedCategory);
       const selAcc = accounts.find((a) => a.id === selectedAccount);
+
       if (type !== "transfer" && selCat && selAcc) {
         optimisticAddTransaction({
+          id: tempId,
           type,
           amount: parsedAmount,
           note: note || null,
           transaction_date: date,
+          isPending: true,
           categories: {
             id: selCat.id,
             name: selCat.name,
@@ -196,18 +177,9 @@ export default function AddTransactionPage() {
             name: selAcc.name,
           },
         });
-      }
 
-      if (type === "transfer") {
-        await createTransfer({
-          from_account_id: selectedAccount,
-          to_account_id: toAccount,
-          amount: parsedAmount,
-          transaction_date: date,
-          note: note || undefined,
-        });
-      } else {
-        await createTransaction({
+        saveOfflineTransaction({
+          id: tempId,
           type,
           amount: parsedAmount,
           category_id: selectedCategory!,
@@ -215,38 +187,32 @@ export default function AddTransactionPage() {
           transaction_date: date,
           note: note || undefined,
         });
+      } else if (type === "transfer") {
+        saveOfflineTransfer({
+          id: tempId,
+          from_account_id: selectedAccount,
+          to_account_id: toAccount,
+          amount: parsedAmount,
+          transaction_date: date,
+          note: note || undefined,
+        });
       }
-      router.push("/");
-      router.refresh();
-    } catch (err) {
-      // Fallback: If network drops mid-flight, store offline
-      if (typeof window !== "undefined" && !navigator.onLine) {
-        if (type === "transfer") {
-          saveOfflineTransfer({
-            from_account_id: selectedAccount,
-            to_account_id: toAccount,
-            amount: parsedAmount,
-            transaction_date: date,
-            note: note || undefined,
-          });
-        } else {
-          saveOfflineTransaction({
-            type,
-            amount: parsedAmount,
-            category_id: selectedCategory!,
-            account_id: selectedAccount,
-            transaction_date: date,
-            note: note || undefined,
-          });
-        }
+
+      // Fire non-blocking background sync
+      triggerBackgroundSync();
+
+      if (keepAdding) {
+        setAmount("");
+        setNote("");
+        setShowSuccessBadge(true);
+        setTimeout(() => setShowSuccessBadge(false), 2200);
+      } else {
         router.push("/");
-        return;
       }
+    } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to save transaction",
       );
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -551,24 +517,37 @@ export default function AddTransactionPage() {
         </div>
       )}
 
-      {/* Save button */}
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={!isValid || loading}
-        className="w-full min-h-[52px] py-4 bg-emerald-500 text-white rounded-2xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-200"
-      >
-        {loading ? (
-          <>
-            <Loader2 size={18} className="animate-spin" />
-            Saving...
-          </>
-        ) : type === "transfer" ? (
-          "Confirm Transfer"
-        ) : (
-          "Save Transaction"
+      {/* Success feedback toast when rapidly adding */}
+      {showSuccessBadge && (
+        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <Check size={16} className="text-emerald-600 shrink-0" />
+          <span>Saved locally! Ready for next transaction.</span>
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="space-y-2.5">
+        <button
+          type="button"
+          onClick={() => handleSave(false)}
+          disabled={!isValid}
+          className="w-full min-h-[52px] py-4 bg-emerald-500 text-white rounded-2xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-200 cursor-pointer"
+        >
+          {type === "transfer" ? "Confirm Transfer" : "Save Transaction"}
+        </button>
+
+        {type !== "transfer" && (
+          <button
+            type="button"
+            onClick={() => handleSave(true)}
+            disabled={!isValid}
+            className="w-full min-h-[46px] py-3 bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-2xl font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-emerald-100 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Plus size={15} />
+            <span>Save & Add Another</span>
+          </button>
         )}
-      </button>
+      </div>
 
       {/* Category Manager Sheet */}
       <CategoryManagerSheet

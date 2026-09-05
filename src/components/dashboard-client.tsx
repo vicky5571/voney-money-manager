@@ -93,6 +93,7 @@ interface RecentTxItem {
   amount: number;
   note: string | null;
   transaction_date: string;
+  isPending?: boolean;
   categories: { id?: string; name: string; icon: string; color: string; scope?: string } | null;
   accounts: { id?: string; name: string } | null;
 }
@@ -176,10 +177,39 @@ export function DashboardClient({
     setCurrentGreeting(getGreeting());
   }, []);
   const [deletedTxIds, setDeletedTxIds] = useState<string[]>([]);
-  const recentTxList = useMemo(
-    () => recentTransactions.filter((tx) => !deletedTxIds.includes(tx.id)),
-    [recentTransactions, deletedTxIds],
+  const { txCache } = useAppStore();
+  const now = new Date();
+  const currentMonthKey = `${now.getMonth() + 1}-${now.getFullYear()}`;
+  const cachedMonthTxs = txCache[currentMonthKey] || [];
+  const pendingTxs = useMemo(
+    () => cachedMonthTxs.filter((t) => t.isPending),
+    [cachedMonthTxs],
   );
+
+  const recentTxList = useMemo(() => {
+    const serverIds = new Set(recentTransactions.map((t) => t.id));
+    const pendingFormatted: RecentTxItem[] = pendingTxs
+      .filter((t) => !serverIds.has(t.id) && !deletedTxIds.includes(t.id))
+      .map((t) => ({
+        id: t.id,
+        type: t.type,
+        amount: t.amount,
+        note: t.note,
+        transaction_date: t.transaction_date,
+        isPending: true,
+        categories: t.categories,
+        accounts: t.accounts,
+      }));
+
+    const serverFiltered: RecentTxItem[] = recentTransactions
+      .filter((tx) => !deletedTxIds.includes(tx.id))
+      .map((tx) => ({
+        ...tx,
+        isPending: false,
+      }));
+
+    return [...pendingFormatted, ...serverFiltered];
+  }, [recentTransactions, pendingTxs, deletedTxIds]);
   const [offlineCount, setOfflineCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -846,6 +876,7 @@ export function DashboardClient({
                       amount={Number(tx.amount)}
                       type={tx.type}
                       date={tx.transaction_date}
+                      isPending={tx.isPending}
                       onClick={() => setSelectedTx(tx)}
                       onSwipeDelete={() => handleSwipeDelete(tx.id)}
                     />

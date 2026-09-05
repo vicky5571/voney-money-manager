@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { CategoryIcon } from '@/constants/categories';
 import { cn, formatCurrency } from '@/lib/utils';
-import { Trash2 } from 'lucide-react';
+import { Trash2, RefreshCw } from 'lucide-react';
 
 interface TransactionItemProps {
   id: string;
@@ -16,6 +16,7 @@ interface TransactionItemProps {
   amount: number;
   type: 'income' | 'expense';
   date: string;
+  isPending?: boolean;
   onClick?: () => void;
   onSwipeDelete?: () => void;
 }
@@ -32,6 +33,7 @@ export function TransactionItem({
   note,
   amount,
   type,
+  isPending,
   onClick,
   onSwipeDelete,
 }: TransactionItemProps) {
@@ -133,6 +135,15 @@ export function TransactionItem({
           <div className="flex flex-col min-w-0">
             <span className="font-semibold text-gray-900 text-sm truncate">{categoryName}</span>
             <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+              {isPending && (
+                <span
+                  className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200/70 px-1.5 py-0.5 rounded-sm shrink-0 shadow-2xs"
+                  title="Saved locally • Syncing in background"
+                >
+                  <RefreshCw size={9} className="animate-spin text-amber-600 shrink-0" />
+                  Syncing
+                </span>
+              )}
               {categoryScope === 'business' && (
                 <span className="text-[9px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 px-1 py-0.5 rounded border border-indigo-200/50 shrink-0">
                   Biz

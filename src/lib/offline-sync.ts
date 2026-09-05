@@ -1,4 +1,5 @@
 import { createTransaction, createTransfer } from '@/app/actions/transactions';
+import { useAppStore } from '@/lib/store/use-app-store';
 
 export interface OfflineTransactionItem {
   id: string;
@@ -113,10 +114,8 @@ export function getOfflineQueueCount(): number {
   if (typeof window === "undefined") return 0;
   attachOfflineListeners();
   try {
-    // Fast path: read raw lengths without full validation when possible
     const rawTx = localStorage.getItem(TX_QUEUE_KEY);
     const rawTr = localStorage.getItem(TRANSFER_QUEUE_KEY);
-    // If both empty, avoid JSON.parse/filter overhead
     if (!rawTx && !rawTr) {
       cachedOfflineCount = 0;
       return 0;
@@ -134,9 +133,8 @@ function invalidateOfflineCache() {
 }
 
 export function saveOfflineTransaction(
-  item: Omit<OfflineTransactionItem, 'id' | 'created_at_local'>
+  item: Omit<OfflineTransactionItem, 'id' | 'created_at_local'> & { id?: string }
 ): OfflineTransactionItem {
-  // validate before queueing
   if (!isValidUuid(item.category_id) || !isValidUuid(item.account_id)) throw new Error('Invalid ID format');
   if (!Number.isFinite(item.amount) || item.amount <= 0 || item.amount > 1e12) throw new Error('Invalid amount');
   if (item.note && item.note.length > MAX_NOTE_LEN) throw new Error('Note too long');
@@ -145,7 +143,7 @@ export function saveOfflineTransaction(
   const newItem: OfflineTransactionItem = {
     ...item,
     note: item.note?.slice(0, MAX_NOTE_LEN),
-    id: `offline_tx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    id: item.id || `offline_tx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     created_at_local: new Date().toISOString(),
   };
 
@@ -159,7 +157,7 @@ export function saveOfflineTransaction(
 }
 
 export function saveOfflineTransfer(
-  item: Omit<OfflineTransferItem, 'id' | 'created_at_local'>
+  item: Omit<OfflineTransferItem, 'id' | 'created_at_local'> & { id?: string }
 ): OfflineTransferItem {
   if (!isValidUuid(item.from_account_id) || !isValidUuid(item.to_account_id)) throw new Error('Invalid ID format');
   if (item.from_account_id === item.to_account_id) throw new Error('Source/dest must differ');
@@ -170,7 +168,7 @@ export function saveOfflineTransfer(
   const newItem: OfflineTransferItem = {
     ...item,
     note: item.note?.slice(0, MAX_NOTE_LEN),
-    id: `offline_tr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    id: item.id || `offline_tr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     created_at_local: new Date().toISOString(),
   };
 
@@ -183,26 +181,34 @@ export function saveOfflineTransfer(
   return newItem;
 }
 
+let isSyncInProgress = false;
+
 export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors: string[] }> {
   if (typeof window === 'undefined') return { syncedCount: 0, errors: [] };
   if (!navigator.onLine) return { syncedCount: 0, errors: ['Device is offline'] };
 
   const txQueue = getOfflineTxQueue();
   const transferQueue = getOfflineTransferQueue();
+  if (txQueue.length === 0 && transferQueue.length === 0) {
+    return { syncedCount: 0, errors: [] };
+  }
+
   let syncedCount = 0;
   const errors: string[] = [];
 
   const remainingTxs: OfflineTransactionItem[] = [];
   for (const tx of txQueue) {
     try {
-      await createTransaction({
+      const res = await createTransaction({
         type: tx.type,
         amount: tx.amount,
         category_id: tx.category_id,
         account_id: tx.account_id,
         transaction_date: tx.transaction_date,
-        note: tx.note ? `${tx.note} (Synced offline)` : '(Synced offline)',
+        note: tx.note || undefined,
       });
+      // Mark store item as synced
+      useAppStore.getState().markTransactionSynced(tx.id, res?.id);
       syncedCount++;
     } catch (err) {
       remainingTxs.push(tx);
@@ -220,8 +226,9 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
         to_account_id: tr.to_account_id,
         amount: tr.amount,
         transaction_date: tr.transaction_date,
-        note: tr.note ? `${tr.note} (Synced offline)` : '(Synced offline)',
+        note: tr.note || undefined,
       });
+      useAppStore.getState().markTransactionSynced(tr.id);
       syncedCount++;
     } catch (err) {
       remainingTransfers.push(tr);
@@ -238,4 +245,17 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
   );
 
   return { syncedCount, errors };
+}
+
+/** Non-blocking trigger for background queue synchronization */
+export function triggerBackgroundSync() {
+  if (typeof window === 'undefined' || !navigator.onLine || isSyncInProgress) return;
+  isSyncInProgress = true;
+  syncOfflineQueue()
+    .catch((err) => {
+      console.warn('Background sync encountered an error:', err);
+    })
+    .finally(() => {
+      isSyncInProgress = false;
+    });
 }

@@ -10,8 +10,9 @@ export interface CachedTransaction {
   note: string | null;
   transaction_date: string;
   created_at: string;
-  categories: { id: string; name: string; icon: string; color: string } | null;
-  accounts: { id: string; name: string } | null;
+  isPending?: boolean;
+  categories: { id?: string; name: string; icon: string; color: string; scope?: string } | null;
+  accounts: { id?: string; name: string } | null;
 }
 
 export interface CachedMonthSummary {
@@ -47,8 +48,9 @@ interface AppStoreState {
   
   // Optimistic Mutations
   optimisticAddTransaction: (
-    tx: Omit<CachedTransaction, 'id' | 'created_at'> & { id?: string; created_at?: string }
+    tx: Omit<CachedTransaction, 'id' | 'created_at'> & { id?: string; created_at?: string; isPending?: boolean }
   ) => void;
+  markTransactionSynced: (tempId: string, realId?: string) => void;
   optimisticDeleteTransaction: (id: string, monthKey: string) => void;
 }
 
@@ -91,6 +93,7 @@ export const useAppStore = create<AppStoreState>((set) => ({
         ...tx,
         id: tx.id || `temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         created_at: tx.created_at || new Date().toISOString(),
+        isPending: tx.isPending !== undefined ? tx.isPending : true,
       };
 
       // Prepend transaction
@@ -115,6 +118,30 @@ export const useAppStore = create<AppStoreState>((set) => ({
         dashboardIncome: (state.dashboardIncome ?? 0) + (tx.type === 'income' ? tx.amount : 0),
         dashboardExpense: (state.dashboardExpense ?? 0) + (tx.type === 'expense' ? tx.amount : 0),
       };
+    }),
+
+  markTransactionSynced: (tempId, realId) =>
+    set((state) => {
+      const newTxCache: Record<string, CachedTransaction[]> = {};
+      let changed = false;
+
+      for (const [key, list] of Object.entries(state.txCache)) {
+        const updated = list.map((t) => {
+          if (t.id === tempId) {
+            changed = true;
+            return {
+              ...t,
+              id: realId || t.id,
+              isPending: false,
+            };
+          }
+          return t;
+        });
+        newTxCache[key] = updated;
+      }
+
+      if (!changed) return state;
+      return { txCache: newTxCache };
     }),
 
   optimisticDeleteTransaction: (id, monthKey) =>

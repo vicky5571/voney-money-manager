@@ -31,6 +31,7 @@ type Transaction = {
   note: string | null;
   transaction_date: string;
   created_at: string;
+  isPending?: boolean;
   categories: {
     id: string;
     name: string;
@@ -55,6 +56,7 @@ function mapRaw(t: Record<string, unknown>): Transaction {
     note: t.note ? String(t.note) : null,
     transaction_date: String(t.transaction_date),
     created_at: String(t.created_at),
+    isPending: Boolean(t.isPending),
     categories: cat
       ? {
           id: String(cat.id),
@@ -177,13 +179,24 @@ export default function TransactionsPage() {
         const mapped = (
           result.transactions as unknown as Record<string, unknown>[]
         ).map(mapRaw);
-        setTransactions(mapped);
+
+        // Merge any locally pending transactions for this month
+        const pendingInMonth = (useAppStore.getState().txCache[monthKey] || [])
+          .filter((t) => t.isPending)
+          .map((t) => ({ ...t, isPending: true } as unknown as Transaction));
+        const serverIds = new Set(mapped.map((m) => m.id));
+        const combined = [
+          ...pendingInMonth.filter((p) => !serverIds.has(p.id)),
+          ...mapped,
+        ];
+
+        setTransactions(combined);
         setHasMore(result.hasMore);
         setPage(1);
         pageRef.current = 1;
 
         if (!search && filter === "all") {
-          setTransactionsForMonth(monthKey, mapped as CachedTransaction[]);
+          setTransactionsForMonth(monthKey, combined as CachedTransaction[]);
         }
       } catch {
         console.error("Failed to fetch transactions");
@@ -638,6 +651,7 @@ export default function TransactionsPage() {
                       amount={t.amount}
                       type={t.type}
                       date={t.transaction_date}
+                      isPending={t.isPending}
                       onClick={() => setSelectedTx(t)}
                       onSwipeDelete={() => handleSwipeDelete(t.id)}
                     />
