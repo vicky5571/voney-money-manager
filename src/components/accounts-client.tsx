@@ -466,20 +466,26 @@ export function AccountsClient({
         {/* Subtle Dark Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/[0.02] via-black/[0.03] to-black/[0.04] pointer-events-none" />
 
-        {/* Idle Parallelogram Flash Animation covering entire card */}
+        {/* Idle Parallelogram Flash Animation across whole card */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 z-0 overflow-visible animate-parallelogram-flash"
+          className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl z-20"
         >
-          <div className="relative flex items-center justify-center">
-            {/* Soft Ambient Glow */}
-            <div className="w-24 sm:w-28 h-[360px] bg-gradient-to-r from-transparent via-white/15 to-transparent blur-md" />
-            {/* Main Parallelogram Beam */}
-            <div className="absolute w-14 sm:w-16 h-[360px] bg-gradient-to-r from-white/10 via-white/30 to-white/10 border-x border-white/25 shadow-[0_0_25px_rgba(255,255,255,0.25)] backdrop-blur-[1px]" />
-            {/* Central Bright Streak */}
-            <div className="absolute w-2.5 h-[360px] bg-white/40 shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
+          <div className="animate-parallelogram-flash absolute inset-y-0 w-full flex items-center justify-center">
+            <div
+              className="relative flex items-center justify-center h-full"
+              style={{ transform: "skewX(-20deg)" }}
+            >
+              {/* Soft Ambient Glow */}
+              <div className="absolute w-28 sm:w-32 -top-24 -bottom-24 bg-gradient-to-r from-transparent via-white/20 to-transparent blur-md pointer-events-none" />
+              {/* Main Parallelogram Sheen */}
+              <div className="absolute w-14 sm:w-16 -top-24 -bottom-24 bg-gradient-to-r from-white/10 via-white/45 to-white/10 border-x border-white/30 shadow-[0_0_25px_rgba(255,255,255,0.3)] backdrop-blur-[0.5px]" />
+              {/* Central Bright Streak */}
+              <div className="absolute w-2 -top-24 -bottom-24 bg-gradient-to-b from-white/20 via-white/80 to-white/20 shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
+            </div>
           </div>
         </div>
+
 
         <div className="relative z-10">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-emerald-100">
