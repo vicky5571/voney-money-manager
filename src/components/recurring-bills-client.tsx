@@ -12,7 +12,6 @@ import {
   Clock,
   Loader2,
   Repeat,
-  DollarSign,
 } from "lucide-react";
 import {
   createRecurringBill,
@@ -108,13 +107,39 @@ export function RecurringBillsClient({
     setMode("edit");
   };
 
+  const getNumericAmount = (val: string): number => {
+    try {
+      const cleaned = val.replace(/[+\-\.]$/, "").trim();
+      if (!cleaned) return 0;
+      const tokens = cleaned.match(/(\d+(\.\d+)?|[+\-])/g);
+      if (!tokens || tokens.length === 0) return 0;
+      let total = 0;
+      let currentOp = "+";
+      for (const token of tokens) {
+        if (token === "+" || token === "-") {
+          currentOp = token;
+        } else {
+          const num = parseFloat(token);
+          if (!isNaN(num)) {
+            if (currentOp === "+") total += num;
+            else if (currentOp === "-") total -= num;
+          }
+        }
+      }
+      return total > 0 ? total : 0;
+    } catch {
+      return parseFloat(val) || 0;
+    }
+  };
+
+  const parsedAmount = getNumericAmount(amount);
+
   const handleSave = () => {
     if (!name.trim()) {
       setError("Please enter a bill/subscription name");
       return;
     }
-    const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount <= 0) {
+    if (parsedAmount <= 0) {
       setError("Please enter a valid amount");
       return;
     }
@@ -125,7 +150,7 @@ export function RecurringBillsClient({
         if (mode === "create") {
           await createRecurringBill({
             name: name.trim(),
-            amount: numAmount,
+            amount: parsedAmount,
             account_id: accountId,
             category_id: categoryId,
             frequency,
@@ -136,7 +161,7 @@ export function RecurringBillsClient({
         } else if (mode === "edit" && selectedBill) {
           await updateRecurringBill(selectedBill.id, {
             name: name.trim(),
-            amount: numAmount,
+            amount: parsedAmount,
             account_id: accountId,
             category_id: categoryId,
             frequency,
@@ -402,19 +427,22 @@ export function RecurringBillsClient({
                 Amount
               </label>
               <div className="relative">
-                <DollarSign
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 select-none">
+                  Rp
+                </span>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  className="w-full min-h-[48px] pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="0"
+                  className="w-full min-h-[48px] pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-900 tracking-tight"
                 />
+                {parsedAmount > 0 && amount !== parsedAmount.toString() && (
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                    = {formatCurrency(parsedAmount)}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -550,7 +578,7 @@ export function RecurringBillsClient({
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={isPending || !name.trim() || !amount}
+                disabled={isPending || !name.trim() || parsedAmount <= 0}
                 className="flex-1 min-h-[48px] py-3 bg-emerald-500 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {isPending ? (
