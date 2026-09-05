@@ -103,7 +103,52 @@ export async function getTransactions({
       .lte("transaction_date", endDate);
   }
 
-  const { data, count, error } = await query;
+  let { data, count, error } = await query;
+  if (error && (error.message?.includes("is_settled") || error.message?.includes("scope") || error.code === "PGRST204" || error.code === "42703")) {
+    let fallbackQuery = supabase
+      .from("transactions")
+      .select(
+        `
+        id, type, amount, note, transaction_date, created_at,
+        categories ( id, name, icon, color ),
+        accounts ( id, name )
+      `,
+        { count: "exact" },
+      )
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .order("transaction_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .range((page - 1) * limit, page * limit - 1);
+
+    if (type) fallbackQuery = fallbackQuery.eq("type", type);
+    if (safeSearch) fallbackQuery = fallbackQuery.ilike("note", `%${safeSearch}%`);
+    if (month && year) {
+      const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      fallbackQuery = fallbackQuery
+        .gte("transaction_date", startDate)
+        .lte("transaction_date", endDate);
+    }
+    const fallbackResult = await fallbackQuery;
+    if (!fallbackResult.error) {
+      data = (fallbackResult.data ?? []).map((row) => {
+        const cat = row.categories as Record<string, unknown> | Record<string, unknown>[] | null;
+        return {
+          ...row,
+          is_settled: true,
+          categories: Array.isArray(cat)
+            ? cat.map((c) => ({ ...c, scope: "personal" }))
+            : cat && typeof cat === "object"
+            ? { ...cat, scope: "personal" }
+            : null,
+        };
+      }) as typeof data;
+      count = fallbackResult.count;
+      error = null;
+    }
+  }
   if (error) throw error;
 
   return {

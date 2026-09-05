@@ -94,6 +94,9 @@ export function TransactionItem({
     onClick?.();
   };
 
+  const isFutureHold = isSettled !== false && date > new Date().toISOString().split('T')[0];
+  const hasMetadata = Boolean(accountName || isPending || isSettled === false || isFutureHold);
+
   return (
     <div className="relative overflow-hidden bg-white first:rounded-t-2xl last:rounded-b-2xl">
       {/* Delete action revealed only when swiping or open */}
@@ -124,64 +127,75 @@ export function TransactionItem({
           transition: isTransitioning ? 'transform 0.25s ease-out' : 'none',
         }}
         className={cn(
-          'relative z-10 flex flex-row items-center justify-between p-3 bg-white w-full',
+          'relative z-10 flex flex-row items-center justify-between p-3.5 bg-white w-full gap-3',
           (onClick || onSwipeDelete) ? 'cursor-pointer active:bg-gray-50' : ''
         )}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <div
             className="flex items-center justify-center w-10 h-10 rounded-full shrink-0"
             style={{ backgroundColor: `${categoryColor}1A` }}
           >
             <CategoryIcon name={categoryIcon} size={20} style={{ color: categoryColor }} />
           </div>
-          <div className="flex flex-col min-w-0">
-            <span className="font-semibold text-gray-900 text-sm truncate">{categoryName}</span>
-            <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
-              {isPending && (
-                <span
-                  className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200/70 px-1.5 py-0.5 rounded-sm shrink-0 shadow-2xs"
-                  title="Saved locally • Syncing in background"
-                >
-                  <RefreshCw size={9} className="animate-spin text-amber-600 shrink-0" />
-                  Syncing
-                </span>
-              )}
-              {isSettled === false && (
-                <span
-                  className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200/80 px-1.5 py-0.5 rounded-sm shrink-0"
-                  title="Pending Settle • Wallet balance not yet deducted"
-                >
-                  <Clock size={8.5} className="text-amber-600 shrink-0" />
-                  Pending Settle
-                </span>
-              )}
-              {isSettled !== false && date > new Date().toISOString().split('T')[0] && (
-                <span
-                  className="inline-flex items-center text-[9px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200/70 px-1.5 py-0.5 rounded-sm shrink-0"
-                  title="Committed Hold • Balance deducted for future date"
-                >
-                  Hold
-                </span>
-              )}
+          <div className="flex flex-col min-w-0 flex-1">
+            {/* Category Name & Scope Badge */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="font-semibold text-gray-900 text-sm truncate">{categoryName}</span>
               {categoryScope === 'business' && (
-                <span className="text-[9px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 px-1 py-0.5 rounded border border-indigo-200/50 shrink-0">
+                <span className="text-[9px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 px-1 py-0.2 rounded border border-indigo-200/50 shrink-0">
                   Biz
                 </span>
               )}
-              {accountName && (
-                <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded shrink-0">
-                  {accountName}
-                </span>
-              )}
-              {note && (
-                <span className="text-xs text-gray-500 truncate max-w-[140px]">{note}</span>
-              )}
             </div>
+
+            {/* Note directly below title */}
+            {note && (
+              <p className="text-xs text-gray-500 truncate mt-0.5 leading-snug">
+                {note}
+              </p>
+            )}
+
+            {/* Metadata Row: Badges & Account */}
+            {hasMetadata && (
+              <div className="flex items-center gap-1.5 mt-1 min-w-0 flex-wrap">
+                {isPending && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200/70 px-1.5 py-0.5 rounded-sm shrink-0 shadow-2xs"
+                    title="Saved locally • Syncing in background"
+                  >
+                    <RefreshCw size={9} className="animate-spin text-amber-600 shrink-0" />
+                    Syncing
+                  </span>
+                )}
+                {isSettled === false && (
+                  <span
+                    className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200/80 px-1.5 py-0.5 rounded-sm shrink-0"
+                    title="Pending Settle • Wallet balance not yet deducted"
+                  >
+                    <Clock size={8.5} className="text-amber-600 shrink-0" />
+                    Pending Settle
+                  </span>
+                )}
+                {isFutureHold && (
+                  <span
+                    className="inline-flex items-center text-[9px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200/70 px-1.5 py-0.5 rounded-sm shrink-0"
+                    title="Committed Hold • Balance deducted for future date"
+                  >
+                    Hold
+                  </span>
+                )}
+                {accountName && (
+                  <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded shrink-0 truncate max-w-[120px]">
+                    {accountName}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className={cn('font-semibold shrink-0 text-sm', isIncome ? 'text-emerald-500' : 'text-red-500')}>
+        <div className={cn('font-semibold shrink-0 text-right text-sm whitespace-nowrap pl-2', isIncome ? 'text-emerald-500' : 'text-red-500')}>
           {isIncome ? '+' : '-'}{formatCurrency(amount)}
         </div>
       </div>

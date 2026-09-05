@@ -201,8 +201,8 @@ export default function TransactionsPage() {
         if (!search && filter === "all") {
           setTransactionsForMonth(monthKey, combined as CachedTransaction[]);
         }
-      } catch {
-        console.error("Failed to fetch transactions");
+      } catch (err) {
+        console.error("Failed to fetch transactions:", err);
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -241,8 +241,8 @@ export default function TransactionsPage() {
           ),
         ]);
         setHasMore(result.hasMore);
-      } catch {
-        console.error("Failed to load more transactions");
+      } catch (err) {
+        console.error("Failed to load more transactions:", err);
       } finally {
         setLoadingMore(false);
       }
