@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { CategoryIcon } from '@/constants/categories';
 import { cn, formatCurrency } from '@/lib/utils';
-import { Trash2, RefreshCw } from 'lucide-react';
+import { Trash2, RefreshCw, Clock } from 'lucide-react';
 
 interface TransactionItemProps {
   id: string;
@@ -17,6 +17,7 @@ interface TransactionItemProps {
   type: 'income' | 'expense';
   date: string;
   isPending?: boolean;
+  isSettled?: boolean;
   onClick?: () => void;
   onSwipeDelete?: () => void;
 }
@@ -33,7 +34,9 @@ export function TransactionItem({
   note,
   amount,
   type,
+  date,
   isPending,
+  isSettled,
   onClick,
   onSwipeDelete,
 }: TransactionItemProps) {
@@ -142,6 +145,23 @@ export function TransactionItem({
                 >
                   <RefreshCw size={9} className="animate-spin text-amber-600 shrink-0" />
                   Syncing
+                </span>
+              )}
+              {isSettled === false && (
+                <span
+                  className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200/80 px-1.5 py-0.5 rounded-sm shrink-0"
+                  title="Pending Settle • Wallet balance not yet deducted"
+                >
+                  <Clock size={8.5} className="text-amber-600 shrink-0" />
+                  Pending Settle
+                </span>
+              )}
+              {isSettled !== false && date > new Date().toISOString().split('T')[0] && (
+                <span
+                  className="inline-flex items-center text-[9px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200/70 px-1.5 py-0.5 rounded-sm shrink-0"
+                  title="Committed Hold • Balance deducted for future date"
+                >
+                  Hold
                 </span>
               )}
               {categoryScope === 'business' && (

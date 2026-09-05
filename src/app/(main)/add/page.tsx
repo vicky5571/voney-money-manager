@@ -64,6 +64,7 @@ export default function AddTransactionPage() {
   const [toAccount, setToAccount] = useState<string>("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [note, setNote] = useState("");
+  const [isSettled, setIsSettled] = useState(true);
 
   // Data
   const [categories, setCategories] = useState<Category[]>([]);
@@ -166,6 +167,7 @@ export default function AddTransactionPage() {
           note: note || null,
           transaction_date: date,
           isPending: true,
+          is_settled: isSettled,
           categories: {
             id: selCat.id,
             name: selCat.name,
@@ -186,6 +188,7 @@ export default function AddTransactionPage() {
           account_id: selectedAccount,
           transaction_date: date,
           note: note || undefined,
+          is_settled: isSettled,
         });
       } else if (type === "transfer") {
         saveOfflineTransfer({
@@ -482,6 +485,73 @@ export default function AddTransactionPage() {
           />
         </div>
       </div>
+
+      {/* Wallet Balance Impact / Settlement */}
+      {type !== "transfer" && (
+        <div className="mb-5 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
+                Deduct Balance Now
+              </label>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                {isSettled
+                  ? date > new Date().toISOString().split("T")[0]
+                    ? "Future Hold: Deduct wallet funds immediately upon saving"
+                    : "Update wallet balance immediately upon saving"
+                  : "Pending Settle: Keep wallet untouched until settled manually"}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isSettled}
+              onClick={() => setIsSettled(!isSettled)}
+              className={cn(
+                "min-w-[48px] h-7 rounded-full p-1 transition-colors relative inline-flex items-center cursor-pointer shrink-0 ml-3",
+                isSettled ? "bg-emerald-500" : "bg-gray-300"
+              )}
+            >
+              <span
+                className={cn(
+                  "w-5 h-5 rounded-full bg-white shadow-md transform transition-transform",
+                  isSettled ? "translate-x-5" : "translate-x-0"
+                )}
+              />
+            </button>
+          </div>
+
+          <div
+            className={cn(
+              "p-2.5 rounded-xl text-xs flex items-center gap-2 border transition-all",
+              isSettled
+                ? date > new Date().toISOString().split("T")[0]
+                  ? "bg-purple-50 text-purple-800 border-purple-200/70"
+                  : "bg-emerald-50 text-emerald-800 border-emerald-200/70"
+                : "bg-amber-50 text-amber-800 border-amber-200/70"
+            )}
+          >
+            {isSettled ? (
+              date > new Date().toISOString().split("T")[0] ? (
+                <>
+                  <span className="font-bold shrink-0">⏳ Committed Hold:</span>
+                  <span>Will deduct balance now even though date is in the future.</span>
+                </>
+              ) : (
+                <>
+                  <span className="font-bold shrink-0">✓ Instant:</span>
+                  <span>Wallet balance will be adjusted immediately.</span>
+                </>
+              )
+            ) : (
+              <>
+                <span className="font-bold shrink-0">🕒 Pending Settle:</span>
+                <span>Wallet balance is untouched. You can deduct it manually anytime.</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Note */}
       <div className="mb-6 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-2">

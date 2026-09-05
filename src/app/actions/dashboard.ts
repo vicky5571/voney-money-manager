@@ -126,7 +126,7 @@ export async function getDashboardData() {
     supabase
       .from("transactions")
       .select(
-        `id, type, amount, note, transaction_date, categories ( * ), accounts ( id, name )`,
+        `id, type, amount, note, transaction_date, is_settled, categories ( * ), accounts ( id, name )`,
       )
       .eq("user_id", userId)
       .is("deleted_at", null)

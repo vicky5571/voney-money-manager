@@ -7,9 +7,11 @@ export const createTransactionSchema = z.object({
   account_id: z.string().uuid('Please select an account'),
   transaction_date: z.string().min(1, 'Please select a date'),
   note: z.string().max(200, 'Note must be 200 characters or less').optional(),
+  is_settled: z.boolean().optional(),
 });
 
 export const updateTransactionSchema = createTransactionSchema;
 
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;
+

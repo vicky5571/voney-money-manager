@@ -9,6 +9,7 @@ export interface OfflineTransactionItem {
   account_id: string;
   transaction_date: string;
   note?: string;
+  is_settled?: boolean;
   created_at_local: string;
 }
 
@@ -47,7 +48,8 @@ function isValidOfflineTx(item: unknown): item is OfflineTransactionItem {
     isValidUuid(o.account_id) &&
     typeof o.transaction_date === 'string' &&
     /^\d{4}-\d{2}-\d{2}$/.test(o.transaction_date) &&
-    (o.note === undefined || (typeof o.note === 'string' && o.note.length <= MAX_NOTE_LEN))
+    (o.note === undefined || (typeof o.note === 'string' && o.note.length <= MAX_NOTE_LEN)) &&
+    (o.is_settled === undefined || typeof o.is_settled === 'boolean')
   );
 }
 
@@ -142,6 +144,7 @@ export function saveOfflineTransaction(
 
   const newItem: OfflineTransactionItem = {
     ...item,
+    is_settled: item.is_settled !== undefined ? item.is_settled : true,
     note: item.note?.slice(0, MAX_NOTE_LEN),
     id: item.id || `offline_tx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     created_at_local: new Date().toISOString(),
@@ -206,6 +209,7 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
         account_id: tx.account_id,
         transaction_date: tx.transaction_date,
         note: tx.note || undefined,
+        is_settled: tx.is_settled,
       });
       // Mark store item as synced
       useAppStore.getState().markTransactionSynced(tx.id, res?.id);

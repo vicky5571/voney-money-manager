@@ -79,7 +79,7 @@ export async function getTransactions({
     .from("transactions")
     .select(
       `
-      id, type, amount, note, transaction_date, created_at,
+      id, type, amount, note, transaction_date, is_settled, created_at,
       categories ( id, name, icon, color, scope ),
       accounts ( id, name )
     `,
@@ -394,6 +394,7 @@ export async function createTransaction(formData: {
   account_id: string;
   transaction_date: string;
   note?: string;
+  is_settled?: boolean;
 }) {
   const supabase = await createClient();
   const {
@@ -411,6 +412,8 @@ export async function createTransaction(formData: {
   await assertAccountOwnership(supabase, valid.account_id, user.id);
   await assertCategoryOwnership(supabase, valid.category_id, user.id);
 
+  const isSettled = valid.is_settled ?? true;
+
   const { data: inserted, error } = await supabase
     .from("transactions")
     .insert({
@@ -421,31 +424,34 @@ export async function createTransaction(formData: {
       account_id: valid.account_id,
       transaction_date: valid.transaction_date,
       note: valid.note || null,
+      is_settled: isSettled,
     })
     .select("id")
     .single();
 
   if (error) throw error;
 
-  // Update account balance (already verified ownership, now with user_id guard)
-  const { data: account } = await supabase
-    .from("accounts")
-    .select("balance")
-    .eq("id", valid.account_id)
-    .eq("user_id", user.id)
-    .single();
-
-  if (account) {
-    const newBalance =
-      valid.type === "income"
-        ? Number(account.balance) + valid.amount
-        : Number(account.balance) - valid.amount;
-
-    await supabase
+  // Update account balance only if settled
+  if (isSettled) {
+    const { data: account } = await supabase
       .from("accounts")
-      .update({ balance: newBalance })
+      .select("balance")
       .eq("id", valid.account_id)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .single();
+
+    if (account) {
+      const newBalance =
+        valid.type === "income"
+          ? Number(account.balance) + valid.amount
+          : Number(account.balance) - valid.amount;
+
+      await supabase
+        .from("accounts")
+        .update({ balance: newBalance })
+        .eq("id", valid.account_id)
+        .eq("user_id", user.id);
+    }
   }
 
   revalidatePath("/");
@@ -453,6 +459,62 @@ export async function createTransaction(formData: {
   revalidatePath("/accounts");
 
   return { success: true, id: inserted?.id as string };
+}
+
+export async function settleTransaction(id: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: transaction, error: fetchErr } = await supabase
+    .from("transactions")
+    .select("id, type, amount, account_id, is_settled")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .single();
+
+  if (fetchErr || !transaction) throw new Error("Transaction not found");
+  if (transaction.is_settled) return { success: true };
+
+  const { error: updateErr } = await supabase
+    .from("transactions")
+    .update({
+      is_settled: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (updateErr) throw updateErr;
+
+  const { data: account } = await supabase
+    .from("accounts")
+    .select("balance")
+    .eq("id", transaction.account_id)
+    .eq("user_id", user.id)
+    .single();
+
+  if (account) {
+    const newBalance =
+      transaction.type === "income"
+        ? Number(account.balance) + Number(transaction.amount)
+        : Number(account.balance) - Number(transaction.amount);
+
+    await supabase
+      .from("accounts")
+      .update({ balance: newBalance })
+      .eq("id", transaction.account_id)
+      .eq("user_id", user.id);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/transactions");
+  revalidatePath("/accounts");
+
+  return { success: true };
 }
 
 export async function updateTransaction(
@@ -464,6 +526,7 @@ export async function updateTransaction(
     account_id: string;
     transaction_date: string;
     note?: string;
+    is_settled?: boolean;
   },
 ) {
   const supabase = await createClient();
@@ -484,31 +547,36 @@ export async function updateTransaction(
   // Get old transaction to reverse its effect on balance
   const { data: oldTransaction } = await supabase
     .from("transactions")
-    .select("type, amount, account_id")
+    .select("type, amount, account_id, is_settled")
     .eq("id", id)
     .eq("user_id", user.id)
     .single();
 
   if (!oldTransaction) throw new Error("Transaction not found");
 
-  // Reverse old transaction effect (with user_id guard)
-  const { data: oldAccount } = await supabase
-    .from("accounts")
-    .select("balance")
-    .eq("id", oldTransaction.account_id)
-    .eq("user_id", user.id)
-    .single();
+  const oldIsSettled = oldTransaction.is_settled ?? true;
+  const newIsSettled = valid.is_settled ?? oldIsSettled;
 
-  if (oldAccount) {
-    const reversedBalance =
-      oldTransaction.type === "income"
-        ? Number(oldAccount.balance) - Number(oldTransaction.amount)
-        : Number(oldAccount.balance) + Number(oldTransaction.amount);
-    await supabase
+  // Reverse old transaction effect if it was settled
+  if (oldIsSettled) {
+    const { data: oldAccount } = await supabase
       .from("accounts")
-      .update({ balance: reversedBalance })
+      .select("balance")
       .eq("id", oldTransaction.account_id)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .single();
+
+    if (oldAccount) {
+      const reversedBalance =
+        oldTransaction.type === "income"
+          ? Number(oldAccount.balance) - Number(oldTransaction.amount)
+          : Number(oldAccount.balance) + Number(oldTransaction.amount);
+      await supabase
+        .from("accounts")
+        .update({ balance: reversedBalance })
+        .eq("id", oldTransaction.account_id)
+        .eq("user_id", user.id);
+    }
   }
 
   // Update transaction
@@ -521,6 +589,7 @@ export async function updateTransaction(
       account_id: valid.account_id,
       transaction_date: valid.transaction_date,
       note: valid.note || null,
+      is_settled: newIsSettled,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
@@ -528,24 +597,26 @@ export async function updateTransaction(
 
   if (error) throw error;
 
-  // Apply new transaction effect
-  const { data: newAccount } = await supabase
-    .from("accounts")
-    .select("balance")
-    .eq("id", valid.account_id)
-    .eq("user_id", user.id)
-    .single();
-
-  if (newAccount) {
-    const newBalance =
-      valid.type === "income"
-        ? Number(newAccount.balance) + valid.amount
-        : Number(newAccount.balance) - valid.amount;
-    await supabase
+  // Apply new transaction effect if settled
+  if (newIsSettled) {
+    const { data: newAccount } = await supabase
       .from("accounts")
-      .update({ balance: newBalance })
+      .select("balance")
       .eq("id", valid.account_id)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .single();
+
+    if (newAccount) {
+      const newBalance =
+        valid.type === "income"
+          ? Number(newAccount.balance) + valid.amount
+          : Number(newAccount.balance) - valid.amount;
+      await supabase
+        .from("accounts")
+        .update({ balance: newBalance })
+        .eq("id", valid.account_id)
+        .eq("user_id", user.id);
+    }
   }
 
   revalidatePath("/");
@@ -562,7 +633,7 @@ export async function getTransactionById(id: string) {
 
   const { data, error } = await supabase
     .from("transactions")
-    .select("id, type, amount, note, transaction_date, category_id, account_id")
+    .select("id, type, amount, note, transaction_date, is_settled, category_id, account_id")
     .eq("id", id)
     .eq("user_id", user.id)
     .is("deleted_at", null)
@@ -582,7 +653,7 @@ export async function deleteTransaction(id: string) {
   // Get transaction to reverse balance
   const { data: transaction } = await supabase
     .from("transactions")
-    .select("type, amount, account_id")
+    .select("type, amount, account_id, is_settled")
     .eq("id", id)
     .eq("user_id", user.id)
     .is("deleted_at", null)
@@ -604,24 +675,26 @@ export async function deleteTransaction(id: string) {
 
   if (error) throw error;
 
-  // Reverse balance (IDOR guard with user_id)
-  const { data: account } = await supabase
-    .from("accounts")
-    .select("balance")
-    .eq("id", transaction.account_id)
-    .eq("user_id", user.id)
-    .single();
-
-  if (account) {
-    const newBalance =
-      transaction.type === "income"
-        ? Number(account.balance) - Number(transaction.amount)
-        : Number(account.balance) + Number(transaction.amount);
-    await supabase
+  // Reverse balance only if it was settled
+  if (transaction.is_settled !== false) {
+    const { data: account } = await supabase
       .from("accounts")
-      .update({ balance: newBalance })
+      .select("balance")
       .eq("id", transaction.account_id)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .single();
+
+    if (account) {
+      const newBalance =
+        transaction.type === "income"
+          ? Number(account.balance) - Number(transaction.amount)
+          : Number(account.balance) + Number(transaction.amount);
+      await supabase
+        .from("accounts")
+        .update({ balance: newBalance })
+        .eq("id", transaction.account_id)
+        .eq("user_id", user.id);
+    }
   }
 
   revalidatePath("/");

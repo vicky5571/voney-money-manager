@@ -11,6 +11,7 @@ export interface CachedTransaction {
   transaction_date: string;
   created_at: string;
   isPending?: boolean;
+  is_settled?: boolean;
   categories: { id?: string; name: string; icon: string; color: string; scope?: string } | null;
   accounts: { id?: string; name: string } | null;
 }
@@ -51,6 +52,7 @@ interface AppStoreState {
     tx: Omit<CachedTransaction, 'id' | 'created_at'> & { id?: string; created_at?: string; isPending?: boolean }
   ) => void;
   markTransactionSynced: (tempId: string, realId?: string) => void;
+  optimisticSettleTransaction: (id: string, amount: number, type: 'income' | 'expense') => void;
   optimisticDeleteTransaction: (id: string, monthKey: string) => void;
 }
 
@@ -88,12 +90,14 @@ export const useAppStore = create<AppStoreState>((set) => ({
       const date = new Date(tx.transaction_date);
       const key = `${date.getMonth() + 1}-${date.getFullYear()}`;
       const currentList = state.txCache[key] || [];
+      const isSettled = tx.is_settled ?? true;
 
       const fullTx: CachedTransaction = {
         ...tx,
         id: tx.id || `temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         created_at: tx.created_at || new Date().toISOString(),
         isPending: tx.isPending !== undefined ? tx.isPending : true,
+        is_settled: isSettled,
       };
 
       // Prepend transaction
@@ -104,9 +108,11 @@ export const useAppStore = create<AppStoreState>((set) => ({
       const newIncome = tx.type === 'income' ? currentSummary.income + tx.amount : currentSummary.income;
       const newExpense = tx.type === 'expense' ? currentSummary.expense + tx.amount : currentSummary.expense;
 
-      // Update dashboard cache
+      // Update dashboard cache if settled
       const currentBalance = state.dashboardTotalBalance ?? 0;
-      const newBalance = tx.type === 'income' ? currentBalance + tx.amount : currentBalance - tx.amount;
+      const newBalance = isSettled
+        ? (tx.type === 'income' ? currentBalance + tx.amount : currentBalance - tx.amount)
+        : currentBalance;
 
       return {
         txCache: { ...state.txCache, [key]: updatedList },
@@ -142,6 +148,34 @@ export const useAppStore = create<AppStoreState>((set) => ({
 
       if (!changed) return state;
       return { txCache: newTxCache };
+    }),
+
+  optimisticSettleTransaction: (id, amount, type) =>
+    set((state) => {
+      const newTxCache: Record<string, CachedTransaction[]> = {};
+      let changed = false;
+
+      for (const [key, list] of Object.entries(state.txCache)) {
+        const updated = list.map((t) => {
+          if (t.id === id) {
+            changed = true;
+            return {
+              ...t,
+              is_settled: true,
+            };
+          }
+          return t;
+        });
+        newTxCache[key] = updated;
+      }
+
+      const currentBalance = state.dashboardTotalBalance ?? 0;
+      const newBalance = type === 'income' ? currentBalance + amount : currentBalance - amount;
+
+      return {
+        txCache: changed ? newTxCache : state.txCache,
+        dashboardTotalBalance: changed ? newBalance : state.dashboardTotalBalance,
+      };
     }),
 
   optimisticDeleteTransaction: (id, monthKey) =>

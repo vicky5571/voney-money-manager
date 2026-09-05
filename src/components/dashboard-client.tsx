@@ -94,6 +94,7 @@ interface RecentTxItem {
   note: string | null;
   transaction_date: string;
   isPending?: boolean;
+  is_settled?: boolean;
   categories: { id?: string; name: string; icon: string; color: string; scope?: string } | null;
   accounts: { id?: string; name: string } | null;
 }
@@ -148,7 +149,13 @@ function formatTxDateGroup(dateStr: string): string {
   if (dateStr === yesterdayStr) return "Yesterday";
 
   const txDate = new Date(dateStr + "T00:00:00");
-  return txDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const isThisYear = txDate.getFullYear() === now.getFullYear();
+
+  return txDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: isThisYear ? undefined : "numeric",
+  });
 }
 
 export function DashboardClient({
@@ -177,7 +184,7 @@ export function DashboardClient({
     setCurrentGreeting(getGreeting());
   }, []);
   const [deletedTxIds, setDeletedTxIds] = useState<string[]>([]);
-  const { txCache } = useAppStore();
+  const { txCache, optimisticSettleTransaction } = useAppStore();
   const now = new Date();
   const currentMonthKey = `${now.getMonth() + 1}-${now.getFullYear()}`;
   const cachedMonthTxs = txCache[currentMonthKey] || [];
@@ -197,6 +204,7 @@ export function DashboardClient({
         note: t.note,
         transaction_date: t.transaction_date,
         isPending: true,
+        is_settled: t.is_settled,
         categories: t.categories,
         accounts: t.accounts,
       }));
@@ -210,6 +218,13 @@ export function DashboardClient({
 
     return [...pendingFormatted, ...serverFiltered];
   }, [recentTransactions, pendingTxs, deletedTxIds]);
+
+  const handleDetailSettle = (id: string) => {
+    const tx = recentTxList.find((t) => t.id === id);
+    if (tx) {
+      optimisticSettleTransaction(id, Number(tx.amount), tx.type);
+    }
+  };
   const [offlineCount, setOfflineCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -877,6 +892,7 @@ export function DashboardClient({
                       type={tx.type}
                       date={tx.transaction_date}
                       isPending={tx.isPending}
+                      isSettled={tx.is_settled}
                       onClick={() => setSelectedTx(tx)}
                       onSwipeDelete={() => handleSwipeDelete(tx.id)}
                     />
@@ -1045,6 +1061,7 @@ export function DashboardClient({
         isOpen={!!selectedTx}
         onClose={() => setSelectedTx(null)}
         onDelete={handleDetailDelete}
+        onSettle={handleDetailSettle}
         transaction={
           selectedTx
             ? {
@@ -1053,6 +1070,7 @@ export function DashboardClient({
                 amount: selectedTx.amount,
                 note: selectedTx.note,
                 transaction_date: selectedTx.transaction_date,
+                is_settled: selectedTx.is_settled,
                 categories: selectedTx.categories
                   ? {
                       name: selectedTx.categories.name,

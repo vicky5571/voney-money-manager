@@ -32,6 +32,7 @@ type Transaction = {
   transaction_date: string;
   created_at: string;
   isPending?: boolean;
+  is_settled?: boolean;
   categories: {
     id: string;
     name: string;
@@ -57,6 +58,7 @@ function mapRaw(t: Record<string, unknown>): Transaction {
     transaction_date: String(t.transaction_date),
     created_at: String(t.created_at),
     isPending: Boolean(t.isPending),
+    is_settled: t.is_settled !== undefined ? Boolean(t.is_settled) : true,
     categories: cat
       ? {
           id: String(cat.id),
@@ -86,6 +88,7 @@ export default function TransactionsPage() {
     setSummaryForMonth,
     setHealthForMonth,
     optimisticDeleteTransaction,
+    optimisticSettleTransaction,
   } = useAppStore();
 
   const cachedTxs = txCache[monthKey];
@@ -406,6 +409,16 @@ export default function TransactionsPage() {
     setSelectedTx(null);
   };
 
+  const handleDetailSettle = (id: string) => {
+    const tx = transactions.find((t) => t.id === id);
+    if (tx) {
+      setTransactions((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, is_settled: true } : t))
+      );
+      optimisticSettleTransaction(id, tx.amount, tx.type);
+    }
+  };
+
   // Group by date
   const grouped = transactions.reduce<Record<string, Transaction[]>>(
     (acc, t) => {
@@ -652,6 +665,7 @@ export default function TransactionsPage() {
                       type={t.type}
                       date={t.transaction_date}
                       isPending={t.isPending}
+                      isSettled={t.is_settled}
                       onClick={() => setSelectedTx(t)}
                       onSwipeDelete={() => handleSwipeDelete(t.id)}
                     />
@@ -677,6 +691,7 @@ export default function TransactionsPage() {
         isOpen={!!selectedTx}
         onClose={() => setSelectedTx(null)}
         onDelete={handleDetailDelete}
+        onSettle={handleDetailSettle}
         transaction={
           selectedTx
             ? {
@@ -685,6 +700,7 @@ export default function TransactionsPage() {
                 amount: selectedTx.amount,
                 note: selectedTx.note,
                 transaction_date: selectedTx.transaction_date,
+                is_settled: selectedTx.is_settled,
                 categories: selectedTx.categories
                   ? {
                       name: selectedTx.categories.name,

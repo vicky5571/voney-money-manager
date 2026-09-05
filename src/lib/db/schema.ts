@@ -65,6 +65,7 @@ export const transactions = pgTable('transactions', {
   amount: decimal('amount', { precision: 12, scale: 2 }).notNull(),
   note: text('note'),
   transactionDate: date('transaction_date').notNull(),
+  isSettled: boolean('is_settled').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),

@@ -2,8 +2,8 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Trash2, Pencil, X, Loader2 } from "lucide-react";
-import { deleteTransaction } from "@/app/actions/transactions";
+import { Trash2, Pencil, X, Loader2, CheckCircle2, Clock } from "lucide-react";
+import { deleteTransaction, settleTransaction } from "@/app/actions/transactions";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { CategoryIcon } from "@/constants/categories";
@@ -15,12 +15,14 @@ interface TransactionDetailSheetProps {
     amount: number;
     note: string | null;
     transaction_date: string;
+    is_settled?: boolean;
     categories: { name: string; icon: string; color: string; scope?: string } | null;
     accounts: { name: string } | null;
   } | null;
   isOpen: boolean;
   onClose: () => void;
   onDelete?: (id: string) => void;
+  onSettle?: (id: string) => Promise<void> | void;
 }
 
 export function TransactionDetailSheet({
@@ -28,9 +30,11 @@ export function TransactionDetailSheet({
   isOpen,
   onClose,
   onDelete,
+  onSettle,
 }: TransactionDetailSheetProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const [settling, setSettling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   // Keep reference to last active transaction so exit animation renders smoothly even if parent clears transaction
@@ -39,6 +43,21 @@ export function TransactionDetailSheet({
     lastTxRef.current = transaction;
   }
   const currentTx = transaction || lastTxRef.current;
+
+  const handleSettle = async () => {
+    if (!currentTx) return;
+    setSettling(true);
+    try {
+      await settleTransaction(currentTx.id);
+      await onSettle?.(currentTx.id);
+      onClose();
+      router.refresh();
+    } catch (err) {
+      console.error("Failed to settle transaction:", err);
+    } finally {
+      setSettling(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!currentTx) return;
@@ -57,6 +76,11 @@ export function TransactionDetailSheet({
       setShowConfirm(false);
     }
   };
+
+  const isPendingSettle = currentTx?.is_settled === false;
+  const isFutureHold =
+    currentTx?.is_settled !== false &&
+    Boolean(currentTx?.transaction_date && currentTx.transaction_date > new Date().toISOString().split("T")[0]);
 
   return (
     <AnimatePresence>
@@ -124,7 +148,7 @@ export function TransactionDetailSheet({
             </div>
 
             {/* Amount */}
-            <div className="text-center mb-5">
+            <div className="text-center mb-4">
               <p
                 className={`text-3xl font-bold ${
                   currentTx.type === "income"
@@ -139,6 +163,44 @@ export function TransactionDetailSheet({
                 {formatDate(currentTx.transaction_date)}
               </p>
             </div>
+
+            {/* Settlement Status Indicator */}
+            {isPendingSettle ? (
+              <div className="bg-amber-50 rounded-2xl p-3.5 mb-4 border border-amber-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <Clock size={14} className="text-amber-600" />
+                    Pending Settlement
+                  </span>
+                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-amber-200/60 text-amber-800 rounded-full">
+                    Not Deducted
+                  </span>
+                </div>
+                <p className="text-xs text-amber-800">
+                  This transaction has not yet deducted funds from your wallet balance.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleSettle}
+                  disabled={settling}
+                  className="w-full min-h-[44px] py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-60 mt-1"
+                >
+                  {settling ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <CheckCircle2 size={15} />
+                  )}
+                  <span>{settling ? "Deducting..." : "Deduct from Balance Now"}</span>
+                </button>
+              </div>
+            ) : isFutureHold ? (
+              <div className="bg-purple-50 rounded-2xl p-3 mb-4 border border-purple-200/70 text-xs text-purple-900 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={15} className="text-purple-600 shrink-0" />
+                  <span>Committed Hold (Balance already deducted)</span>
+                </div>
+              </div>
+            ) : null}
 
             {/* Note */}
             {currentTx.note && (
