@@ -107,21 +107,21 @@ input[type="number"] {
 
 @keyframes parallelogram-flash {
   0% {
-    transform: translateY(-50%) translateX(-140%) skewX(-20deg);
+    transform: translateY(-50%) translateX(-220%) skewX(-20deg);
     opacity: 0;
   }
   6% {
-    opacity: 0.75;
+    opacity: 0.85;
   }
-  30% {
-    opacity: 0.75;
+  32% {
+    opacity: 0.85;
   }
-  40% {
-    transform: translateY(-50%) translateX(1100%) skewX(-20deg);
+  42% {
+    transform: translateY(-50%) translateX(850%) skewX(-20deg);
     opacity: 0;
   }
   100% {
-    transform: translateY(-50%) translateX(1100%) skewX(-20deg);
+    transform: translateY(-50%) translateX(850%) skewX(-20deg);
     opacity: 0;
   }
 }

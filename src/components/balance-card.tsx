@@ -40,16 +40,18 @@ export function BalanceCard({
       {/* Subtle Dark Gradient Overlay covering entire card */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/[0.02] via-black/[0.03] to-black/[0.04] pointer-events-none" />
 
-      {/* Idle Parallelogram Flash Animation */}
+      {/* Idle Parallelogram Flash Animation covering entire card */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 z-0 animate-parallelogram-flash"
+        className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 z-0 overflow-visible animate-parallelogram-flash"
       >
         <div className="relative flex items-center justify-center">
-          {/* Main Parallelogram */}
-          <div className="w-12 sm:w-14 h-48 sm:h-56 bg-gradient-to-r from-white/10 via-white/25 to-white/10 border-x border-white/25 shadow-[0_0_20px_rgba(255,255,255,0.2)] backdrop-blur-[1px]" />
-          {/* Inner Highlight Line */}
-          <div className="absolute w-2 h-48 sm:h-56 bg-white/35" />
+          {/* Soft Ambient Glow */}
+          <div className="w-24 sm:w-28 h-[360px] bg-gradient-to-r from-transparent via-white/15 to-transparent blur-md" />
+          {/* Main Parallelogram Beam */}
+          <div className="absolute w-14 sm:w-16 h-[360px] bg-gradient-to-r from-white/10 via-white/30 to-white/10 border-x border-white/25 shadow-[0_0_25px_rgba(255,255,255,0.25)] backdrop-blur-[1px]" />
+          {/* Central Bright Streak */}
+          <div className="absolute w-2.5 h-[360px] bg-white/40 shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
         </div>
       </div>
 
