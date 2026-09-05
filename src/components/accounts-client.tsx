@@ -462,9 +462,9 @@ export function AccountsClient({
   return (
     <div className="p-4 space-y-6 pb-24">
       {/* Top Header Card */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 text-white rounded-3xl p-6 shadow-md">
-        {/* Subtle Dark Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/[0.02] via-black/[0.03] to-black/[0.04] pointer-events-none" />
+      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-400 to-teal-300 text-white rounded-3xl p-6 shadow-md">
+        {/* Subtle Light Sheen Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.03] to-white/[0.08] pointer-events-none" />
 
         {/* Idle Parallelogram Flash Animation across whole card */}
         <div

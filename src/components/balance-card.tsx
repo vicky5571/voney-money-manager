@@ -36,9 +36,9 @@ export function BalanceCard({
   };
 
   return (
-    <div className="relative w-full max-w-full overflow-hidden bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 rounded-3xl p-5 sm:p-6 text-white shadow-md">
-      {/* Subtle Dark Gradient Overlay covering entire card */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/[0.02] via-black/[0.03] to-black/[0.04] pointer-events-none" />
+    <div className="relative w-full max-w-full overflow-hidden bg-gradient-to-br from-emerald-500 via-emerald-400 to-teal-300 rounded-3xl p-5 sm:p-6 text-white shadow-md">
+      {/* Subtle Light Sheen Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.03] to-white/[0.08] pointer-events-none" />
 
       {/* Idle Parallelogram Flash Animation across whole card including monthly cash flow */}
       <div
@@ -88,10 +88,10 @@ export function BalanceCard({
         {/* Monthly Summary Header with Badge */}
         <div className="pt-1">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-200">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-white/90">
               Monthly Cash Flow
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-sm shrink-0">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-[0_2px_8px_rgba(0,0,0,0.06)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)] shrink-0">
               This Month
             </span>
           </div>
@@ -99,30 +99,30 @@ export function BalanceCard({
           {/* Constrained Grid for Income & Expense Pills */}
           <div className="grid grid-cols-2 gap-2 sm:gap-2.5 w-full">
             {/* Income Pill */}
-            <div className="min-w-0 bg-white/10 backdrop-blur rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 border border-white/10 overflow-hidden">
-              <div className="w-7 h-7 rounded-full bg-emerald-400/20 flex items-center justify-center shrink-0">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <div className="min-w-0 bg-white/20 backdrop-blur-md rounded-2xl p-2.5 sm:p-3 flex items-center gap-2.5 border border-white/30 shadow-[0_2px_10px_rgba(0,0,0,0.06)] overflow-hidden">
+              <div className="w-7 h-7 rounded-full bg-emerald-950/20 flex items-center justify-center shrink-0">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.9)]" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-medium text-emerald-100 block leading-tight">
+                <span className="text-[10px] font-semibold text-white/85 block leading-tight uppercase tracking-wider">
                   Income
                 </span>
-                <span className="text-xs sm:text-sm font-bold truncate block text-white mt-0.5">
+                <span className="text-xs sm:text-sm font-extrabold truncate block text-white mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]">
                   {maskValue(income)}
                 </span>
               </div>
             </div>
 
             {/* Expense Pill */}
-            <div className="min-w-0 bg-white/10 backdrop-blur rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 border border-white/10 overflow-hidden">
-              <div className="w-7 h-7 rounded-full bg-red-400/20 flex items-center justify-center shrink-0">
-                <div className="w-2 h-2 rounded-full bg-red-400" />
+            <div className="min-w-0 bg-white/20 backdrop-blur-md rounded-2xl p-2.5 sm:p-3 flex items-center gap-2.5 border border-white/30 shadow-[0_2px_10px_rgba(0,0,0,0.06)] overflow-hidden">
+              <div className="w-7 h-7 rounded-full bg-red-950/20 flex items-center justify-center shrink-0">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.9)]" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-medium text-emerald-100 block leading-tight">
+                <span className="text-[10px] font-semibold text-white/85 block leading-tight uppercase tracking-wider">
                   Expense
                 </span>
-                <span className="text-xs sm:text-sm font-bold truncate block text-white mt-0.5">
+                <span className="text-xs sm:text-sm font-extrabold truncate block text-white mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]">
                   {maskValue(expense)}
                 </span>
               </div>
