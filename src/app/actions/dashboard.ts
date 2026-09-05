@@ -75,6 +75,8 @@ export async function getDashboardData() {
     { data: prevMonthTransactions },
     { data: upcomingBillsRaw },
     { data: recentTransactions },
+    { count: totalTxCount },
+    { count: totalBudgetCount },
   ] = await Promise.all([
     supabase
       .from("accounts")
@@ -133,6 +135,15 @@ export async function getDashboardData() {
       .order("transaction_date", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .is("deleted_at", null),
+    supabase
+      .from("budgets")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
   ]);
 
   const totalBalance =
@@ -428,6 +439,9 @@ export async function getDashboardData() {
     income,
     expense,
     accounts: accounts ?? [],
+    hasAccount: (accounts?.length ?? 0) > 0,
+    hasTransaction: (totalTxCount ?? 0) > 0,
+    hasBudget: (totalBudgetCount ?? 0) > 0,
     totalBudget,
     totalBudgetSpent,
     categoryBudgets,

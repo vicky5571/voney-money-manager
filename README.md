@@ -121,6 +121,15 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) on your browser.
 
+### 💡 Development Shortcuts & Tips
+
+- **Test Onboarding Flow ("Get Started" Banner)**:
+  Preview or test the onboarding checklist at any stage without having to create a new user account:
+  - `http://localhost:3000/?onboarding=step1` (or `preview`): Simulates a brand new user (Step 1 "Create wallet" active)
+  - `http://localhost:3000/?onboarding=step2`: Simulates wallet created (Step 2 "Add transaction" active)
+  - `http://localhost:3000/?onboarding=step3`: Simulates wallet & transaction created (Step 3 "Set budget" active)
+  - `http://localhost:3000/?onboarding=done`: Simulates all steps completed (hides the banner)
+
 ---
 
 ## 🤖 Android App & Capacitor 8

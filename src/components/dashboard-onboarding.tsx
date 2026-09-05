@@ -1,6 +1,20 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Check, CircleDollarSign, Landmark, PiggyBank } from 'lucide-react';
 
+/**
+ * Dashboard Onboarding ("Get Started" banner)
+ *
+ * 💡 Development Testing / Preview:
+ * You can preview or test any step of this onboarding banner at any time without
+ * creating a new user account by passing the `?onboarding=` URL query parameter:
+ * - `/?onboarding=step1` or `preview`: simulates brand new user (all steps pending)
+ * - `/?onboarding=step2`: simulates wallet created (Step 2 active)
+ * - `/?onboarding=step3`: simulates wallet & transaction created (Step 3 active)
+ * - `/?onboarding=done`: simulates all steps completed (hides banner)
+ */
 interface DashboardOnboardingProps {
   hasAccount: boolean;
   hasTransaction: boolean;
@@ -14,13 +28,54 @@ const steps = [
 ] as const;
 
 export function DashboardOnboarding({ hasAccount, hasTransaction, hasBudget }: DashboardOnboardingProps) {
-  const complete = { account: hasAccount, transaction: hasTransaction, budget: hasBudget };
+  const [devOverride, setDevOverride] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const onboardingParam = params.get('onboarding') || params.get('preview_onboarding');
+      if (onboardingParam) {
+        setDevOverride(onboardingParam.toLowerCase());
+      }
+    }
+  }, []);
+
+  let accountDone = hasAccount;
+  let transactionDone = hasTransaction;
+  let budgetDone = hasBudget;
+
+  if (devOverride) {
+    if (devOverride === 'true' || devOverride === 'preview' || devOverride === 'step1' || devOverride === 'reset') {
+      accountDone = false;
+      transactionDone = false;
+      budgetDone = false;
+    } else if (devOverride === 'step2') {
+      accountDone = true;
+      transactionDone = false;
+      budgetDone = false;
+    } else if (devOverride === 'step3') {
+      accountDone = true;
+      transactionDone = true;
+      budgetDone = false;
+    } else if (devOverride === 'done' || devOverride === 'complete') {
+      accountDone = true;
+      transactionDone = true;
+      budgetDone = true;
+    }
+  }
+
+  const complete = { account: accountDone, transaction: transactionDone, budget: budgetDone };
   const nextStep = steps.find((step) => !complete[step.key]);
 
   if (!nextStep) return null;
 
   return (
-    <section className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+    <section className="relative rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+      {devOverride && (
+        <span className="absolute top-3 right-3 text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-200/80 text-emerald-800 font-semibold tracking-wide">
+          DEV PREVIEW ({devOverride})
+        </span>
+      )}
       <h2 className="text-base font-bold text-gray-900">Get started</h2>
       <p className="mt-0.5 text-xs text-gray-500">Finish these steps to make Voney useful.</p>
       <div className="mt-4 space-y-3">

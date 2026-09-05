@@ -111,6 +111,9 @@ interface DashboardClientProps {
   income: number;
   expense: number;
   accounts: AccountItem[];
+  hasAccount?: boolean;
+  hasTransaction?: boolean;
+  hasBudget?: boolean;
   budgetSummary: BudgetSummary;
   categoryBudgets?: CategoryBudgetStatus[];
   spendingInsight?: SpendingInsight | null;
@@ -165,6 +168,9 @@ export function DashboardClient({
   income,
   expense,
   accounts,
+  hasAccount,
+  hasTransaction,
+  hasBudget,
   budgetSummary,
   categoryBudgets = [],
   spendingInsight = null,
@@ -407,9 +413,9 @@ export function DashboardClient({
       </div>
 
       <DashboardOnboarding
-        hasAccount={accounts.length > 0}
-        hasTransaction={recentTxList.length > 0}
-        hasBudget={totalBudget > 0}
+        hasAccount={hasAccount ?? accounts.length > 0}
+        hasTransaction={hasTransaction ?? recentTxList.length > 0}
+        hasBudget={hasBudget ?? totalBudget > 0}
       />
 
       {/* Budget Health Bar with Category-Level Warnings */}

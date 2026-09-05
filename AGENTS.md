@@ -64,6 +64,16 @@ Voney is a mobile-first personal money manager web app for tracking income, expe
 - Do NOT use `var` keyword — use `const` or `let`.
 - Do NOT use default exports for components (except pages).
 
+## Development & Testing Shortcuts
+
+- **Dashboard Onboarding / "Get Started" Banner Preview**:
+  - Test the onboarding flow without creating a new user account by passing the `?onboarding=` URL parameter:
+    - `/?onboarding=step1` or `preview`: simulates brand new account (Step 1 "Create wallet" active)
+    - `/?onboarding=step2`: simulates wallet created (Step 2 "Add transaction" active)
+    - `/?onboarding=step3`: simulates wallet & transaction created (Step 3 "Set budget" active)
+    - `/?onboarding=done`: simulates all steps completed (hides the banner)
+
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

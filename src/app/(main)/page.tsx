@@ -49,6 +49,9 @@ export default async function DashboardPage() {
       income={data.income}
       expense={data.expense}
       accounts={data.accounts}
+      hasAccount={data.hasAccount}
+      hasTransaction={data.hasTransaction}
+      hasBudget={data.hasBudget}
       budgetSummary={{
         totalBudget: data.totalBudget,
         totalBudgetSpent: data.totalBudgetSpent,
