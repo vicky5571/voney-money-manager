@@ -412,6 +412,115 @@ export function DashboardClient({
         hasBudget={totalBudget > 0}
       />
 
+      {/* Budget Health Bar with Category-Level Warnings */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center">
+              <PieChart size={15} />
+            </div>
+            <div>
+              <h2 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+                Monthly Budget
+              </h2>
+            </div>
+          </div>
+          <Link
+            href="/budgets"
+            className="min-h-[44px] -mr-2 px-2.5 text-xs font-semibold text-emerald-500 hover:text-emerald-500 flex items-center gap-0.5"
+          >
+            Details <ChevronRight size={14} />
+          </Link>
+        </div>
+
+        {totalBudget > 0 ? (
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between text-xs">
+              <span className="font-semibold text-gray-700">
+                {formatCurrency(totalBudgetSpent)}{" "}
+                <span className="text-gray-500 font-normal">spent</span>
+              </span>
+              <span
+                className={`font-bold ${isOverBudget ? "text-red-600" : "text-gray-600"}`}
+              >
+                {isOverBudget
+                  ? "Over Budget!"
+                  : `${formatCurrency(budgetRemaining)} left`}
+              </span>
+            </div>
+
+            {/* Progress Track */}
+            <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${progressColor}`}
+                style={{ width: `${budgetPercent}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-gray-500 pt-0.5 font-medium">
+              <span>{budgetPercent}% used</span>
+              <span>Limit: {formatCurrency(totalBudget)}</span>
+            </div>
+
+            {/* Category-Level Budget Warnings */}
+            {(overBudgets.length > 0 || nearBudgets.length > 0) && (
+              <div className="mt-3 pt-3 border-t border-gray-100 space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
+                  Category Warnings
+                </span>
+                <div className="space-y-1.5">
+                  {overBudgets.map((b) => (
+                    <Link
+                      key={b.id}
+                      href={`/budgets/${b.id}`}
+                      className="flex items-center justify-between p-2.5 bg-red-50 hover:bg-red-100/80 border border-red-100 rounded-xl text-xs transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                        <span className="font-semibold text-red-800 truncate">
+                          {b.categoryName}
+                        </span>
+                      </div>
+                      <span className="font-bold text-red-600 shrink-0">
+                        {b.percentage}% (Over by{" "}
+                        {formatCurrency(b.spentAmount - b.budgetAmount)})
+                      </span>
+                    </Link>
+                  ))}
+                  {nearBudgets.map((b) => (
+                    <Link
+                      key={b.id}
+                      href={`/budgets/${b.id}`}
+                      className="flex items-center justify-between p-2.5 bg-amber-50 hover:bg-amber-100/80 border border-amber-100 rounded-xl text-xs transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span className="font-semibold text-amber-900 truncate">
+                          {b.categoryName}
+                        </span>
+                      </div>
+                      <span className="font-bold text-amber-700 shrink-0">
+                        {b.percentage}% used
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between py-2 text-xs text-gray-600">
+            <span>No active budgets this month</span>
+            <Link
+              href="/budgets"
+              className="min-h-[44px] px-3 py-2 bg-emerald-50 text-emerald-500 rounded-xl font-semibold text-xs hover:bg-emerald-100 flex items-center transition-colors"
+            >
+              Set Budget
+            </Link>
+          </div>
+        )}
+      </div>
+
       {/* Spending Insight Card (Actionable Feedback) */}
       {spendingInsight && (
         <div
@@ -563,115 +672,6 @@ export function DashboardClient({
           )}
         </div>
       )}
-
-      {/* Budget Health Bar with Category-Level Warnings */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center">
-              <PieChart size={15} />
-            </div>
-            <div>
-              <h2 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
-                Monthly Budget
-              </h2>
-            </div>
-          </div>
-          <Link
-            href="/budgets"
-            className="min-h-[44px] -mr-2 px-2.5 text-xs font-semibold text-emerald-500 hover:text-emerald-500 flex items-center gap-0.5"
-          >
-            Details <ChevronRight size={14} />
-          </Link>
-        </div>
-
-        {totalBudget > 0 ? (
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between text-xs">
-              <span className="font-semibold text-gray-700">
-                {formatCurrency(totalBudgetSpent)}{" "}
-                <span className="text-gray-500 font-normal">spent</span>
-              </span>
-              <span
-                className={`font-bold ${isOverBudget ? "text-red-600" : "text-gray-600"}`}
-              >
-                {isOverBudget
-                  ? "Over Budget!"
-                  : `${formatCurrency(budgetRemaining)} left`}
-              </span>
-            </div>
-
-            {/* Progress Track */}
-            <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${progressColor}`}
-                style={{ width: `${budgetPercent}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] text-gray-500 pt-0.5 font-medium">
-              <span>{budgetPercent}% used</span>
-              <span>Limit: {formatCurrency(totalBudget)}</span>
-            </div>
-
-            {/* Category-Level Budget Warnings */}
-            {(overBudgets.length > 0 || nearBudgets.length > 0) && (
-              <div className="mt-3 pt-3 border-t border-gray-100 space-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">
-                  Category Warnings
-                </span>
-                <div className="space-y-1.5">
-                  {overBudgets.map((b) => (
-                    <Link
-                      key={b.id}
-                      href={`/budgets/${b.id}`}
-                      className="flex items-center justify-between p-2.5 bg-red-50 hover:bg-red-100/80 border border-red-100 rounded-xl text-xs transition-colors"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                        <span className="font-semibold text-red-800 truncate">
-                          {b.categoryName}
-                        </span>
-                      </div>
-                      <span className="font-bold text-red-600 shrink-0">
-                        {b.percentage}% (Over by{" "}
-                        {formatCurrency(b.spentAmount - b.budgetAmount)})
-                      </span>
-                    </Link>
-                  ))}
-                  {nearBudgets.map((b) => (
-                    <Link
-                      key={b.id}
-                      href={`/budgets/${b.id}`}
-                      className="flex items-center justify-between p-2.5 bg-amber-50 hover:bg-amber-100/80 border border-amber-100 rounded-xl text-xs transition-colors"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        <span className="font-semibold text-amber-900 truncate">
-                          {b.categoryName}
-                        </span>
-                      </div>
-                      <span className="font-bold text-amber-700 shrink-0">
-                        {b.percentage}% used
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center justify-between py-2 text-xs text-gray-600">
-            <span>No active budgets this month</span>
-            <Link
-              href="/budgets"
-              className="min-h-[44px] px-3 py-2 bg-emerald-50 text-emerald-500 rounded-xl font-semibold text-xs hover:bg-emerald-100 flex items-center transition-colors"
-            >
-              Set Budget
-            </Link>
-          </div>
-        )}
-      </div>
 
       {recentTxList.length > 0 && (
         <Suspense
