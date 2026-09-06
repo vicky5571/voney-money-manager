@@ -123,6 +123,11 @@ export const useAppStore = create<AppStoreState>((set) => ({
         ? (tx.type === 'income' ? currentBalance + tx.amount : currentBalance - tx.amount)
         : currentBalance;
 
+      // Only update dashboard monthly income/expense if transaction is in the current month
+      const now = new Date();
+      const currentMonthKey = `${now.getMonth() + 1}-${now.getFullYear()}`;
+      const isCurrentMonth = key === currentMonthKey;
+
       return {
         txCache: { ...state.txCache, [key]: updatedList },
         summaryCache: {
@@ -130,8 +135,12 @@ export const useAppStore = create<AppStoreState>((set) => ({
           [key]: { income: newIncome, expense: newExpense, net: newIncome - newExpense },
         },
         dashboardTotalBalance: newBalance,
-        dashboardIncome: (state.dashboardIncome ?? 0) + (tx.type === 'income' ? tx.amount : 0),
-        dashboardExpense: (state.dashboardExpense ?? 0) + (tx.type === 'expense' ? tx.amount : 0),
+        dashboardIncome: isCurrentMonth && state.dashboardIncome !== null
+          ? state.dashboardIncome + (tx.type === 'income' ? tx.amount : 0)
+          : state.dashboardIncome,
+        dashboardExpense: isCurrentMonth && state.dashboardExpense !== null
+          ? state.dashboardExpense + (tx.type === 'expense' ? tx.amount : 0)
+          : state.dashboardExpense,
       };
     }),
 
@@ -273,13 +282,17 @@ export const useAppStore = create<AppStoreState>((set) => ({
         ? (isSettled ? (tx.type === 'income' ? currentBalance - tx.amount : currentBalance + tx.amount) : currentBalance)
         : null;
 
-      const newDashIncome = state.dashboardIncome !== null
-        ? (tx.type === 'income' ? Math.max(0, state.dashboardIncome - tx.amount) : state.dashboardIncome)
-        : null;
+      const now = new Date();
+      const currentMonthKey = `${now.getMonth() + 1}-${now.getFullYear()}`;
+      const isCurrentMonth = monthKey === currentMonthKey;
 
-      const newDashExpense = state.dashboardExpense !== null
+      const newDashIncome = isCurrentMonth && state.dashboardIncome !== null
+        ? (tx.type === 'income' ? Math.max(0, state.dashboardIncome - tx.amount) : state.dashboardIncome)
+        : state.dashboardIncome;
+
+      const newDashExpense = isCurrentMonth && state.dashboardExpense !== null
         ? (tx.type === 'expense' ? Math.max(0, state.dashboardExpense - tx.amount) : state.dashboardExpense)
-        : null;
+        : state.dashboardExpense;
 
       return {
         txCache: { ...state.txCache, [monthKey]: updatedList },

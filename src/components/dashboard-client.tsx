@@ -191,13 +191,20 @@ export function DashboardClient({
   }, []);
   const [deletedTxIds, setDeletedTxIds] = useState<string[]>([]);
   const { txCache, optimisticSettleTransaction } = useAppStore();
-  const now = new Date();
-  const currentMonthKey = `${now.getMonth() + 1}-${now.getFullYear()}`;
-  const cachedMonthTxs = txCache[currentMonthKey] || [];
-  const pendingTxs = useMemo(
-    () => cachedMonthTxs.filter((t) => t.isPending),
-    [cachedMonthTxs],
-  );
+  // Collect all pending transactions across all cached months (e.g. yesterday at month-turn or past/future dates)
+  const pendingTxs = useMemo(() => {
+    const seen = new Set<string>();
+    const pending: (typeof txCache)[string] = [];
+    for (const list of Object.values(txCache)) {
+      for (const t of list) {
+        if (t.isPending && !seen.has(t.id)) {
+          seen.add(t.id);
+          pending.push(t);
+        }
+      }
+    }
+    return pending;
+  }, [txCache]);
 
   const recentTxList = useMemo(() => {
     const serverIds = new Set(recentTransactions.map((t) => t.id));
@@ -222,7 +229,15 @@ export function DashboardClient({
         isPending: false,
       }));
 
-    return [...pendingFormatted, ...serverFiltered];
+    return [...pendingFormatted, ...serverFiltered].sort((a, b) => {
+      const timeA = new Date(a.transaction_date).getTime();
+      const timeB = new Date(b.transaction_date).getTime();
+      if (timeB !== timeA) return timeB - timeA;
+      // If same date, prioritize pending transactions first
+      if (a.isPending && !b.isPending) return -1;
+      if (!a.isPending && b.isPending) return 1;
+      return 0;
+    });
   }, [recentTransactions, pendingTxs, deletedTxIds]);
 
   const handleDetailSettle = (id: string) => {
