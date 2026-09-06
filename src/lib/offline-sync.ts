@@ -184,82 +184,114 @@ export function saveOfflineTransfer(
   return newItem;
 }
 
-let isSyncInProgress = false;
+function removeOfflineTx(id: string) {
+  try {
+    const current = getOfflineTxQueue();
+    const filtered = current.filter((item) => item.id !== id);
+    localStorage.setItem(TX_QUEUE_KEY, JSON.stringify(filtered));
+    invalidateOfflineCache();
+  } catch (err) {
+    console.error('Failed to remove synced tx from offline queue:', err);
+  }
+}
+
+function removeOfflineTransfer(id: string) {
+  try {
+    const current = getOfflineTransferQueue();
+    const filtered = current.filter((item) => item.id !== id);
+    localStorage.setItem(TRANSFER_QUEUE_KEY, JSON.stringify(filtered));
+    invalidateOfflineCache();
+  } catch (err) {
+    console.error('Failed to remove synced transfer from offline queue:', err);
+  }
+}
+
+let activeSyncPromise: Promise<{ syncedCount: number; errors: string[] }> | null = null;
 
 export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors: string[] }> {
   if (typeof window === 'undefined') return { syncedCount: 0, errors: [] };
   if (!navigator.onLine) return { syncedCount: 0, errors: ['Device is offline'] };
 
-  const txQueue = getOfflineTxQueue();
-  const transferQueue = getOfflineTransferQueue();
-  if (txQueue.length === 0 && transferQueue.length === 0) {
-    return { syncedCount: 0, errors: [] };
+  // Mutex lock: If sync is already running, reuse the in-flight Promise to prevent duplicate sync executions
+  if (activeSyncPromise) {
+    return activeSyncPromise;
   }
 
-  let syncedCount = 0;
-  const errors: string[] = [];
+  activeSyncPromise = (async () => {
+    let syncedCount = 0;
+    const errors: string[] = [];
 
-  const remainingTxs: OfflineTransactionItem[] = [];
-  for (const tx of txQueue) {
     try {
-      const res = await createTransaction({
-        type: tx.type,
-        amount: tx.amount,
-        category_id: tx.category_id,
-        account_id: tx.account_id,
-        transaction_date: tx.transaction_date,
-        note: tx.note || undefined,
-        is_settled: tx.is_settled,
-      });
-      // Mark store item as synced
-      useAppStore.getState().markTransactionSynced(tx.id, res?.id);
-      syncedCount++;
-    } catch (err) {
-      remainingTxs.push(tx);
-      errors.push(err instanceof Error ? err.message : 'Failed to sync transaction');
+      const txQueue = getOfflineTxQueue();
+      const transferQueue = getOfflineTransferQueue();
+      if (txQueue.length === 0 && transferQueue.length === 0) {
+        return { syncedCount: 0, errors: [] };
+      }
+
+      for (const tx of txQueue) {
+        try {
+          const res = await createTransaction({
+            type: tx.type,
+            amount: tx.amount,
+            category_id: tx.category_id,
+            account_id: tx.account_id,
+            transaction_date: tx.transaction_date,
+            note: tx.note || undefined,
+            is_settled: tx.is_settled,
+          });
+          // Mark store item as synced
+          useAppStore.getState().markTransactionSynced(tx.id, res?.id);
+          // Remove immediately from queue upon success so intermediate failures/reloads don't duplicate it
+          removeOfflineTx(tx.id);
+          syncedCount++;
+        } catch (err) {
+          errors.push(err instanceof Error ? err.message : 'Failed to sync transaction');
+        }
+      }
+
+      for (const tr of transferQueue) {
+        try {
+          await createTransfer({
+            from_account_id: tr.from_account_id,
+            to_account_id: tr.to_account_id,
+            amount: tr.amount,
+            transaction_date: tr.transaction_date,
+            note: tr.note || undefined,
+          });
+          useAppStore.getState().markTransactionSynced(tr.id);
+          removeOfflineTransfer(tr.id);
+          syncedCount++;
+        } catch (err) {
+          errors.push(err instanceof Error ? err.message : 'Failed to sync transfer');
+        }
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('voney:offline-synced', {
+          detail: { syncedCount, hasErrors: errors.length > 0 },
+        })
+      );
+
+      return { syncedCount, errors };
+    } finally {
+      activeSyncPromise = null;
     }
+  })();
+
+  const result = await activeSyncPromise;
+
+  // If new items were queued while sync was in flight, trigger a follow-up background sync
+  if (typeof window !== 'undefined' && navigator.onLine && getOfflineQueueCount() > 0 && result.syncedCount > 0) {
+    triggerBackgroundSync();
   }
-  localStorage.setItem(TX_QUEUE_KEY, JSON.stringify(remainingTxs));
-  invalidateOfflineCache();
 
-  const remainingTransfers: OfflineTransferItem[] = [];
-  for (const tr of transferQueue) {
-    try {
-      await createTransfer({
-        from_account_id: tr.from_account_id,
-        to_account_id: tr.to_account_id,
-        amount: tr.amount,
-        transaction_date: tr.transaction_date,
-        note: tr.note || undefined,
-      });
-      useAppStore.getState().markTransactionSynced(tr.id);
-      syncedCount++;
-    } catch (err) {
-      remainingTransfers.push(tr);
-      errors.push(err instanceof Error ? err.message : 'Failed to sync transfer');
-    }
-  }
-  localStorage.setItem(TRANSFER_QUEUE_KEY, JSON.stringify(remainingTransfers));
-  invalidateOfflineCache();
-
-  window.dispatchEvent(
-    new CustomEvent('voney:offline-synced', {
-      detail: { syncedCount, hasErrors: errors.length > 0 },
-    })
-  );
-
-  return { syncedCount, errors };
+  return result;
 }
 
 /** Non-blocking trigger for background queue synchronization */
 export function triggerBackgroundSync() {
-  if (typeof window === 'undefined' || !navigator.onLine || isSyncInProgress) return;
-  isSyncInProgress = true;
-  syncOfflineQueue()
-    .catch((err) => {
-      console.warn('Background sync encountered an error:', err);
-    })
-    .finally(() => {
-      isSyncInProgress = false;
-    });
+  if (typeof window === 'undefined' || !navigator.onLine || activeSyncPromise) return;
+  syncOfflineQueue().catch((err) => {
+    console.warn('Background sync encountered an error:', err);
+  });
 }
