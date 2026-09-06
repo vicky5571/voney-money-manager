@@ -192,12 +192,29 @@ export const useAppStore = create<AppStoreState>((set) => ({
       const newIncome = tx.type === 'income' ? Math.max(0, currentSummary.income - tx.amount) : currentSummary.income;
       const newExpense = tx.type === 'expense' ? Math.max(0, currentSummary.expense - tx.amount) : currentSummary.expense;
 
+      const currentBalance = state.dashboardTotalBalance;
+      const isSettled = tx.is_settled ?? true;
+      const newBalance = currentBalance !== null
+        ? (isSettled ? (tx.type === 'income' ? currentBalance - tx.amount : currentBalance + tx.amount) : currentBalance)
+        : null;
+
+      const newDashIncome = state.dashboardIncome !== null
+        ? (tx.type === 'income' ? Math.max(0, state.dashboardIncome - tx.amount) : state.dashboardIncome)
+        : null;
+
+      const newDashExpense = state.dashboardExpense !== null
+        ? (tx.type === 'expense' ? Math.max(0, state.dashboardExpense - tx.amount) : state.dashboardExpense)
+        : null;
+
       return {
         txCache: { ...state.txCache, [monthKey]: updatedList },
         summaryCache: {
           ...state.summaryCache,
           [monthKey]: { income: newIncome, expense: newExpense, net: newIncome - newExpense },
         },
+        dashboardTotalBalance: newBalance,
+        dashboardIncome: newDashIncome,
+        dashboardExpense: newDashExpense,
       };
     }),
 }));

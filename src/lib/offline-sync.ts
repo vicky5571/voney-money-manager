@@ -12,6 +12,8 @@ export interface OfflineTransactionItem {
   note?: string;
   is_settled?: boolean;
   created_at_local: string;
+  retry_count?: number;
+  last_error?: string;
 }
 
 export interface OfflineTransferItem {
@@ -22,12 +24,25 @@ export interface OfflineTransferItem {
   transaction_date: string;
   note?: string;
   created_at_local: string;
+  retry_count?: number;
+  last_error?: string;
+}
+
+export interface DeadLetterItem {
+  id: string;
+  kind: 'transaction' | 'transfer';
+  item: OfflineTransactionItem | OfflineTransferItem;
+  failed_at: string;
+  error: string;
+  retry_count: number;
 }
 
 const TX_QUEUE_KEY = 'voney_offline_transactions_queue';
 const TRANSFER_QUEUE_KEY = 'voney_offline_transfers_queue';
+const DEAD_LETTER_QUEUE_KEY = 'voney_offline_dead_letter_queue';
 const MAX_QUEUE_SIZE = 50;
 const MAX_NOTE_LEN = 200;
+export const MAX_RETRY_COUNT = 3;
 
 function isValidUuid(v: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
@@ -50,7 +65,9 @@ function isValidOfflineTx(item: unknown): item is OfflineTransactionItem {
     typeof o.transaction_date === 'string' &&
     /^\d{4}-\d{2}-\d{2}$/.test(o.transaction_date) &&
     (o.note === undefined || (typeof o.note === 'string' && o.note.length <= MAX_NOTE_LEN)) &&
-    (o.is_settled === undefined || typeof o.is_settled === 'boolean')
+    (o.is_settled === undefined || typeof o.is_settled === 'boolean') &&
+    (o.retry_count === undefined || typeof o.retry_count === 'number') &&
+    (o.last_error === undefined || typeof o.last_error === 'string')
   );
 }
 
@@ -70,7 +87,9 @@ function isValidOfflineTransfer(item: unknown): item is OfflineTransferItem {
     o.amount <= 1e12 &&
     typeof o.transaction_date === 'string' &&
     /^\d{4}-\d{2}-\d{2}$/.test(o.transaction_date) &&
-    (o.note === undefined || (typeof o.note === 'string' && o.note.length <= MAX_NOTE_LEN))
+    (o.note === undefined || (typeof o.note === 'string' && o.note.length <= MAX_NOTE_LEN)) &&
+    (o.retry_count === undefined || typeof o.retry_count === 'number') &&
+    (o.last_error === undefined || typeof o.last_error === 'string')
   );
 }
 
@@ -207,6 +226,99 @@ function removeOfflineTransfer(id: string) {
   }
 }
 
+/** Check if an error is permanent (un-syncable) vs transient network drop */
+export function isPermanentError(message: string): boolean {
+  if (!message || typeof message !== 'string') return false;
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('account not found') ||
+    lower.includes('category not found') ||
+    lower.includes('not authenticated') ||
+    lower.includes('unauthorized') ||
+    lower.includes('invalid input') ||
+    lower.includes('foreign key') ||
+    lower.includes('violates foreign key') ||
+    lower.includes('23503') ||
+    lower.includes('invalid id format') ||
+    lower.includes('source and destination accounts must be different') ||
+    lower.includes('amount must be greater than 0')
+  );
+}
+
+export function getDeadLetterQueue(): DeadLetterItem[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(DEAD_LETTER_QUEUE_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.slice(0, 50);
+  } catch {
+    return [];
+  }
+}
+
+export function getDeadLetterCount(): number {
+  return getDeadLetterQueue().length;
+}
+
+export function saveToDeadLetterQueue(deadItem: DeadLetterItem) {
+  if (typeof window === 'undefined') return;
+  try {
+    const queue = getDeadLetterQueue();
+    const updated = [deadItem, ...queue.filter((d) => d.id !== deadItem.id)].slice(0, 50);
+    localStorage.setItem(DEAD_LETTER_QUEUE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('voney:dead-letter-updated', { detail: { count: updated.length } }));
+  } catch (err) {
+    console.error('Failed to save to dead-letter queue:', err);
+  }
+}
+
+export function dismissDeadLetterItem(id: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const queue = getDeadLetterQueue();
+    const updated = queue.filter((d) => d.id !== id);
+    localStorage.setItem(DEAD_LETTER_QUEUE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('voney:dead-letter-updated', { detail: { count: updated.length } }));
+  } catch (err) {
+    console.error('Failed to dismiss dead-letter item:', err);
+  }
+}
+
+export function clearDeadLetterQueue() {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(DEAD_LETTER_QUEUE_KEY);
+    window.dispatchEvent(new CustomEvent('voney:dead-letter-updated', { detail: { count: 0 } }));
+  } catch (err) {
+    console.error('Failed to clear dead-letter queue:', err);
+  }
+}
+
+function updateOfflineTxRetry(id: string, retryCount: number, errorMsg: string) {
+  try {
+    const current = getOfflineTxQueue();
+    const updated = current.map((item) =>
+      item.id === id ? { ...item, retry_count: retryCount, last_error: errorMsg } : item
+    );
+    localStorage.setItem(TX_QUEUE_KEY, JSON.stringify(updated));
+  } catch (err) {
+    console.error('Failed to update tx retry count:', err);
+  }
+}
+
+function updateOfflineTransferRetry(id: string, retryCount: number, errorMsg: string) {
+  try {
+    const current = getOfflineTransferQueue();
+    const updated = current.map((item) =>
+      item.id === id ? { ...item, retry_count: retryCount, last_error: errorMsg } : item
+    );
+    localStorage.setItem(TRANSFER_QUEUE_KEY, JSON.stringify(updated));
+  } catch (err) {
+    console.error('Failed to update transfer retry count:', err);
+  }
+}
+
 let activeSyncPromise: Promise<{ syncedCount: number; errors: string[] }> | null = null;
 
 export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors: string[] }> {
@@ -247,7 +359,43 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
           removeOfflineTx(tx.id);
           syncedCount++;
         } catch (err) {
-          errors.push(err instanceof Error ? err.message : 'Failed to sync transaction');
+          // If connection dropped during sync, break early without burning retries on remaining items
+          if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            errors.push('Network connection lost during sync');
+            break;
+          }
+
+          const errorMsg = err instanceof Error ? err.message : 'Failed to sync transaction';
+          const nextRetryCount = (tx.retry_count ?? 0) + 1;
+          const permanent = isPermanentError(errorMsg) || nextRetryCount >= MAX_RETRY_COUNT;
+
+          if (permanent) {
+            // Poison pill detected: Quarantine un-syncable item to avoid blocking the queue forever
+            removeOfflineTx(tx.id);
+            saveToDeadLetterQueue({
+              id: tx.id,
+              kind: 'transaction',
+              item: { ...tx, retry_count: nextRetryCount, last_error: errorMsg },
+              failed_at: new Date().toISOString(),
+              error: errorMsg,
+              retry_count: nextRetryCount,
+            });
+
+            // Revert optimistic store mutation so ghost pending items don't remain in UI
+            try {
+              const txDate = new Date(tx.transaction_date);
+              const monthKey = `${txDate.getMonth() + 1}-${txDate.getFullYear()}`;
+              useAppStore.getState().optimisticDeleteTransaction(tx.id, monthKey);
+            } catch {
+              // Ignore store revert failure
+            }
+
+            errors.push(`Quarantined un-syncable transaction (${errorMsg})`);
+          } else {
+            // Transient error: increment retry count and retain in queue for next sync pass
+            updateOfflineTxRetry(tx.id, nextRetryCount, errorMsg);
+            errors.push(errorMsg);
+          }
         }
       }
 
@@ -264,13 +412,36 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
           removeOfflineTransfer(tr.id);
           syncedCount++;
         } catch (err) {
-          errors.push(err instanceof Error ? err.message : 'Failed to sync transfer');
+          if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            errors.push('Network connection lost during sync');
+            break;
+          }
+
+          const errorMsg = err instanceof Error ? err.message : 'Failed to sync transfer';
+          const nextRetryCount = (tr.retry_count ?? 0) + 1;
+          const permanent = isPermanentError(errorMsg) || nextRetryCount >= MAX_RETRY_COUNT;
+
+          if (permanent) {
+            removeOfflineTransfer(tr.id);
+            saveToDeadLetterQueue({
+              id: tr.id,
+              kind: 'transfer',
+              item: { ...tr, retry_count: nextRetryCount, last_error: errorMsg },
+              failed_at: new Date().toISOString(),
+              error: errorMsg,
+              retry_count: nextRetryCount,
+            });
+            errors.push(`Quarantined un-syncable transfer (${errorMsg})`);
+          } else {
+            updateOfflineTransferRetry(tr.id, nextRetryCount, errorMsg);
+            errors.push(errorMsg);
+          }
         }
       }
 
       window.dispatchEvent(
         new CustomEvent('voney:offline-synced', {
-          detail: { syncedCount, hasErrors: errors.length > 0 },
+          detail: { syncedCount, hasErrors: errors.length > 0, errors },
         })
       );
 

@@ -32,13 +32,16 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
 
   const handleSync = useCallback(async () => {
     if (typeof window === "undefined" || !navigator.onLine) return;
-    const { syncedCount } = await syncOfflineQueue();
+    const { syncedCount, errors } = await syncOfflineQueue();
     checkQueue();
     if (syncedCount > 0) {
       setSyncStatus(
         `Synced ${syncedCount} offline ${syncedCount === 1 ? "transaction" : "transactions"}!`,
       );
       setTimeout(() => setSyncStatus(null), 4500);
+    } else if (errors?.some((e) => e.includes("Quarantined"))) {
+      setSyncStatus("Some offline items could not be synced and were dismissed.");
+      setTimeout(() => setSyncStatus(null), 5500);
     }
   }, [checkQueue]);
 
