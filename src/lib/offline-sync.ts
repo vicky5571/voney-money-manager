@@ -1,5 +1,6 @@
 import { createTransaction, createTransfer } from '@/app/actions/transactions';
 import { useAppStore } from '@/lib/store/use-app-store';
+import { generateUuid } from '@/lib/utils';
 
 export interface OfflineTransactionItem {
   id: string;
@@ -146,7 +147,7 @@ export function saveOfflineTransaction(
     ...item,
     is_settled: item.is_settled !== undefined ? item.is_settled : true,
     note: item.note?.slice(0, MAX_NOTE_LEN),
-    id: item.id || `offline_tx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    id: item.id && isValidUuid(item.id) ? item.id : generateUuid(),
     created_at_local: new Date().toISOString(),
   };
 
@@ -231,6 +232,7 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
       for (const tx of txQueue) {
         try {
           const res = await createTransaction({
+            id: isValidUuid(tx.id) ? tx.id : undefined,
             type: tx.type,
             amount: tx.amount,
             category_id: tx.category_id,

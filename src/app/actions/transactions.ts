@@ -433,6 +433,7 @@ export async function getTransactionsForExport({
 }
 
 export async function createTransaction(formData: {
+  id?: string;
   type: "income" | "expense";
   amount: number;
   category_id: string;
@@ -457,24 +458,51 @@ export async function createTransaction(formData: {
   await assertAccountOwnership(supabase, valid.account_id, user.id);
   await assertCategoryOwnership(supabase, valid.category_id, user.id);
 
+  // Idempotency check: if an ID was supplied, check if already created (e.g. network dropped before client received 200 OK)
+  if (valid.id) {
+    const { data: existing } = await supabase
+      .from("transactions")
+      .select("id")
+      .eq("id", valid.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      // Transaction was already committed in a prior request; return success immediately to prevent double deduction
+      return { success: true, id: existing.id };
+    }
+  }
+
   const isSettled = valid.is_settled ?? true;
+
+  const insertPayload: Record<string, unknown> = {
+    user_id: user.id,
+    type: valid.type,
+    amount: valid.amount,
+    category_id: valid.category_id,
+    account_id: valid.account_id,
+    transaction_date: valid.transaction_date,
+    note: valid.note || null,
+    is_settled: isSettled,
+  };
+
+  if (valid.id) {
+    insertPayload.id = valid.id;
+  }
 
   const { data: inserted, error } = await supabase
     .from("transactions")
-    .insert({
-      user_id: user.id,
-      type: valid.type,
-      amount: valid.amount,
-      category_id: valid.category_id,
-      account_id: valid.account_id,
-      transaction_date: valid.transaction_date,
-      note: valid.note || null,
-      is_settled: isSettled,
-    })
+    .insert(insertPayload)
     .select("id")
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // Catch unique constraint violation (code 23505) if a concurrent retry inserted with the same id
+    if (valid.id && (error.code === "23505" || error.message?.includes("duplicate key"))) {
+      return { success: true, id: valid.id };
+    }
+    throw error;
+  }
 
   // Update account balance only if settled
   if (isSettled) {
@@ -503,7 +531,7 @@ export async function createTransaction(formData: {
   revalidatePath("/transactions");
   revalidatePath("/accounts");
 
-  return { success: true, id: inserted?.id as string };
+  return { success: true, id: (inserted?.id || valid.id) as string };
 }
 
 export async function settleTransaction(id: string) {

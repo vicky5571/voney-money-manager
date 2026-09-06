@@ -30,6 +30,7 @@ import {
   cn,
   sortCategoriesByOrder,
   saveCategoryOrder,
+  generateUuid,
 } from "@/lib/utils";
 
 type Category = {
@@ -154,7 +155,7 @@ export default function AddTransactionPage() {
       const tempId =
         type === "transfer"
           ? `offline_tr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-          : `offline_tx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+          : generateUuid();
 
       const selCat = categories.find((c) => c.id === selectedCategory);
       const selAcc = accounts.find((a) => a.id === selectedAccount);

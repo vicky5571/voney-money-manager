@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const createTransactionSchema = z.object({
+  id: z.string().uuid().optional(),
   type: z.enum(['income', 'expense']),
   amount: z.number().positive('Amount must be greater than 0'),
   category_id: z.string().uuid('Please select a category'),

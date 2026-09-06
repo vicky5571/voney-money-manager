@@ -19,6 +19,18 @@ export function fromCents(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
+/** Generate standard RFC 4122 v4 UUID with fallback */
+export function generateUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 /** Format as currency. Accepts number or decimal string. Example: formatCurrency("12450.50") => 'Rp 12.451' */
 export function formatCurrency(amount: number | string): string {
   const n = typeof amount === "string" ? Number(amount) : amount;
