@@ -51,9 +51,18 @@ interface AppStoreState {
   optimisticAddTransaction: (
     tx: Omit<CachedTransaction, 'id' | 'created_at'> & { id?: string; created_at?: string; isPending?: boolean }
   ) => void;
+  optimisticAddTransfer: (params: {
+    id: string;
+    fromAccount: { id: string; name: string };
+    toAccount: { id: string; name: string };
+    amount: number;
+    transaction_date: string;
+    note?: string | null;
+  }) => void;
   markTransactionSynced: (tempId: string, realId?: string) => void;
   optimisticSettleTransaction: (id: string, amount: number, type: 'income' | 'expense') => void;
   optimisticDeleteTransaction: (id: string, monthKey: string) => void;
+  optimisticDeleteTransfer: (transferId: string, monthKey: string) => void;
 }
 
 export const useAppStore = create<AppStoreState>((set) => ({
@@ -126,6 +135,68 @@ export const useAppStore = create<AppStoreState>((set) => ({
       };
     }),
 
+  optimisticAddTransfer: (params) =>
+    set((state) => {
+      const date = new Date(params.transaction_date);
+      const key = `${date.getMonth() + 1}-${date.getFullYear()}`;
+      const currentList = state.txCache[key] || [];
+
+      const transferCategory = {
+        name: "Transfer",
+        icon: "ArrowRightLeft",
+        color: "#14B8A6",
+      };
+
+      const outNote = params.note
+        ? `Transfer to ${params.toAccount.name}: ${params.note}`
+        : `Transfer to ${params.toAccount.name}`;
+
+      const inNote = params.note
+        ? `Transfer from ${params.fromAccount.name}: ${params.note}`
+        : `Transfer from ${params.fromAccount.name}`;
+
+      const nowIso = new Date().toISOString();
+
+      const outTx: CachedTransaction = {
+        id: `${params.id}_out`,
+        type: "expense",
+        amount: params.amount,
+        note: outNote,
+        transaction_date: params.transaction_date,
+        created_at: nowIso,
+        isPending: true,
+        is_settled: true,
+        categories: transferCategory,
+        accounts: { id: params.fromAccount.id, name: params.fromAccount.name },
+      };
+
+      const inTx: CachedTransaction = {
+        id: `${params.id}_in`,
+        type: "income",
+        amount: params.amount,
+        note: inNote,
+        transaction_date: params.transaction_date,
+        created_at: nowIso,
+        isPending: true,
+        is_settled: true,
+        categories: transferCategory,
+        accounts: { id: params.toAccount.id, name: params.toAccount.name },
+      };
+
+      // Add both to month cache (transfers do not change totalBalance or monthly expense/income summary)
+      const updatedList = [
+        outTx,
+        inTx,
+        ...currentList.filter(
+          (t) => t.id !== outTx.id && t.id !== inTx.id && t.id !== params.id
+        ),
+      ];
+
+      return {
+        txCache: { ...state.txCache, [key]: updatedList },
+      };
+    }),
+
   markTransactionSynced: (tempId, realId) =>
     set((state) => {
       const newTxCache: Record<string, CachedTransaction[]> = {};
@@ -133,11 +204,15 @@ export const useAppStore = create<AppStoreState>((set) => ({
 
       for (const [key, list] of Object.entries(state.txCache)) {
         const updated = list.map((t) => {
-          if (t.id === tempId) {
+          if (
+            t.id === tempId ||
+            t.id === `${tempId}_out` ||
+            t.id === `${tempId}_in`
+          ) {
             changed = true;
             return {
               ...t,
-              id: realId || t.id,
+              id: realId && t.id === tempId ? realId : t.id,
               isPending: false,
             };
           }
@@ -215,6 +290,20 @@ export const useAppStore = create<AppStoreState>((set) => ({
         dashboardTotalBalance: newBalance,
         dashboardIncome: newDashIncome,
         dashboardExpense: newDashExpense,
+      };
+    }),
+
+  optimisticDeleteTransfer: (transferId, monthKey) =>
+    set((state) => {
+      const currentList = state.txCache[monthKey] || [];
+      const updatedList = currentList.filter(
+        (t) =>
+          t.id !== transferId &&
+          t.id !== `${transferId}_out` &&
+          t.id !== `${transferId}_in`
+      );
+      return {
+        txCache: { ...state.txCache, [monthKey]: updatedList },
       };
     }),
 }));

@@ -70,7 +70,7 @@ export default function AddTransactionPage() {
   // Data
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const { optimisticAddTransaction } = useAppStore();
+  const { optimisticAddTransaction, optimisticAddTransfer } = useAppStore();
 
   useEffect(() => {
     async function loadData() {
@@ -192,6 +192,20 @@ export default function AddTransactionPage() {
           is_settled: isSettled,
         });
       } else if (type === "transfer") {
+        const fromAcc = accounts.find((a) => a.id === selectedAccount);
+        const toAcc = accounts.find((a) => a.id === toAccount);
+
+        if (fromAcc && toAcc) {
+          optimisticAddTransfer({
+            id: tempId,
+            fromAccount: { id: fromAcc.id, name: fromAcc.name },
+            toAccount: { id: toAcc.id, name: toAcc.name },
+            amount: parsedAmount,
+            transaction_date: date,
+            note: note || undefined,
+          });
+        }
+
         saveOfflineTransfer({
           id: tempId,
           from_account_id: selectedAccount,

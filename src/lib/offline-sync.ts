@@ -431,6 +431,16 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
               error: errorMsg,
               retry_count: nextRetryCount,
             });
+
+            // Revert optimistic store mutation for transfer
+            try {
+              const trDate = new Date(tr.transaction_date);
+              const monthKey = `${trDate.getMonth() + 1}-${trDate.getFullYear()}`;
+              useAppStore.getState().optimisticDeleteTransfer(tr.id, monthKey);
+            } catch {
+              // Ignore store revert failure
+            }
+
             errors.push(`Quarantined un-syncable transfer (${errorMsg})`);
           } else {
             updateOfflineTransferRetry(tr.id, nextRetryCount, errorMsg);
