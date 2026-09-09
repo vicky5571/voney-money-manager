@@ -68,10 +68,11 @@ export async function proxy(request: NextRequest) {
     "/auth/callback",
     "/sw.js",
   ];
-  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isMatch = (base: string) => pathname === base || pathname.startsWith(`${base}/`);
+  const isPublicRoute = publicRoutes.some(isMatch);
 
   const authEntryRoutes = ["/login", "/signup", "/forgot-password"];
-  const isAuthEntryRoute = authEntryRoutes.some((route) => pathname.startsWith(route));
+  const isAuthEntryRoute = authEntryRoutes.some(isMatch);
 
   // Authenticated user accessing login/signup/forgot-password -> redirect to main app home
   if (user && isAuthEntryRoute) {
