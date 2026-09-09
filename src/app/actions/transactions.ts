@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { createHash } from "node:crypto";
 import {
   calculateFinancialHealth,
   type FinancialHealthResult,
@@ -9,6 +10,18 @@ import {
 import { createTransactionSchema } from "@/lib/validations/transaction";
 
 export type { FinancialHealthResult };
+
+/** Generate deterministic RFC-compliant UUID from string seed (e.g. for offline transfer idempotency) */
+function toDeterministicUuid(input: string): string {
+  const hash = createHash("sha256").update(input).digest("hex");
+  return [
+    hash.slice(0, 8),
+    hash.slice(8, 12),
+    "4" + hash.slice(13, 16),
+    ((parseInt(hash.slice(16, 18), 16) & 0x3f) | 0x80).toString(16) + hash.slice(18, 20),
+    hash.slice(20, 32),
+  ].join("-");
+}
 
 /** Sanitize user search for PostgREST ilike: escape % _ \ and limit length to prevent DoS */
 function sanitizeSearch(raw?: string): string | null {
@@ -776,6 +789,7 @@ export async function deleteTransaction(id: string) {
 }
 
 export async function createTransfer(formData: {
+  id?: string;
   from_account_id: string;
   to_account_id: string;
   amount: number;
@@ -794,6 +808,24 @@ export async function createTransfer(formData: {
 
   if (formData.amount <= 0) {
     throw new Error("Transfer amount must be greater than 0");
+  }
+
+  // Idempotency check: if an ID was supplied, derive deterministic UUIDs and check if already processed
+  const outId = formData.id ? toDeterministicUuid(`${formData.id}_out`) : undefined;
+  const inId = formData.id ? toDeterministicUuid(`${formData.id}_in`) : undefined;
+
+  if (outId) {
+    const { data: existing } = await supabase
+      .from("transactions")
+      .select("id")
+      .eq("id", outId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      // Transfer was already committed in a previous attempt (e.g. network drop before 200 response)
+      return { success: true, id: formData.id };
+    }
   }
 
   // Get source and destination accounts
@@ -874,7 +906,7 @@ export async function createTransfer(formData: {
       .or("note.ilike.Transfer to %,note.ilike.Transfer from %");
 
     // Log outbound transfer record under Transfer category
-    await supabase.from("transactions").insert({
+    const outPayload: Record<string, unknown> = {
       user_id: user.id,
       account_id: fromAccount.id,
       category_id: transferCategoryId,
@@ -884,10 +916,17 @@ export async function createTransfer(formData: {
       note: formData.note
         ? `Transfer to ${toAccount.name}: ${formData.note}`
         : `Transfer to ${toAccount.name}`,
-    });
+    };
+    if (outId) outPayload.id = outId;
+
+    const { error: outError } = await supabase.from("transactions").insert(outPayload);
+    if (outError && outId && (outError.code === "23505" || outError.message?.includes("duplicate key"))) {
+      return { success: true, id: formData.id };
+    }
+    if (outError) throw outError;
 
     // Log inbound transfer record under Transfer category
-    await supabase.from("transactions").insert({
+    const inPayload: Record<string, unknown> = {
       user_id: user.id,
       account_id: toAccount.id,
       category_id: transferCategoryId,
@@ -897,11 +936,20 @@ export async function createTransfer(formData: {
       note: formData.note
         ? `Transfer from ${fromAccount.name}: ${formData.note}`
         : `Transfer from ${fromAccount.name}`,
-    });
+    };
+    if (inId) inPayload.id = inId;
+
+    const { error: inError } = await supabase.from("transactions").insert(inPayload);
+    if (inError && inId && (inError.code === "23505" || inError.message?.includes("duplicate key"))) {
+      return { success: true, id: formData.id };
+    }
+    if (inError) throw inError;
   }
 
   revalidatePath("/");
   revalidatePath("/transactions");
   revalidatePath("/accounts");
   revalidatePath("/budgets");
+
+  return { success: true, id: formData.id };
 }

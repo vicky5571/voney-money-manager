@@ -402,6 +402,7 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
       for (const tr of transferQueue) {
         try {
           await createTransfer({
+            id: tr.id,
             from_account_id: tr.from_account_id,
             to_account_id: tr.to_account_id,
             amount: tr.amount,
