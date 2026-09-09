@@ -29,6 +29,34 @@ export interface CachedCounts {
   expense: number;
 }
 
+export interface RehydratedOfflineTx {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  category_id: string;
+  account_id: string;
+  transaction_date: string;
+  note?: string;
+  is_settled?: boolean;
+  created_at_local?: string;
+  category_name?: string;
+  category_icon?: string;
+  category_color?: string;
+  account_name?: string;
+}
+
+export interface RehydratedOfflineTransfer {
+  id: string;
+  from_account_id: string;
+  to_account_id: string;
+  amount: number;
+  transaction_date: string;
+  note?: string;
+  created_at_local?: string;
+  from_account_name?: string;
+  to_account_name?: string;
+}
+
 interface AppStoreState {
   // Transactions cache keyed by "month-year"
   txCache: Record<string, CachedTransaction[]>;
@@ -64,6 +92,10 @@ interface AppStoreState {
   optimisticSettleTransaction: (id: string, amount: number, type: 'income' | 'expense') => void;
   optimisticDeleteTransaction: (id: string, monthKey: string) => void;
   optimisticDeleteTransfer: (transferId: string, monthKey: string) => void;
+  rehydrateOfflineQueue: (
+    txQueue: RehydratedOfflineTx[],
+    trQueue?: RehydratedOfflineTransfer[]
+  ) => void;
 }
 
 export const useAppStore = create<AppStoreState>((set) => ({
@@ -317,5 +349,112 @@ export const useAppStore = create<AppStoreState>((set) => ({
       return {
         txCache: { ...state.txCache, [monthKey]: updatedList },
       };
+    }),
+
+  rehydrateOfflineQueue: (txQueue, trQueue = []) =>
+    set((state) => {
+      if (txQueue.length === 0 && trQueue.length === 0) return state;
+
+      const newTxCache = { ...state.txCache };
+      let hasChanges = false;
+
+      // 1. Rehydrate regular transactions
+      for (const item of txQueue) {
+        const monthKey = getMonthKeyFromDateString(item.transaction_date);
+        const currentList = newTxCache[monthKey] || [];
+        const exists = currentList.some((t) => t.id === item.id);
+        if (!exists) {
+          hasChanges = true;
+          const isSettled = item.is_settled ?? true;
+          const rehydratedTx: CachedTransaction = {
+            id: item.id,
+            type: item.type,
+            amount: item.amount,
+            note: item.note || null,
+            transaction_date: item.transaction_date,
+            created_at: item.created_at_local || new Date().toISOString(),
+            isPending: true,
+            is_settled: isSettled,
+            categories: item.category_name
+              ? {
+                  id: item.category_id,
+                  name: item.category_name,
+                  icon: item.category_icon || 'Package',
+                  color: item.category_color || '#6B7280',
+                }
+              : {
+                  id: item.category_id,
+                  name: 'Transaction',
+                  icon: 'Package',
+                  color: '#6B7280',
+                },
+            accounts: item.account_name
+              ? { id: item.account_id, name: item.account_name }
+              : { id: item.account_id, name: 'Account' },
+          };
+          newTxCache[monthKey] = [rehydratedTx, ...currentList];
+        }
+      }
+
+      // 2. Rehydrate transfers
+      for (const tr of trQueue) {
+        const monthKey = getMonthKeyFromDateString(tr.transaction_date);
+        const currentList = newTxCache[monthKey] || [];
+        const outId = `${tr.id}_out`;
+        const inId = `${tr.id}_in`;
+        const exists = currentList.some(
+          (t) => t.id === outId || t.id === inId || t.id === tr.id
+        );
+
+        if (!exists) {
+          hasChanges = true;
+          const transferCategory = {
+            name: 'Transfer',
+            icon: 'ArrowRightLeft',
+            color: '#14B8A6',
+          };
+          const fromName = tr.from_account_name || 'Account';
+          const toName = tr.to_account_name || 'Account';
+          const outNote = tr.note
+            ? `Transfer to ${toName}: ${tr.note}`
+            : `Transfer to ${toName}`;
+          const inNote = tr.note
+            ? `Transfer from ${fromName}: ${tr.note}`
+            : `Transfer from ${fromName}`;
+
+          const nowIso = tr.created_at_local || new Date().toISOString();
+
+          const outTx: CachedTransaction = {
+            id: outId,
+            type: 'expense',
+            amount: tr.amount,
+            note: outNote,
+            transaction_date: tr.transaction_date,
+            created_at: nowIso,
+            isPending: true,
+            is_settled: true,
+            categories: transferCategory,
+            accounts: { id: tr.from_account_id, name: fromName },
+          };
+
+          const inTx: CachedTransaction = {
+            id: inId,
+            type: 'income',
+            amount: tr.amount,
+            note: inNote,
+            transaction_date: tr.transaction_date,
+            created_at: nowIso,
+            isPending: true,
+            is_settled: true,
+            categories: transferCategory,
+            accounts: { id: tr.to_account_id, name: toName },
+          };
+
+          newTxCache[monthKey] = [outTx, inTx, ...currentList];
+        }
+      }
+
+      if (!hasChanges) return state;
+      return { txCache: newTxCache };
     }),
 }));

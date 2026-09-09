@@ -14,6 +14,10 @@ export interface OfflineTransactionItem {
   created_at_local: string;
   retry_count?: number;
   last_error?: string;
+  category_name?: string;
+  category_icon?: string;
+  category_color?: string;
+  account_name?: string;
 }
 
 export interface OfflineTransferItem {
@@ -26,6 +30,8 @@ export interface OfflineTransferItem {
   created_at_local: string;
   retry_count?: number;
   last_error?: string;
+  from_account_name?: string;
+  to_account_name?: string;
 }
 
 export interface DeadLetterItem {
@@ -228,6 +234,23 @@ export function removeOfflineTransfer(id: string) {
     window.dispatchEvent(new CustomEvent('voney:offline-queue-updated'));
   } catch (err) {
     console.error('Failed to remove transfer from offline queue:', err);
+  }
+}
+
+/**
+ * Rehydrates pending transactions and transfers from localStorage offline queues into Zustand txCache.
+ * Ensures offline transactions remain visible in the UI after browser reload or tab restart.
+ */
+export function rehydrateOfflineQueueIntoStore(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const txQueue = getOfflineTxQueue();
+    const trQueue = getOfflineTransferQueue();
+    if (txQueue.length > 0 || trQueue.length > 0) {
+      useAppStore.getState().rehydrateOfflineQueue(txQueue, trQueue);
+    }
+  } catch (err) {
+    console.error('Failed to rehydrate offline queue into store:', err);
   }
 }
 

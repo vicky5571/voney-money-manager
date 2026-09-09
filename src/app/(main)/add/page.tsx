@@ -190,6 +190,10 @@ export default function AddTransactionPage() {
           transaction_date: date,
           note: note || undefined,
           is_settled: isSettled,
+          category_name: selCat.name,
+          category_icon: selCat.icon,
+          category_color: selCat.color,
+          account_name: selAcc.name,
         });
       } else if (type === "transfer") {
         const fromAcc = accounts.find((a) => a.id === selectedAccount);
@@ -213,6 +217,8 @@ export default function AddTransactionPage() {
           amount: parsedAmount,
           transaction_date: date,
           note: note || undefined,
+          from_account_name: fromAcc?.name,
+          to_account_name: toAcc?.name,
         });
       }
 

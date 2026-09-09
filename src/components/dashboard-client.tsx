@@ -6,7 +6,13 @@ import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatDate, cn, getGreeting, getMonthKeyFromDateString } from "@/lib/utils";
-import { getOfflineQueueCount, syncOfflineQueue, removeOfflineTx, removeOfflineTransfer } from "@/lib/offline-sync";
+import {
+  getOfflineQueueCount,
+  syncOfflineQueue,
+  removeOfflineTx,
+  removeOfflineTransfer,
+  rehydrateOfflineQueueIntoStore,
+} from "@/lib/offline-sync";
 import { deleteTransaction } from "@/app/actions/transactions";
 import dynamic from "next/dynamic";
 import { BalanceCard } from "@/components/balance-card";
@@ -253,6 +259,7 @@ export function DashboardClient({
   useEffect(() => {
     const updateQueue = () => {
       setOfflineCount(getOfflineQueueCount());
+      rehydrateOfflineQueueIntoStore();
     };
     // Initial load after mount (avoids blocking first paint)
     updateQueue();

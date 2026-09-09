@@ -9,7 +9,11 @@ import {
   PlusSquare,
   CheckCircle2,
 } from "lucide-react";
-import { syncOfflineQueue, getOfflineQueueCount } from "@/lib/offline-sync";
+import {
+  syncOfflineQueue,
+  getOfflineQueueCount,
+  rehydrateOfflineQueueIntoStore,
+} from "@/lib/offline-sync";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -56,6 +60,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
         ),
     );
     setOfflineCount(getOfflineQueueCount());
+    rehydrateOfflineQueueIntoStore();
 
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       navigator.serviceWorker
@@ -88,6 +93,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
 
     const handleQueueUpdated = () => {
       checkQueue();
+      rehydrateOfflineQueueIntoStore();
     };
 
     window.addEventListener("online", handleOnline);
