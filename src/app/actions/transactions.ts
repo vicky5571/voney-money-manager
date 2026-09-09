@@ -883,13 +883,6 @@ export async function createTransfer(formData: {
   await adjustAccountBalanceAtomic(supabase, toAccount.id, formData.amount, user.id);
 
   if (transferCategoryId) {
-    // Retroactively heal any past transfer records that were miscategorized as Food
-    await supabase
-      .from("transactions")
-      .update({ category_id: transferCategoryId })
-      .eq("user_id", user.id)
-      .or("note.ilike.Transfer to %,note.ilike.Transfer from %");
-
     // Log outbound transfer record under Transfer category
     const outPayload: Record<string, unknown> = {
       user_id: user.id,
