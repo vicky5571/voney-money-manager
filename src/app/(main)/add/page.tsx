@@ -38,6 +38,7 @@ type Category = {
   icon: string;
   color: string;
   type: string;
+  scope?: "personal" | "business";
 };
 
 type Account = {
@@ -173,6 +174,7 @@ export default function AddTransactionPage() {
             name: selCat.name,
             icon: selCat.icon,
             color: selCat.color,
+            scope: selCat.scope,
           },
           accounts: {
             id: selAcc.id,
@@ -192,6 +194,7 @@ export default function AddTransactionPage() {
           category_name: selCat.name,
           category_icon: selCat.icon,
           category_color: selCat.color,
+          category_scope: selCat.scope,
           account_name: selAcc.name,
         });
       } else if (type === "transfer") {

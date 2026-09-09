@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { formatCurrency, formatDate, cn, getGreeting, getMonthKeyFromDateString } from "@/lib/utils";
+import { formatCurrency, formatDate, cn, getMonthKeyFromDateString } from "@/lib/utils";
 import {
   getOfflineQueueCount,
   syncOfflineQueue,
@@ -191,10 +191,7 @@ export function DashboardClient({
   const router = useRouter();
   const [selectedTx, setSelectedTx] = useState<RecentTxItem | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [currentGreeting, setCurrentGreeting] = useState(greeting);
-  useEffect(() => {
-    setCurrentGreeting(getGreeting());
-  }, []);
+  const currentGreeting = greeting;
   const [deletedTxIds, setDeletedTxIds] = useState<string[]>([]);
   const { txCache, optimisticSettleTransaction } = useAppStore();
   // Collect all pending transactions across all cached months (e.g. yesterday at month-turn or past/future dates)
@@ -246,6 +243,52 @@ export function DashboardClient({
     });
   }, [recentTransactions, pendingTxs, deletedTxIds]);
 
+  // Optimistically fold pending/offline business transactions into businessSummary
+  const effectiveBusinessSummary = useMemo(() => {
+    if (!businessSummary) return undefined;
+
+    if (pendingTxs.length === 0) return businessSummary;
+
+    const now = new Date();
+    const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    // Filter pending transactions that belong to the current month and are scoped as business
+    const pendingBusinessTxs = pendingTxs.filter((t) => {
+      if (!t.transaction_date.startsWith(currentMonthPrefix)) return false;
+      return t.categories?.scope === "business";
+    });
+
+    if (pendingBusinessTxs.length === 0) return businessSummary;
+
+    let addedRevenue = 0;
+    let addedExpenses = 0;
+
+    for (const t of pendingBusinessTxs) {
+      if (t.type === "income") addedRevenue += Number(t.amount);
+      else if (t.type === "expense") addedExpenses += Number(t.amount);
+    }
+
+    const totalRevenue = businessSummary.revenue + addedRevenue;
+    const totalExpenses = businessSummary.expenses + addedExpenses;
+    const netProfit = totalRevenue - totalExpenses;
+    const profitMargin =
+      totalRevenue > 0
+        ? Math.round(((totalRevenue - totalExpenses) / totalRevenue) * 100)
+        : 0;
+    const transactionCount =
+      businessSummary.transactionCount + pendingBusinessTxs.length;
+
+    return {
+      revenue: totalRevenue,
+      expenses: totalExpenses,
+      netProfit,
+      profitMargin,
+      transactionCount,
+      hasBusinessActivity:
+        transactionCount > 0 || totalRevenue > 0 || totalExpenses > 0,
+    };
+  }, [businessSummary, pendingTxs]);
+
   const handleDetailSettle = (id: string) => {
     const tx = recentTxList.find((t) => t.id === id);
     if (tx) {
@@ -261,19 +304,23 @@ export function DashboardClient({
       setOfflineCount(getOfflineQueueCount());
       rehydrateOfflineQueueIntoStore();
     };
+    const handleSyncComplete = () => {
+      updateQueue();
+      router.refresh();
+    };
     // Initial load after mount (avoids blocking first paint)
     updateQueue();
     window.addEventListener("voney:offline-queue-updated", updateQueue);
-    window.addEventListener("voney:offline-synced", updateQueue);
+    window.addEventListener("voney:offline-synced", handleSyncComplete);
     window.addEventListener("online", updateQueue);
     window.addEventListener("offline", updateQueue);
     return () => {
       window.removeEventListener("voney:offline-queue-updated", updateQueue);
-      window.removeEventListener("voney:offline-synced", updateQueue);
+      window.removeEventListener("voney:offline-synced", handleSyncComplete);
       window.removeEventListener("online", updateQueue);
       window.removeEventListener("offline", updateQueue);
     };
-  }, []);
+  }, [router]);
 
   const handleManualSync = async () => {
     if (typeof window === "undefined" || !navigator.onLine || isSyncing) return;
@@ -614,7 +661,7 @@ export function DashboardClient({
       )}
 
       {/* Business Performance & Net Profit Card */}
-      {businessSummary && (
+      {effectiveBusinessSummary && (
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-indigo-100/80 space-y-3">
           <div className="flex items-start justify-between">
               <div className="flex items-center gap-2">
@@ -625,10 +672,10 @@ export function DashboardClient({
                   <h2 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
                     Business Performance
                   </h2>
-                  {businessSummary.transactionCount > 0 && (
+                  {effectiveBusinessSummary.transactionCount > 0 && (
                     <span className="text-[10px] text-gray-400 font-medium mt-0.5 block">
-                      {businessSummary.transactionCount}{" "}
-                      {businessSummary.transactionCount === 1
+                      {effectiveBusinessSummary.transactionCount}{" "}
+                      {effectiveBusinessSummary.transactionCount === 1
                         ? "transaction"
                         : "transactions"} this month
                     </span>
@@ -650,18 +697,18 @@ export function DashboardClient({
                 <span
                   className={cn(
                     "text-2xl font-black tracking-tight",
-                    businessSummary.netProfit > 0
+                    effectiveBusinessSummary.netProfit > 0
                       ? "text-emerald-600"
-                      : businessSummary.netProfit < 0
+                      : effectiveBusinessSummary.netProfit < 0
                         ? "text-rose-600"
                         : "text-gray-800",
                   )}
                 >
-                  {businessSummary.netProfit > 0 ? "+" : ""}
-                  {formatCurrency(businessSummary.netProfit)}
+                  {effectiveBusinessSummary.netProfit > 0 ? "+" : ""}
+                  {formatCurrency(effectiveBusinessSummary.netProfit)}
                 </span>
               </div>
-              {businessSummary.revenue > 0 ? (
+              {effectiveBusinessSummary.revenue > 0 ? (
                 <div className="text-right">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
                     Profit Margin
@@ -669,20 +716,20 @@ export function DashboardClient({
                   <span
                     className={cn(
                       "text-xs font-bold px-2 py-0.5 rounded-md inline-block mt-0.5",
-                      businessSummary.profitMargin >= 20
+                      effectiveBusinessSummary.profitMargin >= 20
                         ? "bg-emerald-100/80 text-emerald-800"
-                        : businessSummary.profitMargin >= 0
+                        : effectiveBusinessSummary.profitMargin >= 0
                           ? "bg-amber-100/80 text-amber-800"
                           : "bg-rose-100/80 text-rose-800",
                     )}
                   >
-                    {businessSummary.profitMargin}%
+                    {effectiveBusinessSummary.profitMargin}%
                   </span>
                 </div>
               ) : (
                 <span className="text-[11px] text-gray-400 font-medium">
-                  {businessSummary.transactionCount}{" "}
-                  {businessSummary.transactionCount === 1 ? "tx" : "txs"}
+                  {effectiveBusinessSummary.transactionCount}{" "}
+                  {effectiveBusinessSummary.transactionCount === 1 ? "tx" : "txs"}
                 </span>
               )}
             </div>
@@ -695,7 +742,7 @@ export function DashboardClient({
                 Gross Revenue
               </span>
               <span className="text-sm font-bold text-gray-900 mt-0.5 block truncate">
-                {formatCurrency(businessSummary.revenue)}
+                {formatCurrency(effectiveBusinessSummary.revenue)}
               </span>
             </div>
             <div className="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
@@ -703,12 +750,12 @@ export function DashboardClient({
                 Business Expenses
               </span>
               <span className="text-sm font-bold text-gray-900 mt-0.5 block truncate">
-                {formatCurrency(businessSummary.expenses)}
+                {formatCurrency(effectiveBusinessSummary.expenses)}
               </span>
             </div>
           </div>
 
-          {!businessSummary.hasBusinessActivity && (
+          {!effectiveBusinessSummary.hasBusinessActivity && (
             <div className="p-2.5 rounded-xl bg-indigo-50/40 border border-indigo-100/60">
               <p className="text-[11px] text-gray-600 leading-snug">
                 Track your business in one unified stream. Set category scope to{" "}

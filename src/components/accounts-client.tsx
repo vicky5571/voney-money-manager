@@ -104,9 +104,18 @@ export function AccountsClient({
   // --- Wallet reorder state (mirrors CategoryGrid) ---
   const [isEditing, setIsEditing] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [prevAccounts, setPrevAccounts] = useState(accounts);
   const [items, setItems] = useState<AccountData[]>(() =>
     sortAccountsByOrder(accounts),
   );
+
+  if (accounts !== prevAccounts) {
+    setPrevAccounts(accounts);
+    setItems(sortAccountsByOrder(accounts));
+    setIsEditing(false);
+    setActiveDragId(null);
+  }
+
   const containerRef = useRef<HTMLDivElement>(null);
   const slotRectsRef = useRef<SlotRect[]>([]);
   const reorderedItemsRef = useRef<AccountData[] | null>(null);
@@ -117,12 +126,6 @@ export function AccountsClient({
   const pointerStartRef = useRef<{ x: number; y: number; id: string } | null>(
     null,
   );
-
-  useEffect(() => {
-    setItems(sortAccountsByOrder(accounts));
-    setIsEditing(false);
-    setActiveDragId(null);
-  }, [accounts]);
 
   useEffect(() => {
     return () => {

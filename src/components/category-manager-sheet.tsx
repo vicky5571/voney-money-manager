@@ -15,6 +15,7 @@ import {
   Loader2,
   Check,
   GripVertical,
+  Copy,
 } from "lucide-react";
 import {
   createCategory,
@@ -52,11 +53,13 @@ function CategoryReorderRow({
   cat,
   onEdit,
   onDelete,
+  onDuplicate,
   isPending,
 }: {
   cat: CategoryItem;
   onEdit: (cat: CategoryItem) => void;
   onDelete: (id: string) => void;
+  onDuplicate?: (cat: CategoryItem) => void;
   isPending: boolean;
 }) {
   const dragControls = useDragControls();
@@ -114,6 +117,23 @@ function CategoryReorderRow({
           </span>
         </div>
       </div>
+
+      {cat.is_default && onDuplicate && (
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate(cat);
+            }}
+            className="min-h-[44px] px-2.5 py-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
+            title="Create a business copy of this category"
+          >
+            <Copy size={13} />
+            <span>Use as Business</span>
+          </button>
+        </div>
+      )}
 
       {!cat.is_default && (
         <div className="flex items-center gap-1 shrink-0">
@@ -204,6 +224,16 @@ export function CategoryManagerSheet({
     setScope(cat.scope === "business" ? "business" : "personal");
     setError("");
     setMode("edit");
+  };
+
+  const handleDuplicate = (cat: CategoryItem) => {
+    setName(`${cat.name} (Business)`);
+    setIcon(cat.icon);
+    setColor(cat.color);
+    setType(cat.type as "expense" | "income");
+    setScope("business");
+    setError("");
+    setMode("create");
   };
 
   const handleSave = () => {
@@ -402,6 +432,7 @@ export function CategoryManagerSheet({
                         cat={cat}
                         onEdit={openEdit}
                         onDelete={handleDelete}
+                        onDuplicate={handleDuplicate}
                         isPending={isPending}
                       />
                     ))}

@@ -12,6 +12,7 @@ export interface CategoryGridItem {
   name: string;
   icon: string;
   color: string;
+  scope?: string;
 }
 
 interface CategoryGridProps {
@@ -121,6 +122,11 @@ function CategoryCard({
             : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent"),
       )}
     >
+      {cat.scope === "business" && (
+        <span className="absolute top-2 right-2 text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/60 leading-none pointer-events-none">
+          Biz
+        </span>
+      )}
       <div
         className="flex items-center justify-center w-12 h-12 rounded-full mb-2 pointer-events-none"
         style={{ backgroundColor: `${cat.color}1A` }}
@@ -150,7 +156,15 @@ export function CategoryGrid({
 }: CategoryGridProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [prevCategories, setPrevCategories] = useState(categories);
   const [items, setItems] = useState<CategoryGridItem[]>(categories);
+
+  if (categories !== prevCategories) {
+    setPrevCategories(categories);
+    setItems(categories);
+    setIsEditing(false);
+    setActiveDragId(null);
+  }
 
   const containerRef = useRef<HTMLDivElement>(null);
   const slotRectsRef = useRef<SlotRect[]>([]);
@@ -171,13 +185,6 @@ export function CategoryGrid({
       }
     };
   }, []);
-
-  // Sync internal items whenever categories prop changes (effect, not render phase)
-  useEffect(() => {
-    setItems(categories);
-    setIsEditing(false);
-    setActiveDragId(null);
-  }, [categories]);
 
   const handleDragEnd = useCallback(() => {
     setIsEditing(false);

@@ -42,6 +42,7 @@ export interface RehydratedOfflineTx {
   category_name?: string;
   category_icon?: string;
   category_color?: string;
+  category_scope?: string;
   account_name?: string;
 }
 
@@ -381,12 +382,14 @@ export const useAppStore = create<AppStoreState>((set) => ({
                   name: item.category_name,
                   icon: item.category_icon || 'Package',
                   color: item.category_color || '#6B7280',
+                  scope: item.category_scope,
                 }
               : {
                   id: item.category_id,
                   name: 'Transaction',
                   icon: 'Package',
                   color: '#6B7280',
+                  scope: item.category_scope,
                 },
             accounts: item.account_name
               ? { id: item.account_id, name: item.account_name }

@@ -26,6 +26,9 @@ async function seed() {
 
     console.log(`👤 Found ${users.length} user(s) to seed.`);
 
+    // Ensure Freelance has business scope
+    await sql`UPDATE public.categories SET scope = 'business' WHERE name ILIKE 'Freelance';`;
+
     // 2. Fetch categories
     const categories = await sql<{ id: string; name: string; type: string }[]>`
       SELECT id, name, type FROM public.categories;

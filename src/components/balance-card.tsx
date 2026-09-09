@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -10,25 +10,44 @@ interface BalanceCardProps {
   expense: number;
 }
 
+function subscribeShowBalance(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("voney:show-balance-updated", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("voney:show-balance-updated", callback);
+  };
+}
+
+function getShowBalanceSnapshot(): boolean {
+  try {
+    return window.localStorage.getItem("voney:show-balance") !== "false";
+  } catch {
+    return true;
+  }
+}
+
+function getShowBalanceServerSnapshot(): boolean {
+  return true;
+}
+
 export function BalanceCard({
   totalBalance,
   income,
   expense,
 }: BalanceCardProps) {
-  const [showBalance, setShowBalance] = useState(true);
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem("voney:show-balance");
-      if (saved === "false") setShowBalance(false);
-    } catch {}
-  }, []);
+  const showBalance = useSyncExternalStore(
+    subscribeShowBalance,
+    getShowBalanceSnapshot,
+    getShowBalanceServerSnapshot,
+  );
 
   const toggleBalance = () => {
-    setShowBalance((visible) => {
-      const nextVisible = !visible;
+    try {
+      const nextVisible = !showBalance;
       window.localStorage.setItem("voney:show-balance", String(nextVisible));
-      return nextVisible;
-    });
+      window.dispatchEvent(new Event("voney:show-balance-updated"));
+    } catch {}
   };
 
   const maskValue = (value: number) => {

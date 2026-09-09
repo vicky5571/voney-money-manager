@@ -17,6 +17,7 @@ export interface OfflineTransactionItem {
   category_name?: string;
   category_icon?: string;
   category_color?: string;
+  category_scope?: string;
   account_name?: string;
 }
 
