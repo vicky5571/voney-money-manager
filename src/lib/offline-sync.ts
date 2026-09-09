@@ -204,25 +204,30 @@ export function saveOfflineTransfer(
   return newItem;
 }
 
-function removeOfflineTx(id: string) {
+export function removeOfflineTx(id: string) {
+  if (typeof window === 'undefined') return;
   try {
     const current = getOfflineTxQueue();
     const filtered = current.filter((item) => item.id !== id);
     localStorage.setItem(TX_QUEUE_KEY, JSON.stringify(filtered));
     invalidateOfflineCache();
+    window.dispatchEvent(new CustomEvent('voney:offline-queue-updated'));
   } catch (err) {
-    console.error('Failed to remove synced tx from offline queue:', err);
+    console.error('Failed to remove tx from offline queue:', err);
   }
 }
 
-function removeOfflineTransfer(id: string) {
+export function removeOfflineTransfer(id: string) {
+  if (typeof window === 'undefined') return;
   try {
     const current = getOfflineTransferQueue();
-    const filtered = current.filter((item) => item.id !== id);
+    const rootId = id.replace(/_(out|in)$/, '');
+    const filtered = current.filter((item) => item.id !== rootId && item.id !== id);
     localStorage.setItem(TRANSFER_QUEUE_KEY, JSON.stringify(filtered));
     invalidateOfflineCache();
+    window.dispatchEvent(new CustomEvent('voney:offline-queue-updated'));
   } catch (err) {
-    console.error('Failed to remove synced transfer from offline queue:', err);
+    console.error('Failed to remove transfer from offline queue:', err);
   }
 }
 

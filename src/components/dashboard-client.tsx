@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatDate, cn, getGreeting } from "@/lib/utils";
-import { getOfflineQueueCount, syncOfflineQueue } from "@/lib/offline-sync";
+import { getOfflineQueueCount, syncOfflineQueue, removeOfflineTx, removeOfflineTransfer } from "@/lib/offline-sync";
 import { deleteTransaction } from "@/app/actions/transactions";
 import dynamic from "next/dynamic";
 import { BalanceCard } from "@/components/balance-card";
@@ -282,17 +282,37 @@ export function DashboardClient({
 
   const handleDetailDelete = (id: string) => {
     setDeletedTxIds((prev) => [...prev, id]);
+    removeOfflineTx(id);
+    removeOfflineTransfer(id);
+    const targetTx = recentTxList.find((t) => t.id === id);
+    if (targetTx) {
+      const [yearStr, monthStr] = targetTx.transaction_date.split("-");
+      const monthKey = `${parseInt(monthStr, 10)}-${parseInt(yearStr, 10)}`;
+      useAppStore.getState().optimisticDeleteTransaction(id, monthKey);
+      useAppStore.getState().optimisticDeleteTransfer(id, monthKey);
+    }
     setSelectedTx(null);
     router.refresh();
   };
 
   const handleSwipeDelete = async (id: string) => {
     setDeletedTxIds((prev) => [...prev, id]);
+    removeOfflineTx(id);
+    removeOfflineTransfer(id);
+    const targetTx = recentTxList.find((t) => t.id === id);
+    if (targetTx) {
+      const [yearStr, monthStr] = targetTx.transaction_date.split("-");
+      const monthKey = `${parseInt(monthStr, 10)}-${parseInt(yearStr, 10)}`;
+      useAppStore.getState().optimisticDeleteTransaction(id, monthKey);
+      useAppStore.getState().optimisticDeleteTransfer(id, monthKey);
+    }
     try {
       await deleteTransaction(id);
       router.refresh();
     } catch {
-      setDeletedTxIds((prev) => prev.filter((item) => item !== id));
+      if (!targetTx?.isPending) {
+        setDeletedTxIds((prev) => prev.filter((item) => item !== id));
+      }
     }
   };
 

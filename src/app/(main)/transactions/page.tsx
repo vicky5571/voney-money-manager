@@ -7,6 +7,7 @@ import {
   getTransactionsForExport,
   deleteTransaction,
 } from "@/app/actions/transactions";
+import { removeOfflineTx, removeOfflineTransfer } from "@/lib/offline-sync";
 import { TransactionItem } from "@/components/transaction-item";
 import { TransactionDetailSheet } from "@/components/transaction-detail-sheet";
 import { FinancialHealthCard } from "@/components/financial-health-card";
@@ -347,6 +348,8 @@ export default function TransactionsPage() {
   const handleSwipeDelete = async (id: string) => {
     const snapshot = transactions.find((t) => t.id === id);
     setTransactions((prev) => prev.filter((t) => t.id !== id));
+    removeOfflineTx(id);
+    removeOfflineTransfer(id);
     optimisticDeleteTransaction(id, monthKey);
     try {
       await deleteTransaction(id);
@@ -390,6 +393,8 @@ export default function TransactionsPage() {
   // Detail-sheet delete: remove from local state + refresh aggregates
   const handleDetailDelete = (id: string) => {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
+    removeOfflineTx(id);
+    removeOfflineTransfer(id);
     optimisticDeleteTransaction(id, monthKey);
     getMonthOverview({
       month: selectedMonth,

@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Trash2, Pencil, X, Loader2, CheckCircle2, Clock } from "lucide-react";
 import { deleteTransaction, settleTransaction } from "@/app/actions/transactions";
+import { removeOfflineTx, removeOfflineTransfer } from "@/lib/offline-sync";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { CategoryIcon } from "@/constants/categories";
@@ -63,6 +64,8 @@ export function TransactionDetailSheet({
     if (!currentTx) return;
     setDeleting(true);
     try {
+      removeOfflineTx(currentTx.id);
+      removeOfflineTransfer(currentTx.id);
       await deleteTransaction(currentTx.id);
       onDelete?.(currentTx.id);
       onClose();
