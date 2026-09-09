@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Trash2, Pencil, X, Loader2, CheckCircle2, Clock } from "lucide-react";
 import { deleteTransaction, settleTransaction } from "@/app/actions/transactions";
@@ -38,12 +38,16 @@ export function TransactionDetailSheet({
   const [settling, setSettling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // Keep reference to last active transaction so exit animation renders smoothly even if parent clears transaction
-  const lastTxRef = useRef(transaction);
-  if (transaction) {
-    lastTxRef.current = transaction;
+  // Keep state for last active transaction so exit animation renders smoothly even if parent clears transaction
+  const [prevTx, setPrevTx] = useState(transaction);
+  const [displayTx, setDisplayTx] = useState(transaction);
+
+  if (transaction && transaction !== prevTx) {
+    setPrevTx(transaction);
+    setDisplayTx(transaction);
   }
-  const currentTx = transaction || lastTxRef.current;
+
+  const currentTx = transaction || displayTx;
 
   const handleSettle = async () => {
     if (!currentTx) return;
