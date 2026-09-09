@@ -66,6 +66,7 @@ export async function proxy(request: NextRequest) {
     "/forgot-password",
     "/reset-password",
     "/auth/callback",
+    "/sw.js",
   ];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
@@ -87,6 +88,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
   ],
 };
