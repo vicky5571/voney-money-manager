@@ -13,7 +13,6 @@ import {
   Plus,
 } from "lucide-react";
 import Link from "next/link";
-import { createTransaction, createTransfer } from "@/app/actions/transactions";
 import { getCategories, reorderCategories } from "@/app/actions/categories";
 import { getAccounts } from "@/app/actions/accounts";
 import { CategoryGrid } from "@/components/category-grid";
@@ -154,7 +153,7 @@ export default function AddTransactionPage() {
     try {
       const tempId =
         type === "transfer"
-          ? `offline_tr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+          ? `offline_tr_${generateUuid()}`
           : generateUuid();
 
       const selCat = categories.find((c) => c.id === selectedCategory);
