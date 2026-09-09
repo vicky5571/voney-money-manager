@@ -45,18 +45,27 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isAuthRoute =
-    pathname.startsWith("/login") || pathname.startsWith("/signup");
+  const publicRoutes = [
+    "/login",
+    "/signup",
+    "/forgot-password",
+    "/reset-password",
+    "/auth/callback",
+  ];
+  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
-  // Authenticated user accessing auth routes -> redirect to main app home
-  if (user && isAuthRoute) {
+  const authEntryRoutes = ["/login", "/signup", "/forgot-password"];
+  const isAuthEntryRoute = authEntryRoutes.some((route) => pathname.startsWith(route));
+
+  // Authenticated user accessing login/signup/forgot-password -> redirect to main app home
+  if (user && isAuthEntryRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
   // Unauthenticated user accessing protected routes -> redirect to login
-  if (!user && !isAuthRoute) {
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
