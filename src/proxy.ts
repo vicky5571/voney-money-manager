@@ -10,6 +10,21 @@ import { NextResponse, type NextRequest } from "next/server";
  * @param request - Incoming Next.js HTTP request.
  * @returns Next.js HTTP response with refreshed cookies or route redirection.
  */
+function createRedirectResponse(
+  request: NextRequest,
+  pathname: string,
+  supabaseResponse: NextResponse,
+) {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.search = "";
+  const redirectResponse = NextResponse.redirect(url);
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie);
+  });
+  return redirectResponse;
+}
+
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -59,16 +74,12 @@ export async function proxy(request: NextRequest) {
 
   // Authenticated user accessing login/signup/forgot-password -> redirect to main app home
   if (user && isAuthEntryRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
+    return createRedirectResponse(request, "/", supabaseResponse);
   }
 
   // Unauthenticated user accessing protected routes -> redirect to login
   if (!user && !isPublicRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    return createRedirectResponse(request, "/login", supabaseResponse);
   }
 
   return supabaseResponse;
