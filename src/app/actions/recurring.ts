@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { adjustAccountBalanceAtomic } from '@/app/actions/transactions';
 import {
   createRecurringBillSchema,
   updateRecurringBillSchema,
@@ -226,22 +227,8 @@ export async function payRecurringBill(id: string) {
     note: `Bill Paid: ${bill.name}${bill.note ? ` - ${bill.note}` : ''}`,
   });
 
-  // 2. Update account balance
-  const { data: account } = await supabase
-    .from('accounts')
-    .select('balance')
-    .eq('id', bill.account_id)
-    .eq('user_id', user.id)
-    .single();
-
-  if (account) {
-    const newBalance = Number(account.balance) - Number(bill.amount);
-    await supabase
-      .from('accounts')
-      .update({ balance: newBalance })
-      .eq('id', bill.account_id)
-      .eq('user_id', user.id);
-  }
+  // 2. Update account balance atomically
+  await adjustAccountBalanceAtomic(supabase, bill.account_id, -Number(bill.amount), user.id);
 
   // 3. Compute next due date based on frequency
   const currentDueDate = new Date(bill.next_due_date + 'T00:00:00');

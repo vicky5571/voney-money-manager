@@ -67,6 +67,57 @@ async function assertCategoryOwnership(
   }
 }
 
+/**
+ * Atomically adjusts an account's balance by `delta` (can be positive or negative)
+ * using the PostgreSQL RPC `increment_account_balance`.
+ * Falls back to safe read-modify-write if the RPC is not present in the current database.
+ */
+export async function adjustAccountBalanceAtomic(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  accountId: string,
+  delta: number,
+  userId: string,
+): Promise<number> {
+  try {
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      "increment_account_balance",
+      {
+        p_account_id: accountId,
+        p_amount: delta,
+        p_user_id: userId,
+      },
+    );
+
+    if (!rpcError && rpcResult !== null && rpcResult !== undefined) {
+      return Number(rpcResult);
+    }
+  } catch {
+    // If RPC invocation throws, fall through to fallback
+  }
+
+  // Fallback: read-modify-write with user_id ownership check
+  const { data: account, error: fetchErr } = await supabase
+    .from("accounts")
+    .select("balance")
+    .eq("id", accountId)
+    .eq("user_id", userId)
+    .single();
+
+  if (fetchErr || !account) {
+    throw new Error("Account not found or access denied");
+  }
+
+  const newBalance = Number(account.balance) + delta;
+  const { error: updateErr } = await supabase
+    .from("accounts")
+    .update({ balance: newBalance })
+    .eq("id", accountId)
+    .eq("user_id", userId);
+
+  if (updateErr) throw updateErr;
+  return newBalance;
+}
+
 export async function getTransactions({
   page = 1,
   limit = 20,
@@ -517,27 +568,10 @@ export async function createTransaction(formData: {
     throw error;
   }
 
-  // Update account balance only if settled
+  // Update account balance atomically only if settled
   if (isSettled) {
-    const { data: account } = await supabase
-      .from("accounts")
-      .select("balance")
-      .eq("id", valid.account_id)
-      .eq("user_id", user.id)
-      .single();
-
-    if (account) {
-      const newBalance =
-        valid.type === "income"
-          ? Number(account.balance) + valid.amount
-          : Number(account.balance) - valid.amount;
-
-      await supabase
-        .from("accounts")
-        .update({ balance: newBalance })
-        .eq("id", valid.account_id)
-        .eq("user_id", user.id);
-    }
+    const delta = valid.type === "income" ? valid.amount : -valid.amount;
+    await adjustAccountBalanceAtomic(supabase, valid.account_id, delta, user.id);
   }
 
   revalidatePath("/");
@@ -576,25 +610,11 @@ export async function settleTransaction(id: string) {
 
   if (updateErr) throw updateErr;
 
-  const { data: account } = await supabase
-    .from("accounts")
-    .select("balance")
-    .eq("id", transaction.account_id)
-    .eq("user_id", user.id)
-    .single();
-
-  if (account) {
-    const newBalance =
-      transaction.type === "income"
-        ? Number(account.balance) + Number(transaction.amount)
-        : Number(account.balance) - Number(transaction.amount);
-
-    await supabase
-      .from("accounts")
-      .update({ balance: newBalance })
-      .eq("id", transaction.account_id)
-      .eq("user_id", user.id);
-  }
+  const delta =
+    transaction.type === "income"
+      ? Number(transaction.amount)
+      : -Number(transaction.amount);
+  await adjustAccountBalanceAtomic(supabase, transaction.account_id, delta, user.id);
 
   revalidatePath("/");
   revalidatePath("/transactions");
@@ -643,26 +663,18 @@ export async function updateTransaction(
   const oldIsSettled = oldTransaction.is_settled ?? true;
   const newIsSettled = valid.is_settled ?? oldIsSettled;
 
-  // Reverse old transaction effect if it was settled
+  // Reverse old transaction effect atomically if it was settled
   if (oldIsSettled) {
-    const { data: oldAccount } = await supabase
-      .from("accounts")
-      .select("balance")
-      .eq("id", oldTransaction.account_id)
-      .eq("user_id", user.id)
-      .single();
-
-    if (oldAccount) {
-      const reversedBalance =
-        oldTransaction.type === "income"
-          ? Number(oldAccount.balance) - Number(oldTransaction.amount)
-          : Number(oldAccount.balance) + Number(oldTransaction.amount);
-      await supabase
-        .from("accounts")
-        .update({ balance: reversedBalance })
-        .eq("id", oldTransaction.account_id)
-        .eq("user_id", user.id);
-    }
+    const reverseDelta =
+      oldTransaction.type === "income"
+        ? -Number(oldTransaction.amount)
+        : Number(oldTransaction.amount);
+    await adjustAccountBalanceAtomic(
+      supabase,
+      oldTransaction.account_id,
+      reverseDelta,
+      user.id,
+    );
   }
 
   // Update transaction
@@ -683,26 +695,15 @@ export async function updateTransaction(
 
   if (error) throw error;
 
-  // Apply new transaction effect if settled
+  // Apply new transaction effect atomically if settled
   if (newIsSettled) {
-    const { data: newAccount } = await supabase
-      .from("accounts")
-      .select("balance")
-      .eq("id", valid.account_id)
-      .eq("user_id", user.id)
-      .single();
-
-    if (newAccount) {
-      const newBalance =
-        valid.type === "income"
-          ? Number(newAccount.balance) + valid.amount
-          : Number(newAccount.balance) - valid.amount;
-      await supabase
-        .from("accounts")
-        .update({ balance: newBalance })
-        .eq("id", valid.account_id)
-        .eq("user_id", user.id);
-    }
+    const newDelta = valid.type === "income" ? valid.amount : -valid.amount;
+    await adjustAccountBalanceAtomic(
+      supabase,
+      valid.account_id,
+      newDelta,
+      user.id,
+    );
   }
 
   revalidatePath("/");
@@ -761,26 +762,18 @@ export async function deleteTransaction(id: string) {
 
   if (error) throw error;
 
-  // Reverse balance only if it was settled
+  // Reverse balance atomically only if it was settled
   if (transaction.is_settled !== false) {
-    const { data: account } = await supabase
-      .from("accounts")
-      .select("balance")
-      .eq("id", transaction.account_id)
-      .eq("user_id", user.id)
-      .single();
-
-    if (account) {
-      const newBalance =
-        transaction.type === "income"
-          ? Number(account.balance) - Number(transaction.amount)
-          : Number(account.balance) + Number(transaction.amount);
-      await supabase
-        .from("accounts")
-        .update({ balance: newBalance })
-        .eq("id", transaction.account_id)
-        .eq("user_id", user.id);
-    }
+    const reverseDelta =
+      transaction.type === "income"
+        ? -Number(transaction.amount)
+        : Number(transaction.amount);
+    await adjustAccountBalanceAtomic(
+      supabase,
+      transaction.account_id,
+      reverseDelta,
+      user.id,
+    );
   }
 
   revalidatePath("/");
@@ -883,19 +876,11 @@ export async function createTransfer(formData: {
     transferCategoryId = otherCat?.[0]?.id ?? null;
   }
 
-  // Deduct from source account (with user_id guard)
-  await supabase
-    .from("accounts")
-    .update({ balance: Number(fromAccount.balance) - formData.amount })
-    .eq("id", fromAccount.id)
-    .eq("user_id", user.id);
+  // Deduct from source account atomically
+  await adjustAccountBalanceAtomic(supabase, fromAccount.id, -formData.amount, user.id);
 
-  // Add to destination account
-  await supabase
-    .from("accounts")
-    .update({ balance: Number(toAccount.balance) + formData.amount })
-    .eq("id", toAccount.id)
-    .eq("user_id", user.id);
+  // Add to destination account atomically
+  await adjustAccountBalanceAtomic(supabase, toAccount.id, formData.amount, user.id);
 
   if (transferCategoryId) {
     // Retroactively heal any past transfer records that were miscategorized as Food
