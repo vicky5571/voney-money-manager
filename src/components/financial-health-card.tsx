@@ -31,6 +31,8 @@ export function FinancialHealthCard({ health, income }: FinancialHealthCardProps
   const [showDetail, setShowDetail] = useState(false);
   const [showTargetModal, setShowTargetModal] = useState(false);
   const [targetPct, setTargetPct] = useState<number>(20);
+  const [tempTargetPct, setTempTargetPct] = useState<number>(targetPct);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem('voney_savings_target_pct');
@@ -45,7 +47,6 @@ export function FinancialHealthCard({ health, income }: FinancialHealthCardProps
       // Ignore
     }
   }, []);
-  const [tempTargetPct, setTempTargetPct] = useState<number>(targetPct);
 
   const handleSaveTarget = (pct: number) => {
     const validPct = Math.min(95, Math.max(1, pct));
