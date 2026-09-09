@@ -1,6 +1,6 @@
 import { createTransaction, createTransfer } from '@/app/actions/transactions';
 import { useAppStore } from '@/lib/store/use-app-store';
-import { generateUuid } from '@/lib/utils';
+import { generateUuid, getMonthKeyFromDateString } from '@/lib/utils';
 
 export interface OfflineTransactionItem {
   id: string;
@@ -388,8 +388,7 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
 
             // Revert optimistic store mutation so ghost pending items don't remain in UI
             try {
-              const txDate = new Date(tx.transaction_date);
-              const monthKey = `${txDate.getMonth() + 1}-${txDate.getFullYear()}`;
+              const monthKey = getMonthKeyFromDateString(tx.transaction_date);
               useAppStore.getState().optimisticDeleteTransaction(tx.id, monthKey);
             } catch {
               // Ignore store revert failure
@@ -440,8 +439,7 @@ export async function syncOfflineQueue(): Promise<{ syncedCount: number; errors:
 
             // Revert optimistic store mutation for transfer
             try {
-              const trDate = new Date(tr.transaction_date);
-              const monthKey = `${trDate.getMonth() + 1}-${trDate.getFullYear()}`;
+              const monthKey = getMonthKeyFromDateString(tr.transaction_date);
               useAppStore.getState().optimisticDeleteTransfer(tr.id, monthKey);
             } catch {
               // Ignore store revert failure

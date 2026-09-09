@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import type { FinancialHealthResult } from '@/lib/financial-health';
+import { getMonthKeyFromDateString } from '@/lib/utils';
 
 export interface CachedTransaction {
   id: string;
@@ -96,8 +97,7 @@ export const useAppStore = create<AppStoreState>((set) => ({
 
   optimisticAddTransaction: (tx) =>
     set((state) => {
-      const date = new Date(tx.transaction_date);
-      const key = `${date.getMonth() + 1}-${date.getFullYear()}`;
+      const key = getMonthKeyFromDateString(tx.transaction_date);
       const currentList = state.txCache[key] || [];
       const isSettled = tx.is_settled ?? true;
 
@@ -146,8 +146,7 @@ export const useAppStore = create<AppStoreState>((set) => ({
 
   optimisticAddTransfer: (params) =>
     set((state) => {
-      const date = new Date(params.transaction_date);
-      const key = `${date.getMonth() + 1}-${date.getFullYear()}`;
+      const key = getMonthKeyFromDateString(params.transaction_date);
       const currentList = state.txCache[key] || [];
 
       const transferCategory = {

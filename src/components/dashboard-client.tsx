@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { formatCurrency, formatDate, cn, getGreeting } from "@/lib/utils";
+import { formatCurrency, formatDate, cn, getGreeting, getMonthKeyFromDateString } from "@/lib/utils";
 import { getOfflineQueueCount, syncOfflineQueue, removeOfflineTx, removeOfflineTransfer } from "@/lib/offline-sync";
 import { deleteTransaction } from "@/app/actions/transactions";
 import dynamic from "next/dynamic";
@@ -286,8 +286,7 @@ export function DashboardClient({
     removeOfflineTransfer(id);
     const targetTx = recentTxList.find((t) => t.id === id);
     if (targetTx) {
-      const [yearStr, monthStr] = targetTx.transaction_date.split("-");
-      const monthKey = `${parseInt(monthStr, 10)}-${parseInt(yearStr, 10)}`;
+      const monthKey = getMonthKeyFromDateString(targetTx.transaction_date);
       useAppStore.getState().optimisticDeleteTransaction(id, monthKey);
       useAppStore.getState().optimisticDeleteTransfer(id, monthKey);
     }
@@ -301,8 +300,7 @@ export function DashboardClient({
     removeOfflineTransfer(id);
     const targetTx = recentTxList.find((t) => t.id === id);
     if (targetTx) {
-      const [yearStr, monthStr] = targetTx.transaction_date.split("-");
-      const monthKey = `${parseInt(monthStr, 10)}-${parseInt(yearStr, 10)}`;
+      const monthKey = getMonthKeyFromDateString(targetTx.transaction_date);
       useAppStore.getState().optimisticDeleteTransaction(id, monthKey);
       useAppStore.getState().optimisticDeleteTransfer(id, monthKey);
     }

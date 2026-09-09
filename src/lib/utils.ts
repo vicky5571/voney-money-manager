@@ -47,6 +47,20 @@ export function sumAmounts(amounts: (string | number)[]): number {
   return amounts.reduce<number>((acc, a) => acc + toCents(a), 0) / 100;
 }
 
+/** Extract month-year key ("M-YYYY") directly from "YYYY-MM-DD" string without UTC/local timezone shifts */
+export function getMonthKeyFromDateString(dateStr: string): string {
+  const parts = dateStr.split("-");
+  if (parts.length >= 2) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    if (!isNaN(year) && !isNaN(month)) {
+      return `${month}-${year}`;
+    }
+  }
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}-${d.getFullYear()}`;
+}
+
 /** Get time-based greeting based on location/timezone */
 export function getGreeting(
   date: Date = new Date(),
