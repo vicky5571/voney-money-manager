@@ -566,7 +566,6 @@ export function AccountsClient({
           <div ref={containerRef} className="grid gap-4">
             {items.map((account, index) => {
               const isDragging = activeDragId === account.id;
-              const dragControls = useDragControls();
               return (
                 <WalletRow
                   key={account.id}
@@ -574,7 +573,6 @@ export function AccountsClient({
                   index={index}
                   isEditing={isEditing}
                   isDragging={isDragging}
-                  dragControls={dragControls}
                   onStartHold={handleStartHold}
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
@@ -771,7 +769,6 @@ function WalletRow({
   index,
   isEditing,
   isDragging,
-  dragControls,
   onStartHold,
   onPointerMove,
   onPointerUp,
@@ -785,7 +782,6 @@ function WalletRow({
   index: number;
   isEditing: boolean;
   isDragging: boolean;
-  dragControls: DragControls;
   onStartHold: (id: string, e: React.PointerEvent, controls: DragControls) => void;
   onPointerMove: (e: React.PointerEvent) => void;
   onPointerUp: (id: string, account: AccountData, e?: React.PointerEvent) => void;
@@ -795,6 +791,7 @@ function WalletRow({
   onDragEnd: () => void;
   onAdjust: () => void;
 }) {
+  const dragControls = useDragControls();
   return (
     <motion.div
       layout
