@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Wallet, Loader2, AlertCircle } from "lucide-react";
+import { Wallet, Loader2, AlertCircle, Copy, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 
@@ -21,6 +21,26 @@ function LoginForm() {
     urlError || null,
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isDemoFilled, setIsDemoFilled] = useState(false);
+
+  const handleFillDemo = () => {
+    setEmail("voney.demo@gmail.com");
+    setPassword("password123");
+    setErrorMessage(null);
+    setIsDemoFilled(true);
+    setTimeout(() => setIsDemoFilled(false), 2000);
+  };
+
+  const handleCopy = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch {
+      // Fallback if clipboard API is not available
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -176,6 +196,71 @@ function LoginForm() {
           Sign up
         </Link>
       </p>
+
+      {/* Demo Account Credentials */}
+      <div className="mt-6 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 text-left">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="text-xs font-semibold tracking-wide text-emerald-600 dark:text-emerald-400">
+            <span>Demo Account</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleFillDemo}
+            className="text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 bg-emerald-100/80 dark:bg-emerald-950/60 hover:bg-emerald-200/80 dark:hover:bg-emerald-900/80 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 min-h-[32px]"
+          >
+            {isDemoFilled ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Filled!</span>
+              </>
+            ) : (
+              <span>Auto-fill</span>
+            )}
+          </button>
+        </div>
+
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between py-1.5 px-3 rounded-xl bg-white dark:bg-zinc-800/80 border border-zinc-200/70 dark:border-zinc-700/60">
+            <span className="text-zinc-500 dark:text-zinc-400 font-medium">Email</span>
+            <div className="flex items-center gap-1.5 font-mono text-zinc-900 dark:text-zinc-100 font-semibold">
+              <span className="select-all">voney.demo@gmail.com</span>
+              <button
+                type="button"
+                onClick={() => handleCopy("voney.demo@gmail.com", "email")}
+                title="Copy email"
+                aria-label="Copy email"
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors p-1 rounded-md"
+              >
+                {copiedField === "email" ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between py-1.5 px-3 rounded-xl bg-white dark:bg-zinc-800/80 border border-zinc-200/70 dark:border-zinc-700/60">
+            <span className="text-zinc-500 dark:text-zinc-400 font-medium">Password</span>
+            <div className="flex items-center gap-1.5 font-mono text-zinc-900 dark:text-zinc-100 font-semibold">
+              <span className="select-all">password123</span>
+              <button
+                type="button"
+                onClick={() => handleCopy("password123", "password")}
+                title="Copy password"
+                aria-label="Copy password"
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors p-1 rounded-md"
+              >
+                {copiedField === "password" ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
