@@ -199,7 +199,65 @@ async function seedDemo() {
 
       // 7. Seed Sample Transactions (Rich realistic history across 45 days)
       const transactionsToSeed = [
-        // --- October 2026 (Recent) ---
+        // --- October 2026: Business Activity (Current Month) ---
+        {
+          account: 'Bank BCA',
+          category: 'Client Project',
+          type: 'income',
+          amount: 8500000,
+          note: 'SaaS Mobile App UI/UX Redesign - Milestone 2 payment',
+          date: formatDt(0), // Today (Oct 2)
+        },
+        {
+          account: 'Bank BCA',
+          category: 'Business Expense',
+          type: 'expense',
+          amount: 450000,
+          note: 'Vercel Pro & Cloud Server hosting fee',
+          date: formatDt(0), // Today (Oct 2)
+        },
+        {
+          account: 'GoPay',
+          category: 'Business Expense',
+          type: 'expense',
+          amount: 68000,
+          note: 'Client meeting coffee & pastry at Common Grounds',
+          date: formatDt(0), // Today (Oct 2)
+        },
+        {
+          account: 'Bank BCA',
+          category: 'Freelance',
+          type: 'income',
+          amount: 4200000,
+          note: 'Design System implementation consulting retainer',
+          date: formatDt(1), // Oct 1
+        },
+        {
+          account: 'Bank BCA',
+          category: 'Business Expense',
+          type: 'expense',
+          amount: 240000,
+          note: 'Figma Professional Team monthly seat',
+          date: formatDt(1), // Oct 1
+        },
+        {
+          account: 'Dana',
+          category: 'Client Project',
+          type: 'income',
+          amount: 1500000,
+          note: 'Landing page performance optimization retainer',
+          date: formatDt(1), // Oct 1
+        },
+        {
+          account: 'Bank BCA',
+          category: 'Business Expense',
+          type: 'expense',
+          amount: 350000,
+          note: 'Envato Elements & typography commercial license',
+          date: formatDt(1), // Oct 1
+        },
+
+        // --- October 2026: Personal Expenses & Income ---
         {
           account: 'GoPay',
           category: 'Food',
@@ -353,6 +411,22 @@ async function seedDemo() {
           amount: 450000,
           note: 'Mega Fit gym monthly membership',
           date: formatDt(13),
+        },
+        {
+          account: 'Bank BCA',
+          category: 'Client Project',
+          type: 'income',
+          amount: 12000000,
+          note: 'Fintech Mobile Banking App - Phase 1 Deliverables',
+          date: formatDt(14),
+        },
+        {
+          account: 'Bank BCA',
+          category: 'Business Expense',
+          type: 'expense',
+          amount: 1200000,
+          note: 'WeWork co-working dedicated desk monthly fee',
+          date: formatDt(15),
         },
         {
           account: 'Dana',
