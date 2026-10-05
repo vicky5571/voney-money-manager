@@ -46,3 +46,33 @@ export const resetPasswordSchema = z
   });
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+/**
+ * Determines whether a user can safely unlink a provider without being locked out.
+ * A user can unlink a provider only if:
+ * 1. They have an active password account (can sign in with email/password), OR
+ * 2. They have at least one other linked authentication provider remaining.
+ */
+export function canUnlinkProvider(params: {
+  hasPasswordAccount: boolean;
+  linkedProviders: string[];
+  providerToUnlink: string;
+}): { allowed: boolean; reason?: string } {
+  const remainingProviders = params.linkedProviders.filter(
+    (p) => p.toLowerCase() !== params.providerToUnlink.toLowerCase()
+  );
+
+  const hasAlternativeAuth =
+    params.hasPasswordAccount || remainingProviders.length > 0;
+
+  if (!hasAlternativeAuth) {
+    return {
+      allowed: false,
+      reason:
+        'Cannot unlink your only sign-in method. Set a password first to avoid permanent account lockout.',
+    };
+  }
+
+  return { allowed: true };
+}
+

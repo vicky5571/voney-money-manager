@@ -4,6 +4,7 @@ import {
   setInitialPasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  canUnlinkProvider,
 } from "../validations/auth";
 
 function test(name: string, fn: () => void) {
@@ -150,6 +151,35 @@ test("resetPasswordSchema fails when password is too short", () => {
     confirmPassword: "123",
   });
   assert.equal(result.success, false);
+});
+
+// 5. Provider Unlinking & Lockout Safety Tests
+test("canUnlinkProvider allows unlinking when user has an active password account", () => {
+  const result = canUnlinkProvider({
+    hasPasswordAccount: true,
+    linkedProviders: ["google"],
+    providerToUnlink: "google",
+  });
+  assert.equal(result.allowed, true);
+});
+
+test("canUnlinkProvider blocks unlinking when user has no password and only one provider", () => {
+  const result = canUnlinkProvider({
+    hasPasswordAccount: false,
+    linkedProviders: ["google"],
+    providerToUnlink: "google",
+  });
+  assert.equal(result.allowed, false);
+  assert.ok(result.reason?.includes("Cannot unlink your only sign-in method"));
+});
+
+test("canUnlinkProvider allows unlinking when user has no password but another provider exists", () => {
+  const result = canUnlinkProvider({
+    hasPasswordAccount: false,
+    linkedProviders: ["google", "apple"],
+    providerToUnlink: "google",
+  });
+  assert.equal(result.allowed, true);
 });
 
 console.log("Auth validation tests completed successfully!");

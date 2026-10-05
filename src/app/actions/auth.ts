@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import {
   changePasswordSchema,
   setInitialPasswordSchema,
+  canUnlinkProvider,
   type ChangePasswordInput,
   type SetInitialPasswordInput,
 } from '@/lib/validations/auth';
@@ -18,6 +19,8 @@ export interface UserProfileData {
   createdAt: string;
   provider: string;
   hasPasswordAccount: boolean;
+  isGoogleLinked: boolean;
+  googleEmail?: string;
 }
 
 export async function getUserProfile(): Promise<UserProfileData> {
@@ -39,8 +42,13 @@ export async function getUserProfile(): Promise<UserProfileData> {
     .single();
 
   const providers = (user.app_metadata?.providers as string[] | undefined) || [];
+  const identities = user.identities || [];
   const primaryProvider = (user.app_metadata?.provider as string | undefined) || (providers[0] || 'email');
   const hasPasswordAccount = providers.includes('email') || primaryProvider === 'email';
+
+  const googleIdentity = identities.find((i) => i.provider === 'google');
+  const isGoogleLinked = providers.includes('google') || Boolean(googleIdentity);
+  const googleEmail = (googleIdentity?.identity_data?.email as string | undefined) || undefined;
 
   return {
     id: user.id,
@@ -50,6 +58,8 @@ export async function getUserProfile(): Promise<UserProfileData> {
     createdAt: dbUser?.created_at || user.created_at,
     provider: primaryProvider,
     hasPasswordAccount,
+    isGoogleLinked,
+    googleEmail,
   };
 }
 
@@ -174,6 +184,56 @@ export async function setInitialPasswordAction(
     return { success: false, error: updateError.message };
   }
 
+  return { success: true };
+}
+
+export async function unlinkGoogleIdentityAction(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  const providers = (user.app_metadata?.providers as string[] | undefined) || [];
+  const identities = user.identities || [];
+  const primaryProvider = (user.app_metadata?.provider as string | undefined) || (providers[0] || 'email');
+  const hasPasswordAccount = providers.includes('email') || primaryProvider === 'email';
+
+  const linkedProviders = Array.from(
+    new Set([
+      ...providers,
+      ...identities.map((i) => i.provider),
+    ])
+  );
+
+  const check = canUnlinkProvider({
+    hasPasswordAccount,
+    linkedProviders,
+    providerToUnlink: 'google',
+  });
+
+  if (!check.allowed) {
+    return { success: false, error: check.reason || 'Cannot unlink provider' };
+  }
+
+  const googleIdentity = identities.find((i) => i.provider === 'google');
+  if (!googleIdentity) {
+    return { success: false, error: 'Google account is not linked' };
+  }
+
+  const { error: unlinkError } = await supabase.auth.unlinkIdentity(googleIdentity);
+  if (unlinkError) {
+    return { success: false, error: unlinkError.message };
+  }
+
+  revalidatePath('/profile');
   return { success: true };
 }
 
