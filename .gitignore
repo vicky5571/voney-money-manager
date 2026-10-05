@@ -1,6 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -9,47 +9,121 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+jspm_packages/
+web_modules/
 
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
+# Logs & Debug
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 .pnpm-debug.log*
 
-# env files
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data & PIDs
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Testing & Coverage
+/coverage
+*.lcov
+.nyc_output
+
+# Next.js & Production Build Output
+/.next/
+/out/
+/build
+/dist
+.turbo
+next-env.d.ts
+
+# Tooling & Caches
+.npm
+.eslintcache
+.stylelintcache
+.parcel-cache
+*.tsbuildinfo
+.node_repl_history
+*.tgz
+
+# Environment & Secret files
 .env
 .env.*
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 !.env.example
+*.pem
 
-# vercel
+# Vercel
 .vercel
 
-# android / TWA + Capacitor
+# Android / Mobile / Capacitor
+local.properties
+android/local.properties
+android-app/local.properties
+.gradle/
+android/.gradle/
+android-app/.gradle/
+build/
+android/app/build/
+android/app/release/
+android-app/build/
+android-app/app/build/
+android-app/app/release/
+android/capacitor-cordova-android-plugins/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
 *.keystore
 *.jks
-android-app/app/build/
-android-app/build/
-android-app/.gradle/
-android-app/app/release/
 *.idsig
-android/app/build/
-android/.gradle/
-android/capacitor-cordova-android-plugins/
+output-metadata.json
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Supabase
+.supabase/
+supabase/.temp/
+
+# IDEs and Editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Operating System Files
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+# Windows
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+
+# AI Agents & Local Assistants Caches
+.kiro/
+.serena/cache/
+.serena/project.local.yml

@@ -7,7 +7,8 @@ function test(name: string, fn: () => void) {
 }
 
 test('excellent score when savings 30% + under budget + runway 60d + no overdue', () => {
-  const r = calculateFinancialHealth({ income: 10000, expense: 7000, totalBalance: 30000, totalBudget: 8000, totalBudgetSpent: 5000, hasOverdueBills: false, month: 8, year: 2026 });
+  const now = new Date();
+  const r = calculateFinancialHealth({ income: 10000, expense: 7000, totalBalance: 30000, totalBudget: 8000, totalBudgetSpent: 5000, hasOverdueBills: false, month: now.getMonth() + 1, year: now.getFullYear() });
   assert.ok(r.score >= 70);
   assert.equal(r.isPastMonth, false);
 });
